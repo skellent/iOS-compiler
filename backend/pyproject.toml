@@ -1,0 +1,12 @@
+[project]
+name = "PanicSwitch_Backend"
+version = "0.1.0"
+description = "PanicSwitch API for app"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.139.0",
+    "mariadb>=1.1.14",
+    "python-dotenv>=1.2.2",
+    "uvicorn>=0.51.0",
+]
