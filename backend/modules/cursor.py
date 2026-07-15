@@ -2,8 +2,8 @@ import mariadb
 import sys
 
 class Querys:
-
     SHOW_TABLES: str = "SHOW TABLES;"
+    INSERT_USUARIO: str = "INSERT INTO usuarios (nombre, telefono, correo, contraseña_hash) VALUES (%s, %s, %s, %s);"
 
 class Cursor:
 
@@ -22,9 +22,16 @@ class Cursor:
         self.cursor = self.conn.cursor(dictionary=True)
 
 
-    def execute(self, query: str) -> list[dict]:
-        self.cursor.execute(query)
-        return self.cursor.fetchall()
+    def execute(self, query: str, params: tuple = ()) -> list[dict]:
+        self.cursor.execute(query, params)
+        try:
+            return self.cursor.fetchall()
+        except mariadb.ProgrammingError:
+            return []
+
+
+    def commit(self) -> None:
+        self.conn.commit()
 
 
     def close(self) -> None:
