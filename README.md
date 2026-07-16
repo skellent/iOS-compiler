@@ -35,7 +35,24 @@ PASSWORD=''
 HOST=''
 PORT=
 DATABASE=''
+JWT_SECRET_KEY=''
 ```
+
+`JWT_SECRET_KEY` es la clave con la que el backend firma y verifica los tokens de sesión (JWT) que emite `POST /auth/login` — ver `docs/backend/token.md` para el detalle de cómo se usa. No es una credencial de MariaDB, así que no sale de la configuración de la base de datos del paso 1: hay que generarla aparte.
+
+#### Generar `JWT_SECRET_KEY` para producción
+
+Tiene que ser una cadena larga y aleatoria, no una frase elegida a mano — cualquiera que la conozca puede firmar tokens válidos para cualquier usuario del sistema. Para generar una en la máquina donde se vaya a desplegar el backend, con `uv` ya instalado y `uv sync` ya ejecutado (paso 2), alcanza con:
+
+```bash
+uv run python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Esto imprime una cadena hexadecimal de 64 caracteres (256 bits de entropía) que se pega tal cual como valor de `JWT_SECRET_KEY` en el `.env` de ese entorno. Cada entorno (desarrollo, producción, etc.) debería tener su propio secreto generado por separado — no reutilizar el mismo valor entre ellos, y nunca versionarlo (por eso `.env` está en `.gitignore`).
+
+# Uso de la API
+
+Con el servidor corriendo, la API expone rutas de registro y login (`/auth`), gestión del usuario autenticado (`/usuarios/me`) y contactos de emergencia (`/contactos`). La guía completa de cada endpoint, con ejemplos de consumo en Python y JavaScript (pensados para el futuro cliente Capacitor), está en [`backend/API.md`](backend/API.md). Las decisiones de diseño detrás de cada módulo del backend (por qué JWT, por qué esa estructura de rutas, etc.) están documentadas una por una en [`docs/backend/`](docs/backend/).
 
 # Preparación y Compilación de Aplicaciones
 
