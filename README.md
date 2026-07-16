@@ -58,3 +58,29 @@ Con el servidor corriendo, la API expone rutas de registro y login (`/auth`), ge
 
 > Pendiente por comenzar el desarrollo de la aplicación y detalles técnicos
 > Será desarrollada con capacitor.js y estará disponible para Android y iOS
+
+# Historial de Commits
+
+```mermaid
+gitGraph
+   commit id: "83b5d3e Initial commit"
+   branch devs
+   checkout devs
+   commit id: "bd81c9c Preparación del entorno"
+   commit id: "905986f Documentación + servidor de prueba"
+   branch testing
+   checkout testing
+   commit id: "1392a31 Login JWT + Contactos + fix duplicados"
+   commit id: "872b6db Documentación al día"
+   commit id: "89d570e JWT_SECRET_KEY en README"
+   checkout devs
+   merge testing id: "bea6008 Merge testing -> devs"
+```
+
+- **`83b5d3e` — Initial commit** (rama `main`): primer commit del repositorio, solo el `README.md` inicial. `main` no volvió a avanzar desde acá; todo el desarrollo ocurre en `devs` (y, temporalmente, en ramas como `testing`).
+- **`bd81c9c` — Preparación del entorno de Python**: primer esqueleto funcional del backend — `pyproject.toml`, la clase `Cursor` para hablar con MariaDB, `credenciales.py`, y los scripts SQL de creación de tablas. Se corroboró que la conexión a la base de datos funcionaba correctamente con un `.env` real.
+- **`905986f` — Redacción de documentación + Servidor de prueba**: primer endpoint de negocio (`POST /registrar/usuario`), `Guard` para el hash de contraseñas con bcrypt, y el primer lote de documentación en `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
+- **`1392a31` — Login con JWT, CRUD de Contactos, edición de Usuarios y fix de duplicados** (mergeado desde `testing`): corrige el bug de insertar datos que chocan con un `UNIQUE` existente (ahora responde `409` en vez de un `500` sin manejar), estandariza las rutas bajo `/auth`, `/usuarios` y `/contactos`, agrega login con JWT, y el CRUD completo de contactos de emergencia y edición de usuarios.
+- **`872b6db` — Documentación al día con JWT, routers y CRUD de Contactos/Usuarios** (mergeado desde `testing`): actualiza toda la documentación de `docs/backend/` para que refleje el código del commit anterior, y agrega `backend/API.md` con ejemplos de uso en Python y JavaScript.
+- **`89d570e` — Documentar JWT_SECRET_KEY y uso de la API en el README** (mergeado desde `testing`): agrega al README los pasos para generar el secreto de JWT en producción y enlaza la documentación de la API.
+- **`bea6008` — Merge testing → devs**: integra los tres commits anteriores (desarrollados y revisados primero en la rama local `testing`) a `devs`, trayendo todo el trabajo de esta etapa a la rama principal de desarrollo.
