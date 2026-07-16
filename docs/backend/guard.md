@@ -27,4 +27,9 @@ En `backend/pyproject.toml` la dependencia está fijada como `"bcrypt<4.1"`. Est
 
 ## Relación con el resto del backend
 
-`main.py` llama a `Guard.Crear(data.contraseña)` justo antes de insertar un nuevo usuario, de modo que el valor que llega a `Querys.INSERT_USUARIO` (y por lo tanto a la base de datos) es siempre el hash, nunca la contraseña original. `Guard.Validar` está pensado para el futuro endpoint de inicio de sesión (login), que aún no está implementado en `main.py`.
+`Guard` se usa en dos puntos distintos de `modules/routers/` (ver `routers.md`):
+
+- `auth.py` llama a `Guard.Crear(data.contraseña)` justo antes de insertar un nuevo usuario (`POST /auth/registro`) y también dentro de `PUT /usuarios/me` cuando el cliente decide cambiar su contraseña (`usuarios.py`), de modo que el valor que llega a la base de datos es siempre el hash, nunca la contraseña original.
+- `auth.py` llama a `Guard.Validar(data.contraseña, fila["contraseña_hash"])` dentro de `POST /auth/login`: trae el hash guardado con `Querys.SELECT_USUARIO_POR_CORREO` (ver `cursor.md`) y compara la contraseña en texto plano que mandó el cliente contra ese hash. Si coincide, se emite un JWT con `Token.Crear` (ver `token.md`); si no, el endpoint responde `401 Unauthorized` sin dar más detalle sobre si el correo existe o la contraseña es la que falló, para no ayudar a alguien a enumerar qué correos están registrados.
+
+Con esto, los dos métodos de `Guard` que existían desde el principio del proyecto ya están en uso.

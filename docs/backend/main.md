@@ -2,25 +2,81 @@
 
 ## Propósito
 
-Es el punto de entrada de la API: aquí se instancia la aplicación FastAPI, se establece la conexión a la base de datos y se declaran los endpoints HTTP. Es el módulo que `uvicorn` carga al ejecutar `uvicorn main:app` (ver README, sección "Preparar el Entorno").
+Es el punto de entrada de la API: aquí se instancia la aplicación FastAPI y se monta el resto de la funcionalidad. Es el módulo que `uvicorn` carga al ejecutar `uvicorn main:app` (ver README, sección "Preparar el Entorno").
+
+```python
+from modules.routers import auth, usuarios, contactos
+
+from fastapi          import FastAPI
+
+
+app = FastAPI()
+
+@app.get("/")
+def root():
+    return {"Skellent": "You shouldn't be here, boy!" }
+
+
+app.include_router(auth.router)
+app.include_router(usuarios.router)
+app.include_router(contactos.router)
+```
+
+Antes había un solo endpoint de negocio (`registrar_usuario`) escrito directamente aquí, y `main.py` también era responsable de leer las credenciales y abrir la conexión a MariaDB. Con la llegada del login, la edición de usuarios y el CRUD de contactos, ese archivo hubiera crecido sin límite y hubiera mezclado en un mismo lugar cosas que no tienen que ver entre sí (registro, autenticación, contactos). Por eso este archivo se vació a propósito: ahora `main.py` solo hace dos cosas — crear la app y decirle qué routers existen — y toda la lógica de negocio vive en `modules/routers/` (ver `routers.md`).
+
+## Diagrama de módulos
+
+```mermaid
+flowchart TD
+    subgraph main["main.py"]
+        APP["FastAPI app"]
+    end
+
+    subgraph routers["modules/routers/ (routers.md)"]
+        AUTH["auth.py<br/>/auth/registro<br/>/auth/login"]
+        USR["usuarios.py<br/>/usuarios/me"]
+        CON["contactos.py<br/>/contactos"]
+    end
+
+    DEPS["modules/dependencies.py<br/>usuario_actual"]
+    TOKEN["modules/token.py<br/>Token"]
+    GUARD["modules/guard.py<br/>Guard"]
+    DB["modules/db.py<br/>cursor"]
+    CURSOR["modules/cursor.py<br/>Cursor / Querys"]
+    CRED["modules/credenciales.py"]
+    MARIADB[(MariaDB)]
+
+    APP --> AUTH
+    APP --> USR
+    APP --> CON
+
+    AUTH --> GUARD
+    AUTH --> TOKEN
+    AUTH --> DB
+
+    USR --> DEPS
+    USR --> DB
+    USR --> GUARD
+
+    CON --> DEPS
+    CON --> DB
+
+    DEPS --> TOKEN
+
+    DB --> CURSOR
+    DB --> CRED
+    CURSOR --> MARIADB
+```
+
+Este diagrama es, en el fondo, el mapa de dependencias entre módulos que hoy tiene el backend. Es útil tenerlo en la cabeza porque explica de un vistazo por qué `main.py` importa lo que importa y nada más: no necesita saber nada de `mariadb`, de JWT ni de bcrypt, solo necesita conocer los tres routers y montarlos.
 
 ## Inicialización a nivel de módulo
 
 ```python
-credenciales: dict = obtener_credenciales()
-
-cursor: Cursor = Cursor(
-    credenciales['database']['user'],
-    credenciales['database']['password'],
-    credenciales['database']['host'],
-    credenciales['database']['port'],
-    credenciales['database']['database'],
-)
-
 app = FastAPI()
 ```
 
-Antes de declarar cualquier endpoint, el módulo lee las credenciales (`credenciales.md`) y abre **una única conexión** a MariaDB envuelta en `Cursor` (`cursor.md`). Esto ocurre una sola vez, cuando el proceso arranca, no en cada petición HTTP. Es un diseño deliberadamente simple para el estado actual del proyecto: evita la complejidad de un pool de conexiones, a costa de que toda la aplicación comparta ese único objeto `cursor` en memoria durante toda su vida útil. Como se explica en `cursor.md`, si esta conexión falla al arrancar, el proceso completo termina (`sys.exit(1)`) en vez de servir una API que fallaría en cada request — se prefiere un fallo temprano y explícito a uno tardío y confuso.
+Esto es todo lo que `main.py` inicializa por sí mismo. La conexión a MariaDB (antes creada aquí, ver el historial de este documento en git si hace falta comparar) ahora se abre en `modules/db.py` (ver `db.md`) la primera vez que algún router lo importa. El comportamiento de fondo es idéntico al de antes — sigue siendo **una única conexión** compartida, abierta al arrancar el proceso, no una por request — solo cambió el archivo donde vive ese código, para que los routers puedan importarla sin depender de `main.py` (lo que hubiera generado un import circular: `main` importa a los routers, y los routers necesitarían importar de vuelta a `main` para obtener el cursor).
 
 ## `GET /`
 
@@ -30,34 +86,18 @@ def root():
     return {"Skellent": "You shouldn't be here, boy!" }
 ```
 
-Es la ruta raíz de la API. No cumple una función de negocio: sirve como comprobación rápida de que el servidor está arriba y respondiendo (un endpoint de vida/"health check" informal), y de paso dificulta un poco la exploración casual de la API por parte de alguien que llegue a la raíz sin saber qué está mirando.
+Es la ruta raíz de la API. No cumple una función de negocio: sirve como comprobación rápida de que el servidor está arriba y respondiendo (un endpoint de vida/"health check" informal), y de paso dificulta un poco la exploración casual de la API por parte de alguien que llegue a la raíz sin saber qué está mirando. Es la única ruta que se queda a vivir directamente en `main.py`: no pertenece a ningún recurso de negocio (no es "usuarios", no es "contactos"), así que no tiene sentido moverla a un router.
 
-## `POST /registrar/usuario`
+## `app.include_router(...)`
 
 ```python
-@app.post("/registrar/usuario", status_code=201)
-def registrar_usuario(data: Usuario):
-
-    hash_contraseña: str = Guard.Crear(data.contraseña)
-    cursor.execute(Querys.INSERT_USUARIO, (
-        data.nombre,
-        data.telefono,
-        data.correo,
-        hash_contraseña)
-    )
-    cursor.commit()
-
-    return {"Skellent": "Success!"}
+app.include_router(auth.router)
+app.include_router(usuarios.router)
+app.include_router(contactos.router)
 ```
 
-Este es el único endpoint de negocio implementado hasta ahora: da de alta un nuevo usuario. El flujo, en orden, es:
-
-1. **Validación de entrada**: el parámetro `data: Usuario` hace que FastAPI valide el cuerpo de la petición contra el modelo `Usuario` (`types.md`) antes de que esta función se ejecute siquiera. Si falta un campo o tiene el tipo equivocado, el cliente recibe un `422` automáticamente.
-2. **Hashing de la contraseña**: `Guard.Crear(data.contraseña)` (`guard.md`) transforma la contraseña en texto plano recibida en un hash de bcrypt. Esto ocurre *antes* de tocar la base de datos: en ningún momento el texto plano llega a formar parte de la consulta SQL ni se persiste.
-3. **Inserción parametrizada**: `cursor.execute` recibe la consulta `Querys.INSERT_USUARIO` (`cursor.md`) junto con una tupla de valores. Los valores se pasan por separado de la cadena SQL (no se interpolan con f-strings) precisamente para que el conector de MariaDB los escape correctamente y así evitar inyección SQL.
-4. **Confirmación explícita**: `cursor.commit()` persiste la transacción. Sin esta llamada, el `INSERT` quedaría pendiente y se perdería si la conexión se cerrara.
-5. **Código de estado `201`**: se declara explícitamente en el decorador (`status_code=201`) en vez de aceptar el `200` por defecto de FastAPI, porque semánticamente la operación crea un recurso nuevo (un usuario), y `201 Created` es el código HTTP pensado exactamente para eso.
+Cada módulo dentro de `modules/routers/` define su propio `APIRouter` con un prefijo (`/auth`, `/usuarios`, `/contactos`) y sus propios endpoints (ver `routers.md` para el detalle de cada uno). `include_router` es el mecanismo que ofrece FastAPI para "pegar" esas rutas, ya definidas en otro archivo, a la aplicación principal, como si hubieran sido declaradas directamente sobre `app`. Esto es lo que permite que el proyecto escale a más funcionalidad (alertas, en el futuro) sin que `main.py` vuelva a crecer: solo haría falta un archivo `routers/alertas.py` nuevo y una línea más aquí.
 
 ## Qué falta (por ahora)
 
-No hay endpoint de login, ni de gestión de contactos de emergencia, ni de registro de alertas, aunque el esquema de base de datos (`sql.md`) ya contempla las tablas `contactos` y `alertas`, y `Guard.Validar` (`guard.md`) ya existe pero no se usa todavía en ningún endpoint. Esto refleja el estado temprano del desarrollo: el registro de usuario es el primer flujo completo (API → validación → hashing → persistencia) y sienta el patrón que se espera repetir para el resto de la funcionalidad.
+El registro de alertas (activar el botón de pánico en sí) todavía no tiene endpoint ni router propio, aunque la tabla `alertas` ya existe en el esquema (ver `sql.md`). Tampoco hay todavía integración con ninguna API de terceros (Twilio u otra) para notificar a los contactos de emergencia cuando eso ocurra — ese es, en el fondo, el propósito final de la aplicación, y las piezas construidas hasta ahora (usuarios, login, contactos) son la base sobre la que ese flujo se va a apoyar.

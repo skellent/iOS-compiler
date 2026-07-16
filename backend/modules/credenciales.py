@@ -16,5 +16,8 @@ def obtener_credenciales() -> dict:
         "api": { # Proximanente, la lectura de las credenciales correspondientes de la API que realizan las alertas
             'Auth': None,
             'Key':  None,
+        },
+        "jwt": {
+            'secret_key': os.getenv("JWT_SECRET_KEY"),
         }
     }

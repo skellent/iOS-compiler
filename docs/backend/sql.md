@@ -75,7 +75,7 @@ CREATE TABLE alertas (
 
 Es el registro histórico de cada vez que un usuario activa el botón de pánico: qué usuario, cuándo (`fecha_hora`, con el mismo patrón de `DEFAULT CURRENT_TIMESTAMP` que `usuarios.creado_en`) y dónde (`latitud`/`longitud` como `DOUBLE`, la precisión estándar para coordenadas GPS). Esta tabla es, en cierto sentido, la razón de ser del proyecto: las otras dos tablas existen para poder responder correctamente cuando aquí se inserta una fila.
 
-Ninguno de los endpoints actuales de `main.py` escribe en `contactos` ni en `alertas` todavía; el esquema está preparado con anticipación a esa funcionalidad.
+Desde que se agregó el CRUD de contactos (ver `routers.md`), esta tabla ya se lee y escribe activamente: `POST /contactos`, `GET /contactos` y `PUT /contactos/{id}`. Nótese que ninguno de esos endpoints toca la columna `confirmado` — sigue sin existir el paso de confirmación (mensaje o correo de verificación) descrito arriba, así que todo contacto creado hoy queda en `FALSE` indefinidamente hasta que ese flujo se implemente. `alertas`, en cambio, todavía no tiene ningún endpoint que la use; el esquema sigue preparado con anticipación a esa funcionalidad.
 
 ## `insertions.sql` — datos de ejemplo
 
