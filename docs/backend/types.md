@@ -94,4 +94,4 @@ Cada modelo se usa como tipo de parámetro en exactamente un endpoint de `module
 
 `GET /contactos/confirmar/{token}` (ver `routers.md`, `correo.md`) es la única excepción a "un endpoint, un modelo": no recibe cuerpo, el `token` viaja en la URL, así que no necesitó ningún modelo nuevo acá.
 
-A medida que la API crezca (integración con una API de terceros como Twilio para notificar por SMS, ver `TASK.md`), se espera que este archivo siga acumulando un modelo por cada forma de dato que entra o sale de la API, siguiendo el mismo patrón.
+A medida que la API crezca (integración con una API de terceros como Twilio para notificar por SMS), se espera que este archivo siga acumulando un modelo por cada forma de dato que entra o sale de la API, siguiendo el mismo patrón.

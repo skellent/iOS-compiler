@@ -113,4 +113,4 @@ Cada módulo dentro de `modules/routers/` define su propio `APIRouter` con un pr
 
 ## Qué falta (por ahora)
 
-El registro de alertas (`POST /alertas`, ver `routers.md`) ya existe y ya notifica por correo a los contactos de emergencia **confirmados** del usuario (ver `correo.md`, `sql.md`). Lo que sigue pendiente es notificar también por SMS u otro canal además de correo — la integración con la API de Twilio (o equivalente) sigue sin empezar (ver `TASK.md`), y es relevante en particular para los contactos que no tienen `correo` cargado (ver `types.md`) y hoy no tienen forma de confirmarse ni de ser notificados.
+El registro de alertas (`POST /alertas`, ver `routers.md`) ya existe y ya notifica por correo a los contactos de emergencia **confirmados** del usuario (ver `correo.md`, `sql.md`). Lo que sigue pendiente es notificar también por SMS u otro canal además de correo — la integración con la API de Twilio (o equivalente) sigue sin empezar, y es relevante en particular para los contactos que no tienen `correo` cargado (ver `types.md`) y hoy no tienen forma de confirmarse ni de ser notificados.
