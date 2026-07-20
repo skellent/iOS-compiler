@@ -5,7 +5,7 @@
 Es el punto de entrada de la API: aquí se instancia la aplicación FastAPI y se monta el resto de la funcionalidad. Es el módulo que `uvicorn` carga al ejecutar `uvicorn main:app` (ver README, sección "Preparar el Entorno").
 
 ```python
-from modules.routers import auth, usuarios, contactos
+from modules.routers import auth, usuarios, contactos, alertas
 
 from fastapi          import FastAPI
 
@@ -20,6 +20,7 @@ def root():
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(contactos.router)
+app.include_router(alertas.router)
 ```
 
 Antes había un solo endpoint de negocio (`registrar_usuario`) escrito directamente aquí, y `main.py` también era responsable de leer las credenciales y abrir la conexión a MariaDB. Con la llegada del login, la edición de usuarios y el CRUD de contactos, ese archivo hubiera crecido sin límite y hubiera mezclado en un mismo lugar cosas que no tienen que ver entre sí (registro, autenticación, contactos). Por eso este archivo se vació a propósito: ahora `main.py` solo hace dos cosas — crear la app y decirle qué routers existen — y toda la lógica de negocio vive en `modules/routers/` (ver `routers.md`).
@@ -35,20 +36,24 @@ flowchart TD
     subgraph routers["modules/routers/ (routers.md)"]
         AUTH["auth.py<br/>/auth/registro<br/>/auth/login"]
         USR["usuarios.py<br/>/usuarios/me"]
-        CON["contactos.py<br/>/contactos"]
+        CON["contactos.py<br/>/contactos<br/>/contactos/confirmar/{token}"]
+        ALT["alertas.py<br/>/alertas"]
     end
 
     DEPS["modules/dependencies.py<br/>usuario_actual"]
     TOKEN["modules/token.py<br/>Token"]
     GUARD["modules/guard.py<br/>Guard"]
+    CORREO["modules/correo.py<br/>Correo (correo.md)"]
     DB["modules/db.py<br/>cursor"]
     CURSOR["modules/cursor.py<br/>Cursor / Querys"]
     CRED["modules/credenciales.py"]
     MARIADB[(MariaDB)]
+    SMTP[(smtp.gmail.com)]
 
     APP --> AUTH
     APP --> USR
     APP --> CON
+    APP --> ALT
 
     AUTH --> GUARD
     AUTH --> TOKEN
@@ -60,15 +65,22 @@ flowchart TD
 
     CON --> DEPS
     CON --> DB
+    CON --> TOKEN
+    CON --> CORREO
+
+    ALT --> DEPS
+    ALT --> DB
+    ALT --> CORREO
 
     DEPS --> TOKEN
 
     DB --> CURSOR
     DB --> CRED
     CURSOR --> MARIADB
+    CORREO --> SMTP
 ```
 
-Este diagrama es, en el fondo, el mapa de dependencias entre módulos que hoy tiene el backend. Es útil tenerlo en la cabeza porque explica de un vistazo por qué `main.py` importa lo que importa y nada más: no necesita saber nada de `mariadb`, de JWT ni de bcrypt, solo necesita conocer los tres routers y montarlos.
+Este diagrama es, en el fondo, el mapa de dependencias entre módulos que hoy tiene el backend. Es útil tenerlo en la cabeza porque explica de un vistazo por qué `main.py` importa lo que importa y nada más: no necesita saber nada de `mariadb`, de JWT, de bcrypt ni de SMTP — solo necesita conocer los cuatro routers y montarlos.
 
 ## Inicialización a nivel de módulo
 
@@ -94,10 +106,11 @@ Es la ruta raíz de la API. No cumple una función de negocio: sirve como compro
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(contactos.router)
+app.include_router(alertas.router)
 ```
 
-Cada módulo dentro de `modules/routers/` define su propio `APIRouter` con un prefijo (`/auth`, `/usuarios`, `/contactos`) y sus propios endpoints (ver `routers.md` para el detalle de cada uno). `include_router` es el mecanismo que ofrece FastAPI para "pegar" esas rutas, ya definidas en otro archivo, a la aplicación principal, como si hubieran sido declaradas directamente sobre `app`. Esto es lo que permite que el proyecto escale a más funcionalidad (alertas, en el futuro) sin que `main.py` vuelva a crecer: solo haría falta un archivo `routers/alertas.py` nuevo y una línea más aquí.
+Cada módulo dentro de `modules/routers/` define su propio `APIRouter` con un prefijo (`/auth`, `/usuarios`, `/contactos`, `/alertas`) y sus propios endpoints (ver `routers.md` para el detalle de cada uno). `include_router` es el mecanismo que ofrece FastAPI para "pegar" esas rutas, ya definidas en otro archivo, a la aplicación principal, como si hubieran sido declaradas directamente sobre `app`. `routers/alertas.py` es el ejemplo más reciente de por qué esto importa: se sumó todo un recurso nuevo (activar una alerta de pánico) agregando un archivo y una línea acá, sin tocar nada de lo que ya existía.
 
 ## Qué falta (por ahora)
 
-El registro de alertas (activar el botón de pánico en sí) todavía no tiene endpoint ni router propio, aunque la tabla `alertas` ya existe en el esquema (ver `sql.md`). Tampoco hay todavía integración con ninguna API de terceros (Twilio u otra) para notificar a los contactos de emergencia cuando eso ocurra — ese es, en el fondo, el propósito final de la aplicación, y las piezas construidas hasta ahora (usuarios, login, contactos) son la base sobre la que ese flujo se va a apoyar.
+El registro de alertas (`POST /alertas`, ver `routers.md`) ya existe y ya notifica por correo a los contactos de emergencia **confirmados** del usuario (ver `correo.md`, `sql.md`). Lo que sigue pendiente es notificar también por SMS u otro canal además de correo — la integración con la API de Twilio (o equivalente) sigue sin empezar (ver `TASK.md`), y es relevante en particular para los contactos que no tienen `correo` cargado (ver `types.md`) y hoy no tienen forma de confirmarse ni de ser notificados.

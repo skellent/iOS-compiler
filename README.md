@@ -59,7 +59,7 @@ Esto imprime una cadena hexadecimal de 64 caracteres (256 bits de entropía) que
 
 # Uso de la API
 
-Con el servidor corriendo, la API expone rutas de registro y login (`/auth`), gestión del usuario autenticado (`/usuarios/me`) y contactos de emergencia (`/contactos`). La guía completa de cada endpoint, con ejemplos de consumo en Python y JavaScript (pensados para el futuro cliente Capacitor), está en [`backend/API.md`](backend/API.md). Las decisiones de diseño detrás de cada módulo del backend (por qué JWT, por qué esa estructura de rutas, etc.) están documentadas una por una en [`docs/backend/`](docs/backend/).
+Con el servidor corriendo, la API expone rutas de registro y login (`/auth`), gestión del usuario autenticado (`/usuarios/me`), contactos de emergencia (`/contactos`) y activación de alertas de pánico (`/alertas`, que notifica por correo a los contactos confirmados). La guía completa de cada endpoint, con ejemplos de consumo en Python y JavaScript (pensados para el futuro cliente Capacitor), está en [`backend/API.md`](backend/API.md). Las decisiones de diseño detrás de cada módulo del backend (por qué JWT, por qué esa estructura de rutas, etc.) están documentadas una por una en [`docs/backend/`](docs/backend/).
 
 # Preparación y Compilación de Aplicaciones
 

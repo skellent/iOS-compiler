@@ -201,6 +201,31 @@ Edita un contacto existente, identificado por su `id` (el mismo que devuelve `GE
 | `404`  | No existe un contacto con ese `id` **perteneciente al usuario autenticado** (incluye el caso de que el `id` exista pero sea de otra cuenta — a propósito no se distingue, ver `docs/backend/routers.md`). |
 | `401`  | Token ausente, inválido o expirado. |
 
+## Endpoints de Alertas
+
+### `POST /alertas`
+
+Registra la activación del botón de pánico: guarda la ubicación del usuario autenticado y notifica por correo a todos sus contactos de emergencia **que ya confirmaron** (ver `GET /contactos/confirmar/{token}` más arriba — un contacto que nunca confirmó no recibe nada, ver `docs/backend/sql.md`).
+
+**Cuerpo de la petición:**
+
+```json
+{
+  "latitud": 10.4880600,
+  "longitud": -66.8791500
+}
+```
+
+**Respuestas:**
+
+| Código | Cuándo ocurre |
+|--------|----------------|
+| `201`  | Alerta registrada. La notificación por correo se dispara en segundo plano (no bloquea esta respuesta, ver `docs/backend/correo.md`) — un `201` no garantiza que los correos ya se hayan mandado, solo que la alerta quedó guardada. |
+| `401`  | Token ausente, inválido o expirado. |
+| `422`  | Falta `latitud` o `longitud`, o no son números. |
+
+Si el usuario no tiene ningún contacto confirmado con `correo`, la alerta igual se registra — simplemente no hay a quién notificar todavía.
+
 ## Ejemplos en Python
 
 Usando la librería `requests` (`pip install requests` o, si el cliente también fuera un proyecto `uv`, `uv add requests`):

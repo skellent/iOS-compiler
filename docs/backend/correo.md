@@ -11,7 +11,7 @@ class Correo:
         ...
 ```
 
-`Correo.Enviar` recibe el destinatario, el asunto, el **nombre** de una plantilla (sin extensión) y un diccionario de contexto, y se encarga de tres cosas: renderizar la plantilla en HTML y en texto plano con Jinja2, armar el mensaje MIME con ambas versiones, y mandarlo por SMTP con `aiosmtplib`.
+`Correo.Enviar` recibe el destinatario, el asunto, el **nombre** de una plantilla (sin extensión) y un diccionario de contexto, y se encarga de tres cosas: renderizar la plantilla en HTML y en texto plano con Jinja2, armar el mensaje MIME con ambas versiones, y mandarlo por SMTP con `aiosmtplib`. `Correo.EnviarMasivo` (ver más abajo) resuelve el mismo problema para cuando hay que mandarle el mismo tipo de correo a varios destinatarios a la vez, como ocurre al disparar una alerta de pánico.
 
 ## Por qué es la única pieza `async` del backend
 
@@ -70,6 +70,68 @@ class Correo:
 
 Mismo criterio que `RegistroDuplicadoError` en `cursor.py`: `correo.py` es, a propósito, el único archivo del backend que importa `aiosmtplib` directamente. Cualquier código que en el futuro quiera reaccionar a un fallo de envío (por ejemplo, reintentar, o registrar el fallo en una tabla) puede capturar `CorreoNoEnviadoError` sin necesitar saber que el transporte es SMTP ni que la librería usada es `aiosmtplib` — si el día de mañana el proyecto migrara a otro proveedor o protocolo (una API HTTP de envío de correos, por ejemplo), solo este archivo cambiaría.
 
+## `Correo.EnviarMasivo`: cuando un correo tiene que llegarle a varios contactos a la vez
+
+```python
+@staticmethod
+async def EnviarMasivo(asunto: str, plantilla: str, destinatarios: list[tuple[str, dict]]) -> None:
+    fallidos: list[str] = []
+
+    async with aiosmtplib.SMTP(
+        hostname=_credenciales['host'],
+        port=_credenciales['port'],
+        start_tls=True,
+        username=_credenciales['usuario'],
+        password=_credenciales['password'],
+    ) as smtp:
+        for destinatario, contexto in destinatarios:
+            try:
+                mensaje: EmailMessage = _armar_mensaje(destinatario, asunto, plantilla, contexto)
+                await smtp.send_message(mensaje)
+            except Exception:
+                fallidos.append(destinatario)
+
+    if fallidos:
+        raise CorreoNoEnviadoError(f"No se pudo notificar a: {', '.join(fallidos)}")
+```
+
+Hasta la llegada de `POST /alertas` (ver `routers.md`), todo envío de este proyecto era 1 a 1: `Correo.Enviar` abre una conexión, manda un correo a un único destinatario, y la cierra. Una alerta de pánico rompe ese supuesto — puede necesitar notificar a varios contactos confirmados a la vez, y llamar a `Correo.Enviar` en un loop hubiera abierto y cerrado una conexión SMTP por cada uno de ellos, exactamente el patrón que ya habíamos identificado como innecesario para el volumen actual del proyecto (ver la sección de límites de Gmail, más abajo).
+
+### Por qué recibe `list[tuple[str, dict]]` y no `list[str]` + un único `dict`
+
+Cada destinatario de una alerta necesita su propio contexto de plantilla (`nombre_contacto` cambia según a quién se le escribe, aunque `nombre_usuario`/`latitud`/`longitud` sean los mismos para todos). Por eso `EnviarMasivo` recibe una lista de pares `(destinatario, contexto)` en vez de separar destinatarios de un contexto compartido — cada mensaje se renderiza con los datos que le corresponden a esa persona específica.
+
+### Por qué reutiliza una única conexión (`async with aiosmtplib.SMTP(...)`)
+
+`Correo.Enviar` usa `aiosmtplib.send(...)`, que internamente abre una conexión, manda un mensaje y la cierra — perfecto para un envío aislado, pero desperdicia trabajo (handshake TCP, STARTTLS, autenticación) si hay que repetirlo varias veces seguidas para el mismo lote. `EnviarMasivo` en cambio abre la conexión una sola vez (`async with aiosmtplib.SMTP(...) as smtp`) y la reutiliza para todos los mensajes del lote con `smtp.send_message(...)`, cerrándola automáticamente al salir del bloque `async with`. Es exactamente la optimización que ya habíamos anotado como pendiente para el día en que el proyecto necesitara notificar a varios contactos a la vez — ese día es este.
+
+### Por qué el `except` es `Exception` genérico, no `aiosmtplib.SMTPException`
+
+A diferencia de `Correo.Enviar` (donde un único destinatario que falla es, por definición, el 100% del envío), acá el objetivo es que un problema con **un** contacto no le impida recibir la alerta al resto. Capturar solo `aiosmtplib.SMTPException` no alcanza para esa garantía: cualquier excepción inesperada al armar o mandar un mensaje puntual (no necesariamente una excepción de SMTP) podría cortar el `for` a mitad de camino y dejar sin notificar a los contactos que todavía no le tocaba su turno. Por eso el `try`/`except` envuelve tanto `_armar_mensaje` como `smtp.send_message`, y captura `Exception` en general — la prioridad, en un sistema de alertas de pánico, es que un fallo aislado nunca se lleve puesto al resto del lote.
+
+### Por qué junta los fallos y levanta un único error al final, en vez de uno por destinatario
+
+`fallidos` acumula qué direcciones no pudieron recibir el mensaje, y recién al final —si la lista no quedó vacía— se levanta un solo `CorreoNoEnviadoError` que las lista a todas. Esto preserva la misma visibilidad que tiene cualquier otro fallo de `Correo` (el proyecto no tiene un logger dedicado; confía en que las excepciones no capturadas terminen en el log de `uvicorn`, ver más abajo en la sección de `BackgroundTasks`), sin necesitar levantar y silenciar una excepción por cada contacto que falle en el medio del loop.
+
+### Diagrama: la diferencia con `Correo.Enviar`
+
+```mermaid
+flowchart LR
+    subgraph enviar["Correo.Enviar (1 a 1)"]
+        E1["aiosmtplib.send(...)"] --> E2["abre conexión"] --> E3["manda 1 mensaje"] --> E4["cierra conexión"]
+    end
+
+    subgraph masivo["Correo.EnviarMasivo (1 a N)"]
+        M1["async with aiosmtplib.SMTP(...)"] --> M2["abre conexión una vez"]
+        M2 --> M3["por cada (destinatario, contexto):<br/>arma mensaje + smtp.send_message"]
+        M3 -->|"falla uno"| M3
+        M3 --> M4["cierra conexión al salir del 'with'"]
+        M4 --> M5{"¿hubo fallidos?"}
+        M5 -->|sí| M6["CorreoNoEnviadoError con la lista"]
+        M5 -->|no| M7["termina sin error"]
+    end
+```
+
 ## Autenticación con Gmail/Google Workspace: App Password
 
 Para `soporte@keylogics.com` (una cuenta de Google Workspace con dominio propio), `Correo.Enviar` se autentica contra `smtp.gmail.com` con usuario y contraseña de aplicación:
@@ -89,7 +151,7 @@ await aiosmtplib.send(
 - **Contraseña de aplicación, no la contraseña real de la cuenta**: desde marzo de 2025, Google ya no acepta autenticación SMTP con usuario+contraseña "normal" (básica) en cuentas de Workspace — hay que generar una *App Password* específica (una cadena de 16 caracteres, en `myaccount.google.com/apppasswords`) y usarla como `SMTP_PASSWORD`. Esto **requiere dos precondiciones del lado del cliente, fuera del control de este código**:
   1. Verificación en 2 pasos activa en `soporte@keylogics.com`.
   2. Que el administrador de Workspace tenga habilitada la opción "permitir a los usuarios crear contraseñas de aplicación" — algunas organizaciones la desactivan por política de seguridad, en cuyo caso esta rama no funcionaría y habría que migrar a la variante con OAuth2 (ver la rama `feature/correo-oauth2` de este mismo repositorio, que resuelve exactamente este mismo módulo pero con Service Account + delegación de dominio en vez de App Password).
-- **Límites de envío de Google Workspace**: una cuenta puede mandar hasta 10.000 destinatarios únicos y 10.000 mensajes en 24 horas usando `smtp.gmail.com` directamente. El volumen actual del proyecto (una confirmación por contacto creado) está muy por debajo de eso, así que no hace falta ningún mecanismo de *rate limiting* propio todavía. Si en el futuro se empieza a notificar a muchos contactos a la vez (por ejemplo, al dispararse una alerta, ver `sql.md`), ahí sí conviene introducir un límite de conexiones concurrentes (`asyncio.Semaphore`) y reutilizar una única conexión `aiosmtplib.SMTP` para varios envíos en vez de abrir una por destinatario — hoy no hace falta porque cada llamada a `Correo.Enviar` es 1 a 1.
+- **Límites de envío de Google Workspace**: una cuenta puede mandar hasta 10.000 destinatarios únicos y 10.000 mensajes en 24 horas usando `smtp.gmail.com` directamente. El volumen actual del proyecto (una confirmación por contacto creado, y una notificación por contacto confirmado cuando se dispara una alerta, ver más abajo) está muy por debajo de eso. `Correo.EnviarMasivo` ya reutiliza una única conexión por lote de destinatarios (en vez de abrir una por contacto), que es la optimización relevante para el volumen actual — un límite de conexiones **concurrentes** entre alertas de *distintos* usuarios disparadas al mismo tiempo (`asyncio.Semaphore`) seguiría siendo un paso posterior, solo necesario si el proyecto llegara a un volumen de alertas simultáneas mucho mayor al actual.
 
 ## Variables de entorno que introduce este módulo
 
@@ -181,4 +243,4 @@ flowchart TD
 
 ## Relación con el resto del backend
 
-`modules/routers/contactos.py` es el único módulo que importa `Correo` hoy — `POST /contactos` lo encola como tarea de fondo cuando el contacto tiene `correo`, y `GET /contactos/confirmar/{token}` cierra el ciclo marcando `confirmado = TRUE` (ver `routers.md`, `sql.md`). Depende de `modules/token.py` para el token de confirmación, de `modules/credenciales.py` para las credenciales SMTP, y de `modules/cursor.py` indirectamente a través del router (no directamente: `correo.py` no toca la base de datos).
+Dos routers importan `Correo` hoy (ver `routers.md`): `contactos.py` usa `Correo.Enviar` (1 a 1) para el correo de confirmación cuando se crea un contacto, y `alertas.py` usa `Correo.EnviarMasivo` (1 a N) para notificar a todos los contactos confirmados de un usuario cuando se dispara una alerta. `correo.py` depende de `modules/credenciales.py` para las credenciales SMTP, y de `modules/cursor.py` solo indirectamente, a través de los routers que lo llaman (no directamente: `correo.py` no toca la base de datos). `modules/token.py`, en cambio, solo lo necesita `contactos.py` para el token de confirmación — `alertas.py` no emite ni valida ningún token propio.

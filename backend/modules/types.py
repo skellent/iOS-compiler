@@ -25,3 +25,7 @@ class ContactoUpdate(BaseModel):
     nombre:   str | None = None
     telefono: str | None = None
     correo:   str | None = None
+
+class Alerta(BaseModel):
+    latitud:  float
+    longitud: float
