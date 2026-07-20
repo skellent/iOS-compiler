@@ -58,7 +58,7 @@ CREATE TABLE contactos (
 Representa los **contactos de emergencia** de cada usuario: las personas que deben ser notificadas cuando se activa una alerta. Es una relación uno-a-muchos con `usuarios` mediante la clave foránea `id_usuario`.
 
 - `correo` es nullable a diferencia de `usuarios.correo`: un contacto de emergencia puede ser alcanzable solo por teléfono (por ejemplo, vía SMS), sin que eso impida registrarlo.
-- `confirmado BOOLEAN DEFAULT FALSE`: existe porque agregar a alguien como contacto de emergencia no debería depender únicamente de la palabra del usuario que lo registra — esa persona probablemente deba confirmar (por ejemplo, respondiendo un mensaje o correo de verificación) que acepta recibir alertas en su nombre. El valor por defecto `FALSE` refleja que ese consentimiento no se asume, se otorga explícitamente en un paso posterior que aún no está implementado en el backend.
+- `confirmado BOOLEAN DEFAULT FALSE`: existe porque agregar a alguien como contacto de emergencia no debería depender únicamente de la palabra del usuario que lo registra — esa persona probablemente deba confirmar (por ejemplo, respondiendo un mensaje o correo de verificación) que acepta recibir alertas en su nombre. El valor por defecto `FALSE` refleja que ese consentimiento no se asume, se otorga explícitamente en un paso posterior. Ese paso ya está implementado (ver `correo.md`, `token.md` y `routers.md`): `POST /contactos` manda un correo con un link de confirmación cuando el contacto tiene `correo`, y `GET /contactos/confirmar/{token}` es quien efectivamente pone esta columna en `TRUE`. Un contacto creado sin `correo` (recordar que es el único campo opcional de `Contacto`, ver `types.md`) sigue quedando en `FALSE` indefinidamente, porque hoy no existe otro canal (SMS, por ejemplo) para confirmarlo.
 
 ### `alertas`
 
@@ -75,7 +75,7 @@ CREATE TABLE alertas (
 
 Es el registro histórico de cada vez que un usuario activa el botón de pánico: qué usuario, cuándo (`fecha_hora`, con el mismo patrón de `DEFAULT CURRENT_TIMESTAMP` que `usuarios.creado_en`) y dónde (`latitud`/`longitud` como `DOUBLE`, la precisión estándar para coordenadas GPS). Esta tabla es, en cierto sentido, la razón de ser del proyecto: las otras dos tablas existen para poder responder correctamente cuando aquí se inserta una fila.
 
-Desde que se agregó el CRUD de contactos (ver `routers.md`), esta tabla ya se lee y escribe activamente: `POST /contactos`, `GET /contactos` y `PUT /contactos/{id}`. Nótese que ninguno de esos endpoints toca la columna `confirmado` — sigue sin existir el paso de confirmación (mensaje o correo de verificación) descrito arriba, así que todo contacto creado hoy queda en `FALSE` indefinidamente hasta que ese flujo se implemente. `alertas`, en cambio, todavía no tiene ningún endpoint que la use; el esquema sigue preparado con anticipación a esa funcionalidad.
+Desde que se agregó el CRUD de contactos (ver `routers.md`), esta tabla ya se lee y escribe activamente: `POST /contactos`, `GET /contactos`, `GET /contactos/confirmar/{token}` y `PUT /contactos/{id}`. A diferencia de antes, `confirmado` ya no es un campo que ningún endpoint toque: `GET /contactos/confirmar/{token}` la pone en `TRUE` cuando el contacto hace clic en el link que le llegó por correo (ver `correo.md`). `alertas`, en cambio, todavía no tiene ningún endpoint que la use; el esquema sigue preparado con anticipación a esa funcionalidad.
 
 ## `insertions.sql` — datos de ejemplo
 

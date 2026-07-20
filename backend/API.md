@@ -150,6 +150,8 @@ Crea un contacto de emergencia nuevo.
 
 `correo` es opcional (puede omitirse o mandarse `null`); `nombre` y `telefono` son obligatorios. Respuesta: `201` sin cuerpo relevante.
 
+Si se manda `correo`, la API dispara en segundo plano un correo de confirmación a esa dirección (no bloquea la respuesta `201`, ver `docs/backend/correo.md`), con un link a `GET /contactos/confirmar/{token}`. Mientras el contacto no confirme haciendo clic en ese link, `confirmado` sigue en `false` en `GET /contactos` (ver más abajo). Si no se manda `correo`, no hay forma de confirmarlo todavía y queda en `false` indefinidamente.
+
 ### `GET /contactos`
 
 Lista todos los contactos del usuario autenticado.
@@ -169,6 +171,18 @@ Lista todos los contactos del usuario autenticado.
 ```
 
 `confirmado` indica si ese contacto ya aceptó recibir alertas en su nombre; hoy siempre llega en `false`, porque el flujo de confirmación todavía no está implementado (ver `docs/backend/sql.md`).
+
+### `GET /contactos/confirmar/{token}`
+
+Es el único endpoint de este grupo que **no** requiere el header `Authorization` — a propósito: a este endpoint se llega haciendo clic en el link del correo de confirmación (ver `POST /contactos` más arriba), no desde una sesión iniciada en la app. El `token` de la URL no es el mismo tipo de token que `access_token` (no sirve para autenticarse contra ningún otro endpoint, y viceversa: un `access_token` de sesión no sirve acá).
+
+**Respuestas:**
+
+| Código | Cuándo ocurre |
+|--------|----------------|
+| `200`  | El contacto quedó marcado como confirmado. Cuerpo: `{"mensaje": "Contacto confirmado exitosamente"}`. |
+| `401`  | El token es inválido, no es del tipo esperado, o ya expiró (vence a los 7 días de emitido). |
+| `404`  | El token era válido pero el contacto al que apunta ya no existe. |
 
 ### `PUT /contactos/{id}`
 

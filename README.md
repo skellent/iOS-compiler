@@ -36,9 +36,16 @@ HOST=''
 PORT=
 DATABASE=''
 JWT_SECRET_KEY=''
+SMTP_USER=''
+SMTP_PASSWORD=''
+SMTP_HOST='smtp.gmail.com'
+SMTP_PORT=587
+API_BASE_URL='http://127.0.0.1:8000'
 ```
 
 `JWT_SECRET_KEY` es la clave con la que el backend firma y verifica los tokens de sesión (JWT) que emite `POST /auth/login` — ver `docs/backend/token.md` para el detalle de cómo se usa. No es una credencial de MariaDB, así que no sale de la configuración de la base de datos del paso 1: hay que generarla aparte.
+
+`SMTP_USER`/`SMTP_PASSWORD` son la cuenta de Google Workspace (`soporte@keylogics.com`) desde la que se mandan los correos de confirmación de contactos de emergencia, y `SMTP_PASSWORD` es específicamente una **contraseña de aplicación** de 16 caracteres (`myaccount.google.com/apppasswords`), no la contraseña real de la cuenta — Google no acepta autenticación SMTP básica en cuentas de Workspace desde marzo de 2025. Requiere verificación en 2 pasos activa en esa cuenta y que el administrador de Workspace permita crear contraseñas de aplicación. Ver `docs/backend/correo.md` para el detalle completo (incluyendo la alternativa con OAuth2, en la rama `feature/correo-oauth2`, si el cliente prefiere no depender de contraseñas de aplicación). `API_BASE_URL` es la URL pública con la que la API arma el link de confirmación que viaja en esos correos — en producción, el dominio real detrás de nginx (ver `NGINX.md`).
 
 #### Generar `JWT_SECRET_KEY` para producción
 

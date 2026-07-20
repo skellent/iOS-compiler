@@ -8,7 +8,7 @@ Cada archivo define un `APIRouter` con un prefijo fijo y lo expone como `router`
 |------------------|---------------|-----------|
 | `auth.py`        | `/auth`       | `POST /registro`, `POST /login` |
 | `usuarios.py`    | `/usuarios`   | `GET /me`, `PUT /me` |
-| `contactos.py`   | `/contactos`  | `POST /`, `GET /`, `PUT /{id_contacto}` |
+| `contactos.py`   | `/contactos`  | `POST /`, `GET /`, `GET /confirmar/{token}`, `PUT /{id_contacto}` |
 
 ## Por qué `APIRouter` y no todo junto en `main.py`
 
@@ -144,20 +144,41 @@ Este es el endpoint más elaborado de los siete, porque resuelve el problema de 
 ## `contactos.py`
 
 ```python
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
+from modules.correo       import Correo
+from modules.credenciales import obtener_credenciales
 from modules.cursor       import Querys
 from modules.db           import cursor
 from modules.dependencies import usuario_actual
+from modules.token        import Token
 from modules.types        import Contacto, ContactoUpdate
 
 router = APIRouter(prefix="/contactos", tags=["contactos"])
 
+_URL_BASE: str = obtener_credenciales()['api_base_url']
+
 
 @router.post("", status_code=201)
-def crear_contacto(data: Contacto, id_usuario: int = Depends(usuario_actual)):
+def crear_contacto(data: Contacto, background_tasks: BackgroundTasks, id_usuario: int = Depends(usuario_actual)):
     cursor.execute(Querys.INSERT_CONTACTO, (id_usuario, data.nombre, data.telefono, data.correo))
     cursor.commit()
+    id_contacto: int = cursor.lastrowid
+
+    if data.correo:
+        filas: list[dict] = cursor.execute(Querys.SELECT_USUARIO_POR_ID, (id_usuario,))
+        token: str = Token.CrearConfirmacionContacto(id_contacto)
+        background_tasks.add_task(
+            Correo.Enviar,
+            data.correo,
+            "Confirmá que sos un contacto de emergencia",
+            "confirmacion_contacto",
+            {
+                "nombre_contacto":  data.nombre,
+                "nombre_usuario":   filas[0]["nombre"],
+                "url_confirmacion": f"{_URL_BASE}/contactos/confirmar/{token}",
+            },
+        )
 
     return {"Skellent": "Success!"}
 
@@ -165,6 +186,20 @@ def crear_contacto(data: Contacto, id_usuario: int = Depends(usuario_actual)):
 @router.get("")
 def listar_contactos(id_usuario: int = Depends(usuario_actual)):
     return cursor.execute(Querys.SELECT_CONTACTOS_POR_USUARIO, (id_usuario,))
+
+
+@router.get("/confirmar/{token}")
+def confirmar_contacto(token: str):
+    id_contacto: int | None = Token.ValidarConfirmacionContacto(token)
+    if id_contacto is None:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+    cursor.execute(Querys.CONFIRMAR_CONTACTO, (id_contacto,))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado")
+    cursor.commit()
+
+    return {"mensaje": "Contacto confirmado exitosamente"}
 
 
 @router.put("/{id_contacto}")
@@ -188,13 +223,21 @@ def editar_contacto(id_contacto: int, data: ContactoUpdate, id_usuario: int = De
     return filas[0]
 ```
 
-Es el CRUD de contactos de emergencia. Los tres endpoints comparten `Depends(usuario_actual)` y con eso alcanza para que ninguno permita operar sobre contactos ajenos — el `id_usuario` nunca lo manda el cliente, siempre sale del token.
+Es el CRUD de contactos de emergencia, más el endpoint de confirmación agregado junto con `modules/correo.py` (ver `correo.md` para el flujo completo). Los tres endpoints protegidos (`POST`, `GET ""`, `PUT`) comparten `Depends(usuario_actual)` y con eso alcanza para que ninguno permita operar sobre contactos ajenos — el `id_usuario` nunca lo manda el cliente, siempre sale del token. `GET /confirmar/{token}` es la excepción deliberada, ver su propia sección más abajo.
 
 A diferencia de `usuarios.py`, acá `_COLUMNA_POR_CAMPO` no hizo falta: los tres campos de `ContactoUpdate` (`nombre`, `telefono`, `correo`, ver `types.md`) ya se llaman igual que sus columnas en la tabla `contactos` (ver `sql.md`), así que `set_clause` usa el nombre del campo directamente.
 
 ### `POST /contactos` y `GET /contactos`
 
-Sin sorpresas: siguen el mismo patrón de `INSERT`/`SELECT` parametrizado que el resto del proyecto. Nótese que las rutas se declaran como `""` (cadena vacía), no `"/"` — con el `prefix="/contactos"` del router, `""` resuelve a `/contactos` exactamente, mientras que `"/"` hubiera generado `/contactos/` con la barra final, una URL distinta a efectos de HTTP que hubiera obligado a los clientes a acertar con la barra o lidiar con una redirección.
+Sin sorpresas en el `INSERT`/`SELECT`: siguen el mismo patrón parametrizado que el resto del proyecto. Nótese que las rutas se declaran como `""` (cadena vacía), no `"/"` — con el `prefix="/contactos"` del router, `""` resuelve a `/contactos` exactamente, mientras que `"/"` hubiera generado `/contactos/` con la barra final, una URL distinta a efectos de HTTP que hubiera obligado a los clientes a acertar con la barra o lidiar con una redirección.
+
+Lo que sí es nuevo en `POST /contactos`: si el contacto se creó con un `correo`, se dispara el envío de un correo de confirmación en segundo plano (`background_tasks.add_task(Correo.Enviar, ...)`, ver `correo.md` para por qué en segundo plano y no `await` directo). `cursor.lastrowid` (ver `cursor.md`) da el `id` del contacto recién insertado, necesario para generar el token de confirmación con `Token.CrearConfirmacionContacto` (ver `token.md`) antes de poder armar el link. También se hace un `SELECT_USUARIO_POR_ID` extra para obtener el `nombre` de quien está agregando el contacto — se usa en el cuerpo del correo ("Fulano te agregó como contacto de emergencia"), y no había forma de evitarlo sin cambiar la firma de `usuario_actual` (ver `dependencies.md`), que deliberadamente solo devuelve el `id`, no la fila completa. Si `data.correo` es `None` (recordar que es el único campo opcional de `Contacto`, ver `types.md`), no se manda nada — no hay forma de confirmar un contacto por correo si no se tiene un correo, y ese contacto simplemente queda con `confirmado = FALSE` indefinidamente hasta que el proyecto sume otro canal de confirmación (SMS, por ejemplo, cuando se resuelva la integración con Twilio pendiente en `TASK.md`).
+
+### `GET /contactos/confirmar/{token}`
+
+Es, junto con las dos rutas de `auth.py`, uno de los pocos endpoints del backend que **no** exige `Depends(usuario_actual)` — y por la misma razón que ellas: a este endpoint se llega haciendo clic en un link dentro de un correo, no navegando la app ya logueado, así que quien hace la petición no tiene (ni puede tener) un JWT de sesión. La autenticación de este endpoint no es "quién sos", sino "¿tenés el token de confirmación correcto, generado específicamente para este contacto?" — de ahí que use `Token.ValidarConfirmacionContacto` (ver `token.md`) en vez de la dependencia estándar.
+
+El flujo es deliberadamente igual de simple que el resto del CRUD: `Token.ValidarConfirmacionContacto(token)` devuelve el `id_contacto` si el token es válido y del tipo correcto, o `None` si no (token corrupto, expirado, o de otro tipo — por ejemplo, un JWT de sesión). Con el `id_contacto` en mano, `Querys.CONFIRMAR_CONTACTO` (ver `cursor.md`) actualiza esa fila, y `cursor.rowcount == 0` cubre el caso "el token era válido pero ese `id_contacto` ya no existe" (por ejemplo, si el contacto fue borrado — aunque hoy no existe un `DELETE /contactos/{id}`, se deja la comprobación por si se agrega en el futuro, mismo criterio defensivo que ya usa `PUT /{id_contacto}`).
 
 ### `PUT /contactos/{id_contacto}` y por qué usa `rowcount` en vez de un `SELECT` previo
 

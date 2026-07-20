@@ -76,4 +76,34 @@ Esta línea corre una única vez, la primera vez que algo importa `modules.token
 
 ## Relación con el resto del backend
 
-`auth.py` llama a `Token.Crear(id_usuario)` al final de un login exitoso, dentro de `POST /auth/login` (ver `routers.md`). `modules/dependencies.py` llama a `Token.Validar(token)` en la dependencia `usuario_actual`, que protege todos los endpoints que requieren estar autenticado (`GET`/`PUT /usuarios/me`, `POST`/`GET`/`PUT /contactos`). Ningún otro módulo necesita tocar JWT directamente.
+`auth.py` llama a `Token.Crear(id_usuario)` al final de un login exitoso, dentro de `POST /auth/login` (ver `routers.md`). `modules/dependencies.py` llama a `Token.Validar(token)` en la dependencia `usuario_actual`, que protege todos los endpoints que requieren estar autenticado (`GET`/`PUT /usuarios/me`, `POST`/`GET`/`PUT /contactos`).
+
+## `CrearConfirmacionContacto` y `ValidarConfirmacionContacto`
+
+```python
+EXPIRACION_CONFIRMACION_CONTACTO: timedelta = timedelta(days=7)
+
+@staticmethod
+def CrearConfirmacionContacto(id_contacto: int) -> str:
+    payload: dict = {
+        "contacto_id": id_contacto,
+        "tipo": "confirmacion_contacto",
+        "exp": datetime.now(timezone.utc) + EXPIRACION_CONFIRMACION_CONTACTO,
+    }
+    return jwt.encode(payload, _secreto, algorithm=ALGORITMO)
+
+@staticmethod
+def ValidarConfirmacionContacto(token: str) -> int | None:
+    payload: dict | None = Token.Validar(token)
+    if payload is None or payload.get("tipo") != "confirmacion_contacto":
+        return None
+    return int(payload["contacto_id"])
+```
+
+Se agregaron para el flujo de confirmación de contactos de emergencia (ver `correo.md` para el flujo completo). Es un segundo tipo de JWT, con su propio propósito, que convive con el token de sesión sin reemplazarlo ni reutilizar sus métodos sin cambios:
+
+- **No es el mismo payload que un token de sesión a propósito**: un token de sesión lleva `{"sub": id_usuario, "exp": ...}`; un token de confirmación lleva `{"contacto_id": ..., "tipo": "confirmacion_contacto", "exp": ...}`. El claim `"tipo"` es la pieza que evita que ambos tipos de token sean intercambiables entre sí — sin él, un token de sesión y uno de confirmación firmados con el mismo secreto serían indistinguibles en su forma, y uno podría colarse por el endpoint pensado para el otro si los valores numéricos (`id_usuario` vs `id_contacto`) coincidieran. `ValidarConfirmacionContacto` rechaza (devuelve `None`) cualquier token que no tenga exactamente `"tipo": "confirmacion_contacto"`, aunque esté firmado correctamente y no haya expirado.
+- **Reutiliza `Token.Validar` para el decode**, no reimplementa la verificación de firma/expiración: `ValidarConfirmacionContacto` llama primero a `Validar` (que ya sabe capturar `jwt.InvalidTokenError` y devolver `None` de forma uniforme, ver más arriba) y solo agrega, encima de eso, la comprobación del claim `"tipo"`. Esto evita duplicar la lógica de `jwt.decode` en dos lugares del mismo archivo.
+- **Expiración deliberadamente más larga** (`7 días` contra las `24 horas` del token de sesión): un contacto de emergencia puede tardar en revisar su correo, y no hay urgencia de seguridad equivalente a la de una sesión activa que justifique una ventana corta.
+
+`modules/routers/contactos.py` es el único lugar que usa este segundo par de métodos: `POST /contactos` llama a `CrearConfirmacionContacto` para generar el link que se manda por correo (ver `correo.md`), y `GET /contactos/confirmar/{token}` llama a `ValidarConfirmacionContacto` para decidir si puede marcar `confirmado = TRUE` (ver `routers.md`).
