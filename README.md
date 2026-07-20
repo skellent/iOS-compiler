@@ -93,12 +93,26 @@ gitGraph
    commit id: "89d570e JWT_SECRET_KEY en README"
    checkout devs
    merge testing id: "bea6008 Merge testing -> devs"
+   commit id: "1f1bb32 Diagrama gitGraph en README"
+   commit id: "9ca8023 Ajuste de .gitignore"
+   branch feature/correo-app-password
+   checkout feature/correo-app-password
+   commit id: "7047342 Confirmación de contactos (App Password)"
+   commit id: "e239c62 Alertas de pánico por correo"
+   commit id: "58f9a1a Limpieza de TASK.md en docs"
+   commit id: "d2d8fa6 Guía de contraseña de aplicación SMTP"
 ```
 
-- **`83b5d3e` — Initial commit** (rama `main`): primer commit del repositorio, solo el `README.md` inicial. `main` no volvió a avanzar desde acá; todo el desarrollo ocurre en `devs` (y, temporalmente, en ramas como `testing`).
+- **`83b5d3e` — Initial commit** (rama `main`): primer commit del repositorio, solo el `README.md` inicial. `main` no volvió a avanzar desde acá; todo el desarrollo ocurre en `devs` (y, temporalmente, en ramas como `testing` o `feature/*`).
 - **`bd81c9c` — Preparación del entorno de Python**: primer esqueleto funcional del backend — `pyproject.toml`, la clase `Cursor` para hablar con MariaDB, `credenciales.py`, y los scripts SQL de creación de tablas. Se corroboró que la conexión a la base de datos funcionaba correctamente con un `.env` real.
 - **`905986f` — Redacción de documentación + Servidor de prueba**: primer endpoint de negocio (`POST /registrar/usuario`), `Guard` para el hash de contraseñas con bcrypt, y el primer lote de documentación en `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
 - **`1392a31` — Login con JWT, CRUD de Contactos, edición de Usuarios y fix de duplicados** (mergeado desde `testing`): corrige el bug de insertar datos que chocan con un `UNIQUE` existente (ahora responde `409` en vez de un `500` sin manejar), estandariza las rutas bajo `/auth`, `/usuarios` y `/contactos`, agrega login con JWT, y el CRUD completo de contactos de emergencia y edición de usuarios.
 - **`872b6db` — Documentación al día con JWT, routers y CRUD de Contactos/Usuarios** (mergeado desde `testing`): actualiza toda la documentación de `docs/backend/` para que refleje el código del commit anterior, y agrega `backend/API.md` con ejemplos de uso en Python y JavaScript.
 - **`89d570e` — Documentar JWT_SECRET_KEY y uso de la API en el README** (mergeado desde `testing`): agrega al README los pasos para generar el secreto de JWT en producción y enlaza la documentación de la API.
 - **`bea6008` — Merge testing → devs**: integra los tres commits anteriores (desarrollados y revisados primero en la rama local `testing`) a `devs`, trayendo todo el trabajo de esta etapa a la rama principal de desarrollo.
+- **`1f1bb32` — Agregar diagrama gitGraph e historial de commits al README**: documenta visualmente la relación entre `main`, `devs` y `testing` con un diagrama Mermaid, junto con esta misma explicación de qué aportó cada commit.
+- **`9ca8023` — Ligera modificación a `.gitignore`**: ajuste menor al archivo de exclusiones de git.
+- **`7047342` — Agregar confirmación de contactos por correo (Gmail App Password)**: primer uso real de la columna `contactos.confirmado` — `POST /contactos` dispara un correo de confirmación en segundo plano con un JWT de un solo propósito (`Token.CrearConfirmacionContacto`), y el nuevo `GET /contactos/confirmar/{token}` lo valida y marca el contacto como confirmado. Esta rama autentica el envío contra Gmail con una contraseña de aplicación de la cuenta de Google Workspace (ver `docs/backend/correo.md`); la rama hermana `feature/correo-oauth2` resuelve el mismo módulo con OAuth2/Service Account, a la espera de que el cliente elija un método.
+- **`e239c62` — Agregar sistema de alertas de pánico con notificación por correo**: `POST /alertas` inserta el registro de la alerta y notifica por correo, en un único lote (`Correo.EnviarMasivo`, una sola conexión SMTP para todos los destinatarios), solo a los contactos **confirmados** del usuario — los que nunca confirmaron no reciben nada.
+- **`58f9a1a` — Eliminar referencias a TASK.md de la documentación del backend**: `TASK.md` es un archivo de uso personal (ignorado por git) para organizar tareas propias, así que se quitaron las menciones que habían quedado citadas desde `docs/backend/` y `backend/API.md`.
+- **`d2d8fa6` — Documentar cómo obtener la contraseña de aplicación SMTP en el README**: guía paso a paso (activar 2FA, confirmar la política del administrador de Workspace, generar la contraseña de 16 caracteres) para completar `SMTP_PASSWORD` sin depender de contexto externo a este repositorio.
