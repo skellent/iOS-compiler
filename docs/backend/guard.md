@@ -1,35 +1,35 @@
 # `modules/guard.py`
 
-## Propósito
+## Purpose
 
-Este módulo aísla todo lo relacionado con el manejo seguro de contraseñas detrás de una clase `Guard` con dos métodos estáticos:
+This module isolates everything related to safely handling passwords behind a `Guard` class with two static methods:
 
-- `Guard.Crear(contraseña)`: convierte una contraseña en texto plano en un hash seguro para almacenar.
-- `Guard.Validar(contraseña, hash_guardado)`: verifica si una contraseña en texto plano corresponde a un hash ya almacenado.
+- `Guard.Hash(password)`: turns a plain-text password into a secure hash for storage.
+- `Guard.Verify(password, stored_hash)`: checks whether a plain-text password matches an already-stored hash.
 
-## Por qué nunca se guarda la contraseña en texto plano
+## Why the password is never stored in plain text
 
-La tabla `usuarios` (ver `sql.md`) tiene una columna `contraseña_hash`, no `contraseña`. Esto es intencional: si la base de datos llegara a filtrarse, guardar contraseñas en texto plano expondría directamente las credenciales de todos los usuarios de un sistema pensado para situaciones de emergencia personal, donde la confidencialidad es especialmente sensible. En cambio, se guarda únicamente un hash del que, en teoría, no se puede recuperar la contraseña original.
+The `users` table (see `sql.md`) has a `password_hash` column, not `password`. This is intentional: if the database were ever leaked, storing passwords in plain text would directly expose the credentials of every user of a system meant for personal emergencies, where confidentiality is especially sensitive. Instead, only a hash is stored, from which the original password can't, in theory, be recovered.
 
-## Por qué bcrypt en vez de un hash genérico (SHA-256, MD5, etc.)
+## Why bcrypt instead of a generic hash (SHA-256, MD5, etc.)
 
-`Guard` usa `passlib.context.CryptContext` configurado con `schemes=["bcrypt"]`. La elección de bcrypt (en vez de un hash criptográfico genérico) responde a que bcrypt está diseñado deliberadamente para ser **lento y costoso de computar**, con un factor de costo ajustable. Esto es justo lo que se necesita para contraseñas: un atacante que obtenga la base de datos y quiera probar contraseñas por fuerza bruta se ve limitado por ese costo computacional, algo que un hash rápido como SHA-256 no ofrece (fue diseñado para velocidad, no para resistir este tipo de ataque).
+`Guard` uses `passlib.context.CryptContext` configured with `schemes=["bcrypt"]`. Choosing bcrypt (instead of a generic cryptographic hash) reflects that bcrypt is deliberately designed to be **slow and expensive to compute**, with an adjustable cost factor. That's exactly what's needed for passwords: an attacker who obtains the database and wants to brute-force passwords is limited by that computational cost, something a fast hash like SHA-256 doesn't offer (it was designed for speed, not to resist this kind of attack).
 
-El parámetro `deprecated="auto"` le dice a `passlib` que, si en el futuro se agrega un esquema de hash más nuevo a la lista de `schemes`, los hashes generados con el esquema anterior se sigan aceptando como válidos pero se marquen como "a migrar". Esto permite endurecer el algoritmo de hashing en el futuro sin invalidar de golpe las contraseñas ya almacenadas.
+The `deprecated="auto"` parameter tells `passlib` that, if a newer hashing scheme is ever added to the `schemes` list, hashes generated with the previous scheme should keep being accepted as valid but get flagged as "to migrate." This allows the hashing algorithm to be hardened in the future without invalidating already-stored passwords all at once.
 
-## Por qué `bcrypt<4.1` en `pyproject.toml`
+## Why `bcrypt<4.1` in `pyproject.toml`
 
-En `backend/pyproject.toml` la dependencia está fijada como `"bcrypt<4.1"`. Esto no es arbitrario: versiones de `bcrypt` iguales o posteriores a la 4.1 cambiaron detalles internos del paquete que rompen la forma en que `passlib` (en su versión 1.7.4, usada aquí) detecta la versión del backend de bcrypt instalado, lo que provoca errores o advertencias al hashear contraseñas. Fijar el techo de versión evita ese problema de compatibilidad conocido entre ambas librerías.
+In `backend/pyproject.toml` the dependency is pinned as `"bcrypt<4.1"`. This isn't arbitrary: `bcrypt` versions 4.1 and later changed internal package details that break the way `passlib` (version 1.7.4, used here) detects the installed bcrypt backend's version, causing errors or warnings when hashing passwords. Pinning the version ceiling avoids that known compatibility issue between the two libraries.
 
-## Métodos estáticos, no instancias
+## Static methods, not instances
 
-`Crear` y `Validar` son `@staticmethod`: `Guard` no necesita guardar estado propio entre llamadas (el `CryptContext` vive a nivel de módulo y es compartido), así que no tiene sentido instanciar un objeto `Guard()` para usarlos. Se llaman directamente como `Guard.Crear(...)`.
+`Hash` and `Verify` are `@staticmethod`: `Guard` doesn't need to keep its own state between calls (the `CryptContext` lives at module level and is shared), so there's no reason to instantiate a `Guard()` object to use them. They're called directly as `Guard.Hash(...)`.
 
-## Relación con el resto del backend
+## Relationship with the rest of the backend
 
-`Guard` se usa en dos puntos distintos de `modules/routers/` (ver `routers.md`):
+`Guard` is used in two different spots in `modules/routers/` (see `routers.md`):
 
-- `auth.py` llama a `Guard.Crear(data.contraseña)` justo antes de insertar un nuevo usuario (`POST /auth/registro`) y también dentro de `PUT /usuarios/me` cuando el cliente decide cambiar su contraseña (`usuarios.py`), de modo que el valor que llega a la base de datos es siempre el hash, nunca la contraseña original.
-- `auth.py` llama a `Guard.Validar(data.contraseña, fila["contraseña_hash"])` dentro de `POST /auth/login`: trae el hash guardado con `Querys.SELECT_USUARIO_POR_CORREO` (ver `cursor.md`) y compara la contraseña en texto plano que mandó el cliente contra ese hash. Si coincide, se emite un JWT con `Token.Crear` (ver `token.md`); si no, el endpoint responde `401 Unauthorized` sin dar más detalle sobre si el correo existe o la contraseña es la que falló, para no ayudar a alguien a enumerar qué correos están registrados.
+- `auth.py` calls `Guard.Hash(data.password)` right before inserting a new user (`POST /auth/register`) and also inside `PUT /users/me` when the client decides to change their password (`users.py`), so the value that reaches the database is always the hash, never the original password.
+- `auth.py` calls `Guard.Verify(data.password, row["password_hash"])` inside `POST /auth/login`: it fetches the stored hash with `Queries.SELECT_USER_BY_EMAIL` (see `cursor.md`) and compares the plain-text password the client sent against that hash. If it matches, a JWT is issued with `Token.Create` (see `token.md`); if not, the endpoint responds `401 Unauthorized` without giving further detail about whether the email exists or the password was wrong, so as not to help someone enumerate which emails are registered.
 
-Con esto, los dos métodos de `Guard` que existían desde el principio del proyecto ya están en uso.
+With this, both of `Guard`'s methods, present since the beginning of the project, are now in active use.

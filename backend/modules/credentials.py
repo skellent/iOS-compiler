@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 
-def obtener_credenciales() -> dict:
+def get_credentials() -> dict:
     load_dotenv()
 
     return {
@@ -13,15 +13,15 @@ def obtener_credenciales() -> dict:
             'port':     int(os.getenv("PORT")),
             'database': os.getenv("DATABASE")
         },
-        "api": { # Proximanente, la lectura de las credenciales correspondientes de la API que realizan las alertas
+        "api": { # Coming soon: reading the credentials for the third-party API that dispatches alerts
             'Auth': None,
             'Key':  None,
         },
         "jwt": {
             'secret_key': os.getenv("JWT_SECRET_KEY"),
         },
-        "correo": {
-            'usuario':  os.getenv("SMTP_USER"),
+        "email": {
+            'user':     os.getenv("SMTP_USER"),
             'password': os.getenv("SMTP_PASSWORD"),
             'host':     os.getenv("SMTP_HOST", "smtp.gmail.com"),
             'port':     int(os.getenv("SMTP_PORT", 587)),

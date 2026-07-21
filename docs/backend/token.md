@@ -1,109 +1,109 @@
 # `modules/token.py`
 
-## Propósito
+## Purpose
 
 ```python
 from datetime import datetime, timedelta, timezone
 
 import jwt
 
-from modules.credenciales import obtener_credenciales
+from modules.credentials import get_credentials
 
-ALGORITMO: str = "HS256"
-EXPIRACION: timedelta = timedelta(hours=24)
+ALGORITHM: str = "HS256"
+EXPIRATION: timedelta = timedelta(hours=24)
 
-_secreto: str = obtener_credenciales()['jwt']['secret_key']
+_secret: str = get_credentials()['jwt']['secret_key']
 
 class Token:
     @staticmethod
-    def Crear(id_usuario: int) -> str:
+    def Create(user_id: int) -> str:
         payload: dict = {
-            "sub": str(id_usuario),
-            "exp": datetime.now(timezone.utc) + EXPIRACION,
+            "sub": str(user_id),
+            "exp": datetime.now(timezone.utc) + EXPIRATION,
         }
-        return jwt.encode(payload, _secreto, algorithm=ALGORITMO)
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
 
     @staticmethod
-    def Validar(token: str) -> dict | None:
+    def Validate(token: str) -> dict | None:
         try:
-            return jwt.decode(token, _secreto, algorithms=[ALGORITMO])
+            return jwt.decode(token, _secret, algorithms=[ALGORITHM])
         except jwt.InvalidTokenError:
             return None
 ```
 
-Este módulo aísla todo lo relacionado con emitir y verificar JSON Web Tokens (JWT) detrás de una clase `Token` con dos métodos estáticos, siguiendo exactamente el mismo patrón que `Guard` (ver `guard.md`) usa para contraseñas:
+This module isolates everything related to issuing and verifying JSON Web Tokens (JWT) behind a `Token` class with two static methods, following exactly the same pattern `Guard` (see `guard.md`) uses for passwords:
 
-- `Token.Crear(id_usuario)`: genera un token firmado que representa "esta petición viene de este usuario, y es válido hasta tal fecha".
-- `Token.Validar(token)`: dado un token que llegó en una petición, verifica que esté bien firmado y no haya expirado, y devuelve el contenido que llevaba adentro (o `None` si algo no cuadra).
+- `Token.Create(user_id)`: generates a signed token that represents "this request comes from this user, and is valid until this date."
+- `Token.Validate(token)`: given a token that arrived in a request, verifies it's correctly signed and hasn't expired, and returns the content it carried inside (or `None` if something's off).
 
-## Qué es un JWT y por qué resuelve el problema del login
+## What a JWT is, and why it solves the login problem
 
-HTTP no tiene memoria: cada request es independiente y el servidor, por defecto, no sabe si dos peticiones vienen del mismo usuario que ya inició sesión. `POST /auth/login` (ver `routers.md`) verifica una vez la contraseña, pero ese resultado tiene que viajar de alguna forma en cada petición siguiente para que endpoints como `GET /usuarios/me` sepan de quién son.
+HTTP has no memory: every request is independent, and by default the server doesn't know whether two requests come from the same already-logged-in user. `POST /auth/login` (see `routers.md`) verifies the password once, but that result has to travel somehow with every following request so endpoints like `GET /users/me` know whose it is.
 
-Un JWT es la solución elegida para eso: es una cadena de texto con tres partes (cabecera, contenido o "payload", y firma) que el servidor genera una sola vez, en el login, y el cliente reenvía en cada petición posterior dentro del header `Authorization: Bearer <token>` (ver `dependencies.md` para cómo se lee ese header). El contenido de este proyecto es deliberadamente mínimo:
+A JWT is the chosen solution for that: it's a text string with three parts (header, content or "payload," and signature) that the server generates once, at login, and the client resends on every following request inside the `Authorization: Bearer <token>` header (see `dependencies.md` for how that header is read). This project's content is deliberately minimal:
 
 ```python
 payload: dict = {
-    "sub": str(id_usuario),
-    "exp": datetime.now(timezone.utc) + EXPIRACION,
+    "sub": str(user_id),
+    "exp": datetime.now(timezone.utc) + EXPIRATION,
 }
 ```
 
-- **`sub`** ("subject", un nombre de claim estándar de JWT) es el `id` del usuario dueño del token, convertido a texto porque la especificación de JWT espera que los claims sean tipos simples serializables a JSON, y el estándar recomienda que `sub` sea una cadena.
-- **`exp`** ("expiration", también estándar) es la fecha a partir de la cual el token deja de ser válido. `jwt.decode` la revisa automáticamente y lanza una excepción si ya pasó — no hay que comparar fechas a mano en este módulo.
+- **`sub`** ("subject," a standard JWT claim name) is the `id` of the user who owns the token, converted to text because the JWT spec expects claims to be simple, JSON-serializable types, and the standard recommends `sub` be a string.
+- **`exp`** ("expiration," also standard) is the date after which the token stops being valid. `jwt.decode` checks it automatically and raises an exception if it's already passed — no dates need to be compared by hand in this module.
 
-## Por qué "sin estado" (nadie consulta la base de datos para validar un token)
+## Why "stateless" (no one queries the database to validate a token)
 
-Lo importante de un JWT firmado es que su contenido **no se puede alterar sin invalidar la firma**: si alguien intercepta un token y le cambia el `sub` para hacerse pasar por otro usuario, `jwt.decode` detecta que la firma ya no coincide con el contenido y lo rechaza. Esa propiedad es justamente lo que permite que `Token.Validar` no necesite preguntarle nada a la base de datos ni a ninguna tabla de "sesiones activas": si la firma es válida y no expiró, se confía en que el `sub` es quien dice ser, sin una consulta SQL de por medio. Esto es deliberadamente más simple que otras alternativas (por ejemplo, guardar sesiones en una tabla y revisar esa tabla en cada request) y es consistente con el resto del proyecto, que evita infraestructura adicional mientras no haga falta (ver también `main.md`, sección de arquitectura).
+What matters about a signed JWT is that its content **can't be altered without invalidating the signature**: if someone intercepts a token and changes its `sub` to impersonate another user, `jwt.decode` detects that the signature no longer matches the content and rejects it. That property is exactly what lets `Token.Validate` avoid asking the database, or any "active sessions" table, anything at all: if the signature is valid and hasn't expired, the `sub` is trusted to be who it says it is, with no SQL query involved. This is deliberately simpler than other alternatives (for example, storing sessions in a table and checking that table on every request) and is consistent with the rest of the project, which avoids extra infrastructure until it's actually needed (see also `main.md`, architecture section).
 
-La contrapartida de este diseño es que un token no se puede "invalidar" antes de que expire — no existe un `DELETE /sesiones/{token}` posible, porque no hay ningún lado donde el servidor lo esté recordando. Por eso `EXPIRACION` está fijada a 24 horas: es un balance entre no obligar al usuario a loguearse todo el tiempo y no dejar un token robado utilizable indefinidamente. Si el proyecto necesitara poder revocar sesiones activas (por ejemplo, un "cerrar sesión en todos los dispositivos"), haría falta introducir estado en el servidor, algo que hoy no está implementado a propósito.
+The tradeoff of this design is that a token can't be "invalidated" before it expires — there's no possible `DELETE /sessions/{token}`, because there's nowhere the server is keeping track of it. That's why `EXPIRATION` is fixed at 24 hours: it's a balance between not forcing the user to log in constantly and not leaving a stolen token usable indefinitely. If the project ever needed to be able to revoke active sessions (for example, a "log out on all devices"), it would need to introduce server-side state, something deliberately not implemented today.
 
-## Por qué `pyjwt` y no otra librería
+## Why `pyjwt` and not another library
 
-Existen varias librerías de Python para JWT; se eligió `pyjwt` porque el algoritmo usado acá (`HS256`, HMAC con SHA-256) es simétrico — la misma clave (`JWT_SECRET_KEY`, ver `credenciales.md`) sirve tanto para firmar como para verificar — y `pyjwt` cubre ese caso sin dependencias adicionales de criptografía asimétrica que este proyecto no necesita (alternativas como `python-jose` traen soporte para más algoritmos y formatos, a costa de más peso y superficie).
+Several Python libraries exist for JWT; `pyjwt` was chosen because the algorithm used here (`HS256`, HMAC with SHA-256) is symmetric — the same key (`JWT_SECRET_KEY`, see `credentials.md`) is used both to sign and to verify — and `pyjwt` covers that case without the extra asymmetric-cryptography dependencies this project doesn't need (alternatives like `python-jose` bring support for more algorithms and formats, at the cost of more weight and surface area).
 
-## Por qué el secreto se lee una sola vez, a nivel de módulo
+## Why the secret is read once, at module level
 
 ```python
-_secreto: str = obtener_credenciales()['jwt']['secret_key']
+_secret: str = get_credentials()['jwt']['secret_key']
 ```
 
-Esta línea corre una única vez, la primera vez que algo importa `modules.token` (el mismo mecanismo de módulos-como-singleton que se explica en `db.md`). Evita volver a leer el `.env` en cada llamada a `Crear` o `Validar` — el secreto no cambia mientras el proceso está corriendo, así que no hay motivo para releerlo. El guion bajo al inicio (`_secreto`) es una convención de Python para señalar "esto es un detalle interno del módulo, no lo importes desde otro lado" — quien necesite crear o validar tokens debe hacerlo a través de `Token`, no leyendo `_secreto` directamente.
+This line runs exactly once, the first time anything imports `modules.token` (the same modules-as-singleton mechanism explained in `db.md`). It avoids re-reading `.env` on every call to `Create` or `Validate` — the secret doesn't change while the process is running, so there's no reason to re-read it. The leading underscore (`_secret`) is a Python convention signaling "this is an internal module detail, don't import it from elsewhere" — whoever needs to create or validate tokens should do it through `Token`, not by reading `_secret` directly.
 
-## Por qué `Validar` devuelve `None` en vez de dejar propagar la excepción
+## Why `Validate` returns `None` instead of letting the exception propagate
 
-`jwt.decode` lanza distintas subclases de `jwt.InvalidTokenError` según qué salió mal (firma inválida, token expirado, formato corrupto, etc.). A quien llama a `Token.Validar` — hoy, únicamente `modules/dependencies.py` (ver `dependencies.md`) — no le importa *cuál* de esos problemas ocurrió, solo si el token es utilizable o no. Por eso el método captura la clase base `jwt.InvalidTokenError` (que cubre todos los casos anteriores) y devuelve `None` de forma uniforme, dejando que sea la capa de arriba la que decida qué código HTTP corresponde (en este caso, `401 Unauthorized`).
+`jwt.decode` raises different subclasses of `jwt.InvalidTokenError` depending on what went wrong (invalid signature, expired token, corrupt format, etc.). Whoever calls `Token.Validate` — today, only `modules/dependencies.py` (see `dependencies.md`) — doesn't care *which* of those problems happened, only whether the token is usable or not. That's why the method catches the base class `jwt.InvalidTokenError` (which covers every case above) and uniformly returns `None`, leaving it to the layer above to decide which HTTP code applies (in this case, `401 Unauthorized`).
 
-## Relación con el resto del backend
+## Relationship with the rest of the backend
 
-`auth.py` llama a `Token.Crear(id_usuario)` al final de un login exitoso, dentro de `POST /auth/login` (ver `routers.md`). `modules/dependencies.py` llama a `Token.Validar(token)` en la dependencia `usuario_actual`, que protege todos los endpoints que requieren estar autenticado (`GET`/`PUT /usuarios/me`, `POST`/`GET`/`PUT /contactos`).
+`auth.py` calls `Token.Create(user_id)` at the end of a successful login, inside `POST /auth/login` (see `routers.md`). `modules/dependencies.py` calls `Token.Validate(token)` in the `current_user` dependency, which protects every endpoint that requires being authenticated (`GET`/`PUT /users/me`, `POST`/`GET`/`PUT /contacts`).
 
-## `CrearConfirmacionContacto` y `ValidarConfirmacionContacto`
+## `CreateContactConfirmation` and `ValidateContactConfirmation`
 
 ```python
-EXPIRACION_CONFIRMACION_CONTACTO: timedelta = timedelta(days=7)
+CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
 
 @staticmethod
-def CrearConfirmacionContacto(id_contacto: int) -> str:
+def CreateContactConfirmation(contact_id: int) -> str:
     payload: dict = {
-        "contacto_id": id_contacto,
-        "tipo": "confirmacion_contacto",
-        "exp": datetime.now(timezone.utc) + EXPIRACION_CONFIRMACION_CONTACTO,
+        "contact_id": contact_id,
+        "type": "contact_confirmation",
+        "exp": datetime.now(timezone.utc) + CONTACT_CONFIRMATION_EXPIRATION,
     }
-    return jwt.encode(payload, _secreto, algorithm=ALGORITMO)
+    return jwt.encode(payload, _secret, algorithm=ALGORITHM)
 
 @staticmethod
-def ValidarConfirmacionContacto(token: str) -> int | None:
-    payload: dict | None = Token.Validar(token)
-    if payload is None or payload.get("tipo") != "confirmacion_contacto":
+def ValidateContactConfirmation(token: str) -> int | None:
+    payload: dict | None = Token.Validate(token)
+    if payload is None or payload.get("type") != "contact_confirmation":
         return None
-    return int(payload["contacto_id"])
+    return int(payload["contact_id"])
 ```
 
-Se agregaron para el flujo de confirmación de contactos de emergencia (ver `correo.md` para el flujo completo). Es un segundo tipo de JWT, con su propio propósito, que convive con el token de sesión sin reemplazarlo ni reutilizar sus métodos sin cambios:
+These were added for the emergency-contact confirmation flow (see `mail.md` for the complete flow). It's a second type of JWT, with its own purpose, that coexists with the session token without replacing it or reusing its methods unchanged:
 
-- **No es el mismo payload que un token de sesión a propósito**: un token de sesión lleva `{"sub": id_usuario, "exp": ...}`; un token de confirmación lleva `{"contacto_id": ..., "tipo": "confirmacion_contacto", "exp": ...}`. El claim `"tipo"` es la pieza que evita que ambos tipos de token sean intercambiables entre sí — sin él, un token de sesión y uno de confirmación firmados con el mismo secreto serían indistinguibles en su forma, y uno podría colarse por el endpoint pensado para el otro si los valores numéricos (`id_usuario` vs `id_contacto`) coincidieran. `ValidarConfirmacionContacto` rechaza (devuelve `None`) cualquier token que no tenga exactamente `"tipo": "confirmacion_contacto"`, aunque esté firmado correctamente y no haya expirado.
-- **Reutiliza `Token.Validar` para el decode**, no reimplementa la verificación de firma/expiración: `ValidarConfirmacionContacto` llama primero a `Validar` (que ya sabe capturar `jwt.InvalidTokenError` y devolver `None` de forma uniforme, ver más arriba) y solo agrega, encima de eso, la comprobación del claim `"tipo"`. Esto evita duplicar la lógica de `jwt.decode` en dos lugares del mismo archivo.
-- **Expiración deliberadamente más larga** (`7 días` contra las `24 horas` del token de sesión): un contacto de emergencia puede tardar en revisar su correo, y no hay urgencia de seguridad equivalente a la de una sesión activa que justifique una ventana corta.
+- **It's deliberately not the same payload shape as a session token**: a session token carries `{"sub": user_id, "exp": ...}`; a confirmation token carries `{"contact_id": ..., "type": "contact_confirmation", "exp": ...}`. The `"type"` claim is what keeps the two token types from being interchangeable — without it, a session token and a confirmation token signed with the same secret would be indistinguishable in shape, and one could slip through the endpoint meant for the other if the numeric values (`user_id` vs `contact_id`) happened to match. `ValidateContactConfirmation` rejects (returns `None`) any token that doesn't have exactly `"type": "contact_confirmation"`, even if it's correctly signed and hasn't expired.
+- **It reuses `Token.Validate` for the decode step**, instead of reimplementing signature/expiration verification: `ValidateContactConfirmation` first calls `Validate` (which already knows how to catch `jwt.InvalidTokenError` and uniformly return `None`, see above) and only adds, on top of that, the check on the `"type"` claim. This avoids duplicating `jwt.decode` logic in two places in the same file.
+- **Deliberately longer expiration** (`7 days` versus a session token's `24 hours`): an emergency contact might take a while to check their email, and there's no security urgency equivalent to an active session that would justify a short window.
 
-`modules/routers/contactos.py` es el único lugar que usa este segundo par de métodos: `POST /contactos` llama a `CrearConfirmacionContacto` para generar el link que se manda por correo (ver `correo.md`), y `GET /contactos/confirmar/{token}` llama a `ValidarConfirmacionContacto` para decidir si puede marcar `confirmado = TRUE` (ver `routers.md`).
+`modules/routers/contacts.py` is the only place that uses this second pair of methods: `POST /contacts` calls `CreateContactConfirmation` to generate the link sent by email (see `mail.md`), and `GET /contacts/confirm/{token}` calls `ValidateContactConfirmation` to decide whether it can set `confirmed = TRUE` (see `routers.md`).

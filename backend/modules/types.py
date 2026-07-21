@@ -1,31 +1,31 @@
 from pydantic import BaseModel
 
-class Usuario(BaseModel):
-    nombre:     str
-    telefono:   str
-    correo:     str
-    contraseña: str
+class User(BaseModel):
+    name:     str
+    phone:    str
+    email:    str
+    password: str
 
-class UsuarioLogin(BaseModel):
-    correo:     str
-    contraseña: str
+class UserLogin(BaseModel):
+    email:    str
+    password: str
 
-class UsuarioUpdate(BaseModel):
-    nombre:     str | None = None
-    telefono:   str | None = None
-    correo:     str | None = None
-    contraseña: str | None = None
+class UserUpdate(BaseModel):
+    name:     str | None = None
+    phone:    str | None = None
+    email:    str | None = None
+    password: str | None = None
 
-class Contacto(BaseModel):
-    nombre:   str
-    telefono: str
-    correo:   str | None = None
+class Contact(BaseModel):
+    name:  str
+    phone: str
+    email: str | None = None
 
-class ContactoUpdate(BaseModel):
-    nombre:   str | None = None
-    telefono: str | None = None
-    correo:   str | None = None
+class ContactUpdate(BaseModel):
+    name:  str | None = None
+    phone: str | None = None
+    email: str | None = None
 
-class Alerta(BaseModel):
-    latitud:  float
-    longitud: float
+class Alert(BaseModel):
+    latitude:  float
+    longitude: float

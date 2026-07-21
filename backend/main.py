@@ -1,4 +1,4 @@
-from modules.routers import auth, usuarios, contactos, alertas
+from modules.routers import auth, users, contacts, alerts
 
 from fastapi          import FastAPI
 
@@ -11,6 +11,6 @@ def root():
 
 
 app.include_router(auth.router)
-app.include_router(usuarios.router)
-app.include_router(contactos.router)
-app.include_router(alertas.router)
+app.include_router(users.router)
+app.include_router(contacts.router)
+app.include_router(alerts.router)

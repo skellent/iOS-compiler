@@ -1,77 +1,77 @@
-# API de PanicSwitch — Guía de uso
+# PanicSwitch API — Usage guide
 
-Este documento explica cómo consumir la API desde un cliente externo (en particular, pensando en la futura aplicación Capacitor), con ejemplos equivalentes en Python y JavaScript. Para entender *por qué* la API está construida como está (decisiones de diseño, seguridad, estructura interna), ver `docs/backend/` — este archivo se enfoca solo en *cómo usarla* desde afuera.
+This document explains how to consume the API from an external client (in particular, with the future Capacitor application in mind), with equivalent examples in Python and JavaScript. To understand *why* the API is built the way it is (design decisions, security, internal structure), see `docs/backend/` — this file focuses only on *how to use it* from the outside.
 
-## Antes de empezar
+## Before you start
 
-En desarrollo local, la API corre en `http://127.0.0.1:8000` (o el host/puerto que le indiques a `uvicorn`, ver el README principal). Todos los ejemplos de este documento asumen esa URL base; en producción habría que reemplazarla por el dominio real donde se despliegue el backend.
+In local development, the API runs on `http://127.0.0.1:8000` (or whatever host/port you pass to `uvicorn`, see the main README). Every example in this document assumes that base URL; in production you'd replace it with the real domain the backend is deployed to.
 
-Todas las peticiones que llevan cuerpo (`POST`, `PUT`) esperan y devuelven **JSON** (`Content-Type: application/json`).
+Every request that carries a body (`POST`, `PUT`) expects and returns **JSON** (`Content-Type: application/json`).
 
-## Flujo general
+## General flow
 
 ```mermaid
 sequenceDiagram
     participant App as App (Capacitor)
     participant API
 
-    App->>API: POST /auth/registro (nombre, telefono, correo, contraseña)
+    App->>API: POST /auth/register (name, phone, email, password)
     API-->>App: 201 Created
 
-    App->>API: POST /auth/login (correo, contraseña)
+    App->>API: POST /auth/login (email, password)
     API-->>App: 200 OK { access_token, token_type }
-    Note over App: guardar access_token
+    Note over App: store access_token
 
-    App->>API: GET /usuarios/me<br/>Authorization: Bearer access_token
-    API-->>App: 200 OK { id, nombre, telefono, correo }
+    App->>API: GET /users/me<br/>Authorization: Bearer access_token
+    API-->>App: 200 OK { id, name, phone, email }
 
-    App->>API: POST /contactos<br/>Authorization: Bearer access_token
+    App->>API: POST /contacts<br/>Authorization: Bearer access_token
     API-->>App: 201 Created
 ```
 
-En resumen: **te registrás una vez**, **iniciás sesión** para obtener un token, y **reenviás ese token** en todas las peticiones que necesiten saber quién sos. El token no se guarda en el servidor (ver `docs/backend/token.md`) — quien lo pierde, tiene que loguearse de nuevo para conseguir uno nuevo, no hay un "recuperar sesión" del lado del backend.
+In short: **you register once**, **you log in** to get a token, and **you resend that token** on every request that needs to know who you are. The token isn't stored on the server (see `docs/backend/token.md`) — whoever loses it has to log in again to get a new one, there's no "recover session" on the backend side.
 
-## Autenticación
+## Authentication
 
-### `POST /auth/registro`
+### `POST /auth/register`
 
-Crea una cuenta nueva. No requiere autenticación (obviamente: todavía no existe la cuenta).
+Creates a new account. Doesn't require authentication (obviously: the account doesn't exist yet).
 
-**Cuerpo de la petición:**
+**Request body:**
 
 ```json
 {
-  "nombre": "María Pérez",
-  "telefono": "+584241234567",
-  "correo": "maria@example.com",
-  "contraseña": "unaContraseñaSegura"
+  "name": "Jane Doe",
+  "phone": "+584241234567",
+  "email": "jane@example.com",
+  "password": "aStrongPassword"
 }
 ```
 
-**Respuestas:**
+**Responses:**
 
-| Código | Cuándo ocurre |
+| Code | When it happens |
 |--------|----------------|
-| `201`  | Cuenta creada correctamente. |
-| `409`  | Ya existe una cuenta con ese `telefono` o ese `correo`. |
-| `422`  | Falta algún campo, o tiene el tipo incorrecto (por ejemplo, `telefono` como número en vez de texto). |
+| `201`  | Account created successfully. |
+| `409`  | An account with that `phone` or `email` already exists. |
+| `422`  | A field is missing, or has the wrong type (for example, `phone` as a number instead of text). |
 
-Registrarse **no** inicia sesión automáticamente: después de un `201` hay que llamar a `/auth/login` para obtener un token.
+Registering does **not** automatically log you in: after a `201`, you have to call `/auth/login` to get a token.
 
 ### `POST /auth/login`
 
-Verifica las credenciales y devuelve un token.
+Verifies the credentials and returns a token.
 
-**Cuerpo de la petición:**
+**Request body:**
 
 ```json
 {
-  "correo": "maria@example.com",
-  "contraseña": "unaContraseñaSegura"
+  "email": "jane@example.com",
+  "password": "aStrongPassword"
 }
 ```
 
-**Respuesta (`200`):**
+**Response (`200`):**
 
 ```json
 {
@@ -80,155 +80,155 @@ Verifica las credenciales y devuelve un token.
 }
 ```
 
-Si el correo no existe o la contraseña no coincide, la respuesta es `401 Unauthorized` con un mensaje genérico ("Correo o contraseña incorrectos") — a propósito no distingue cuál de las dos cosas falló, para no revelar qué correos están registrados (ver `docs/backend/routers.md`).
+If the email doesn't exist or the password doesn't match, the response is `401 Unauthorized` with a generic message ("Incorrect email or password") — on purpose it doesn't distinguish which of the two failed, so as not to reveal which emails are registered (see `docs/backend/routers.md`).
 
-### Cómo usar el token
+### How to use the token
 
-Todas las rutas descritas más abajo, salvo las dos de `/auth`, requieren mandar el token en el header `Authorization`, con el esquema `Bearer`:
+Every route described below, except the two under `/auth`, requires sending the token in the `Authorization` header, with the `Bearer` scheme:
 
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-Si el header falta, está mal formado, o el token expiró o es inválido, la API responde `401 Unauthorized` antes de ejecutar cualquier lógica de negocio (ver `docs/backend/dependencies.md`). El token expira a las 24 horas de haberse emitido (ver `docs/backend/token.md`); pasado ese tiempo, hay que volver a loguearse — no existe (todavía) un mecanismo de refresco automático.
+If the header is missing, malformed, or the token has expired or is invalid, the API responds `401 Unauthorized` before running any business logic (see `docs/backend/dependencies.md`). The token expires 24 hours after being issued (see `docs/backend/token.md`); after that, you have to log in again — there's no (yet) automatic refresh mechanism.
 
-## Endpoints de Usuario
+## User endpoints
 
-### `GET /usuarios/me`
+### `GET /users/me`
 
-Devuelve los datos del usuario dueño del token. No recibe ningún parámetro: "de quién son los datos" lo decide el token, nunca una URL con un `id` (ver `docs/backend/routers.md`).
+Returns the data of the user who owns the token. Takes no parameters: "whose data is this" is decided by the token, never a URL with an `id` (see `docs/backend/routers.md`).
 
-**Respuesta (`200`):**
+**Response (`200`):**
 
 ```json
 {
   "id": 5,
-  "nombre": "María Pérez",
-  "telefono": "+584241234567",
-  "correo": "maria@example.com"
+  "name": "Jane Doe",
+  "phone": "+584241234567",
+  "email": "jane@example.com"
 }
 ```
 
-Nótese que nunca se devuelve la contraseña ni su hash.
+Note that the password or its hash is never returned.
 
-### `PUT /usuarios/me`
+### `PUT /users/me`
 
-Edita al usuario autenticado. Acepta **cualquier subconjunto** de estos campos — solo se actualiza lo que se envía, el resto queda igual:
+Edits the authenticated user. Accepts **any subset** of these fields — only what's sent gets updated, the rest stays the same:
 
 ```json
 {
-  "nombre": "Nuevo Nombre"
+  "name": "New Name"
 }
 ```
 
-Los campos posibles son `nombre`, `telefono`, `correo` y `contraseña` (si se manda `contraseña`, se re-hashea en el servidor; nunca hace falta mandar el hash, solo el texto plano nuevo). La respuesta (`200`) es el usuario completo ya actualizado, con la misma forma que `GET /usuarios/me`.
+The possible fields are `name`, `phone`, `email` and `password` (if `password` is sent, it's re-hashed on the server; you never need to send the hash, only the new plain text). The response (`200`) is the full, already-updated user, with the same shape as `GET /users/me`.
 
-| Código | Cuándo ocurre |
+| Code | When it happens |
 |--------|----------------|
-| `200`  | Actualización exitosa. |
-| `400`  | El cuerpo no traía ningún campo para actualizar (`{}`). |
-| `409`  | El nuevo `telefono` o `correo` ya pertenece a otra cuenta. |
-| `401`  | Token ausente, inválido o expirado. |
+| `200`  | Update succeeded. |
+| `400`  | The body carried no field to update (`{}`). |
+| `409`  | The new `phone` or `email` already belongs to another account. |
+| `401`  | Token missing, invalid, or expired. |
 
-## Endpoints de Contactos
+## Contact endpoints
 
-Los contactos son las personas que deben notificarse cuando el usuario activa una alerta. Todos los endpoints de este grupo requieren el header `Authorization` y solo afectan a los contactos del usuario dueño del token — no existe forma de leer o editar contactos de otra cuenta.
+Contacts are the people who must be notified when the user triggers an alert. Every endpoint in this group requires the `Authorization` header and only affects the contacts of the user who owns the token — there's no way to read or edit another account's contacts.
 
-### `POST /contactos`
+### `POST /contacts`
 
-Crea un contacto de emergencia nuevo.
+Creates a new emergency contact.
 
-**Cuerpo de la petición:**
+**Request body:**
 
 ```json
 {
-  "nombre": "Carlos Pérez",
-  "telefono": "+584161234567",
-  "correo": null
+  "name": "John Doe",
+  "phone": "+584161234567",
+  "email": null
 }
 ```
 
-`correo` es opcional (puede omitirse o mandarse `null`); `nombre` y `telefono` son obligatorios. Respuesta: `201` sin cuerpo relevante.
+`email` is optional (it can be omitted or sent as `null`); `name` and `phone` are required. Response: `201` with no relevant body.
 
-Si se manda `correo`, la API dispara en segundo plano un correo de confirmación a esa dirección (no bloquea la respuesta `201`, ver `docs/backend/correo.md`), con un link a `GET /contactos/confirmar/{token}`. Mientras el contacto no confirme haciendo clic en ese link, `confirmado` sigue en `false` en `GET /contactos` (ver más abajo). Si no se manda `correo`, no hay forma de confirmarlo todavía y queda en `false` indefinidamente.
+If `email` is sent, the API fires off a confirmation email to that address in the background (it doesn't block the `201` response, see `docs/backend/mail.md`), with a link to `GET /contacts/confirm/{token}`. Until the contact confirms by clicking that link, `confirmed` stays `false` in `GET /contacts` (see below). If `email` isn't sent, there's currently no way to confirm it and it stays `false` indefinitely.
 
-### `GET /contactos`
+### `GET /contacts`
 
-Lista todos los contactos del usuario autenticado.
+Lists all of the authenticated user's contacts.
 
-**Respuesta (`200`):**
+**Response (`200`):**
 
 ```json
 [
   {
     "id": 1,
-    "nombre": "Carlos Pérez",
-    "telefono": "+584161234567",
-    "correo": null,
-    "confirmado": false
+    "name": "John Doe",
+    "phone": "+584161234567",
+    "email": null,
+    "confirmed": false
   }
 ]
 ```
 
-`confirmado` indica si ese contacto ya aceptó recibir alertas en su nombre; hoy siempre llega en `false`, porque el flujo de confirmación todavía no está implementado (ver `docs/backend/sql.md`).
+`confirmed` indicates whether that contact has already agreed to receive alerts on their behalf.
 
-### `GET /contactos/confirmar/{token}`
+### `GET /contacts/confirm/{token}`
 
-Es el único endpoint de este grupo que **no** requiere el header `Authorization` — a propósito: a este endpoint se llega haciendo clic en el link del correo de confirmación (ver `POST /contactos` más arriba), no desde una sesión iniciada en la app. El `token` de la URL no es el mismo tipo de token que `access_token` (no sirve para autenticarse contra ningún otro endpoint, y viceversa: un `access_token` de sesión no sirve acá).
+The only endpoint in this group that does **not** require the `Authorization` header — on purpose: this endpoint is reached by clicking the link in the confirmation email (see `POST /contacts` above), not from a session logged into the app. The `token` in the URL isn't the same kind of token as `access_token` (it doesn't work to authenticate against any other endpoint, and vice versa: a session `access_token` doesn't work here).
 
-**Respuestas:**
+**Responses:**
 
-| Código | Cuándo ocurre |
+| Code | When it happens |
 |--------|----------------|
-| `200`  | El contacto quedó marcado como confirmado. Cuerpo: `{"mensaje": "Contacto confirmado exitosamente"}`. |
-| `401`  | El token es inválido, no es del tipo esperado, o ya expiró (vence a los 7 días de emitido). |
-| `404`  | El token era válido pero el contacto al que apunta ya no existe. |
+| `200`  | The contact was marked as confirmed. Body: `{"message": "Contact confirmed successfully"}`. |
+| `401`  | The token is invalid, isn't of the expected type, or has already expired (expires 7 days after being issued). |
+| `404`  | The token was valid but the contact it points to no longer exists. |
 
-### `PUT /contactos/{id}`
+### `PUT /contacts/{id}`
 
-Edita un contacto existente, identificado por su `id` (el mismo que devuelve `GET /contactos`). Igual que `PUT /usuarios/me`, solo acepta los campos que se quieran cambiar:
+Edits an existing contact, identified by its `id` (the same one returned by `GET /contacts`). Same as `PUT /users/me`, it only accepts the fields you want to change:
 
 ```json
 {
-  "telefono": "+584169998877"
+  "phone": "+584169998877"
 }
 ```
 
-| Código | Cuándo ocurre |
+| Code | When it happens |
 |--------|----------------|
-| `200`  | Actualización exitosa; devuelve el contacto completo actualizado. |
-| `400`  | El cuerpo no traía ningún campo para actualizar. |
-| `404`  | No existe un contacto con ese `id` **perteneciente al usuario autenticado** (incluye el caso de que el `id` exista pero sea de otra cuenta — a propósito no se distingue, ver `docs/backend/routers.md`). |
-| `401`  | Token ausente, inválido o expirado. |
+| `200`  | Update succeeded; returns the full updated contact. |
+| `400`  | The body carried no field to update. |
+| `404`  | No contact with that `id` **belonging to the authenticated user** exists (includes the case where the `id` exists but belongs to another account — deliberately not distinguished, see `docs/backend/routers.md`). |
+| `401`  | Token missing, invalid, or expired. |
 
-## Endpoints de Alertas
+## Alert endpoints
 
-### `POST /alertas`
+### `POST /alerts`
 
-Registra la activación del botón de pánico: guarda la ubicación del usuario autenticado y notifica por correo a todos sus contactos de emergencia **que ya confirmaron** (ver `GET /contactos/confirmar/{token}` más arriba — un contacto que nunca confirmó no recibe nada, ver `docs/backend/sql.md`).
+Logs the panic button being triggered: saves the authenticated user's location and emails every one of their emergency contacts **who have already confirmed** (see `GET /contacts/confirm/{token}` above — a contact who never confirmed receives nothing).
 
-**Cuerpo de la petición:**
+**Request body:**
 
 ```json
 {
-  "latitud": 10.4880600,
-  "longitud": -66.8791500
+  "latitude": 10.4880600,
+  "longitude": -66.8791500
 }
 ```
 
-**Respuestas:**
+**Responses:**
 
-| Código | Cuándo ocurre |
+| Code | When it happens |
 |--------|----------------|
-| `201`  | Alerta registrada. La notificación por correo se dispara en segundo plano (no bloquea esta respuesta, ver `docs/backend/correo.md`) — un `201` no garantiza que los correos ya se hayan mandado, solo que la alerta quedó guardada. |
-| `401`  | Token ausente, inválido o expirado. |
-| `422`  | Falta `latitud` o `longitud`, o no son números. |
+| `201`  | Alert logged. The email notification fires in the background (it doesn't block this response, see `docs/backend/mail.md`) — a `201` doesn't guarantee the emails have already been sent, only that the alert was saved. |
+| `401`  | Token missing, invalid, or expired. |
+| `422`  | `latitude` or `longitude` is missing, or isn't a number. |
 
-Si el usuario no tiene ningún contacto confirmado con `correo`, la alerta igual se registra — simplemente no hay a quién notificar todavía.
+If the user has no confirmed contact with an `email`, the alert still gets logged — there's just no one to notify yet.
 
-## Ejemplos en Python
+## Examples in Python
 
-Usando la librería `requests` (`pip install requests` o, si el cliente también fuera un proyecto `uv`, `uv add requests`):
+Using the `requests` library (`pip install requests`, or, if the client is also a `uv` project, `uv add requests`):
 
 ```python
 import requests
@@ -236,107 +236,107 @@ import requests
 BASE_URL = "http://127.0.0.1:8000"
 
 
-def registrar(nombre, telefono, correo, contraseña):
-    resp = requests.post(f"{BASE_URL}/auth/registro", json={
-        "nombre": nombre,
-        "telefono": telefono,
-        "correo": correo,
-        "contraseña": contraseña,
+def register(name, phone, email, password):
+    resp = requests.post(f"{BASE_URL}/auth/register", json={
+        "name": name,
+        "phone": phone,
+        "email": email,
+        "password": password,
     })
-    resp.raise_for_status()  # lanza una excepción si el código no es 2xx
+    resp.raise_for_status()  # raises an exception if the code isn't 2xx
     return resp.json()
 
 
-def login(correo, contraseña):
+def login(email, password):
     resp = requests.post(f"{BASE_URL}/auth/login", json={
-        "correo": correo,
-        "contraseña": contraseña,
+        "email": email,
+        "password": password,
     })
     resp.raise_for_status()
     return resp.json()["access_token"]
 
 
-def obtener_mi_usuario(token):
-    resp = requests.get(f"{BASE_URL}/usuarios/me", headers={
+def get_my_user(token):
+    resp = requests.get(f"{BASE_URL}/users/me", headers={
         "Authorization": f"Bearer {token}",
     })
     resp.raise_for_status()
     return resp.json()
 
 
-def crear_contacto(token, nombre, telefono, correo=None):
-    resp = requests.post(f"{BASE_URL}/contactos",
-        json={"nombre": nombre, "telefono": telefono, "correo": correo},
+def create_contact(token, name, phone, email=None):
+    resp = requests.post(f"{BASE_URL}/contacts",
+        json={"name": name, "phone": phone, "email": email},
         headers={"Authorization": f"Bearer {token}"},
     )
     resp.raise_for_status()
 
 
-# Uso:
-token = login("maria@example.com", "unaContraseñaSegura")
-usuario = obtener_mi_usuario(token)
-crear_contacto(token, "Carlos Pérez", "+584161234567")
+# Usage:
+token = login("jane@example.com", "aStrongPassword")
+user = get_my_user(token)
+create_contact(token, "John Doe", "+584161234567")
 ```
 
-`resp.raise_for_status()` es la forma que tiene `requests` de convertir un código `4xx`/`5xx` en una excepción (`requests.HTTPError`) en vez de dejar que el código siga como si nada — conviene envolver estas llamadas en un `try/except` para mostrarle al usuario final un mensaje apropiado según el código (por ejemplo, distinguiendo un `401` de un `409`).
+`resp.raise_for_status()` is `requests`'s way of turning a `4xx`/`5xx` code into an exception (`requests.HTTPError`) instead of letting the code carry on as if nothing happened — it's worth wrapping these calls in a `try/except` to show the end user an appropriate message based on the code (for example, distinguishing a `401` from a `409`).
 
-## Ejemplos en JavaScript (pensados para Capacitor)
+## Examples in JavaScript (built with Capacitor in mind)
 
-Una app Capacitor es, por dentro, una WebView que ejecuta JavaScript/TypeScript estándar — así que la forma más directa de hablar con la API es `fetch`, disponible sin instalar nada:
+A Capacitor app is, under the hood, a WebView running standard JavaScript/TypeScript — so the most direct way to talk to the API is `fetch`, available with nothing to install:
 
 ```javascript
 const BASE_URL = "http://127.0.0.1:8000";
 
-async function registrar(nombre, telefono, correo, contraseña) {
-  const resp = await fetch(`${BASE_URL}/auth/registro`, {
+async function register(name, phone, email, password) {
+  const resp = await fetch(`${BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre, telefono, correo, contraseña }),
+    body: JSON.stringify({ name, phone, email, password }),
   });
-  if (!resp.ok) throw new Error(`Error ${resp.status} al registrar`);
+  if (!resp.ok) throw new Error(`Error ${resp.status} registering`);
   return resp.json();
 }
 
-async function login(correo, contraseña) {
+async function login(email, password) {
   const resp = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ correo, contraseña }),
+    body: JSON.stringify({ email, password }),
   });
-  if (!resp.ok) throw new Error(`Error ${resp.status} al iniciar sesión`);
+  if (!resp.ok) throw new Error(`Error ${resp.status} logging in`);
   const data = await resp.json();
   return data.access_token;
 }
 
-async function obtenerMiUsuario(token) {
-  const resp = await fetch(`${BASE_URL}/usuarios/me`, {
+async function getMyUser(token) {
+  const resp = await fetch(`${BASE_URL}/users/me`, {
     headers: { "Authorization": `Bearer ${token}` },
   });
-  if (!resp.ok) throw new Error(`Error ${resp.status} al obtener el usuario`);
+  if (!resp.ok) throw new Error(`Error ${resp.status} fetching the user`);
   return resp.json();
 }
 
-async function crearContacto(token, nombre, telefono, correo = null) {
-  const resp = await fetch(`${BASE_URL}/contactos`, {
+async function createContact(token, name, phone, email = null) {
+  const resp = await fetch(`${BASE_URL}/contacts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify({ nombre, telefono, correo }),
+    body: JSON.stringify({ name, phone, email }),
   });
-  if (!resp.ok) throw new Error(`Error ${resp.status} al crear el contacto`);
+  if (!resp.ok) throw new Error(`Error ${resp.status} creating the contact`);
 }
 
-// Uso:
-const token = await login("maria@example.com", "unaContraseñaSegura");
-const usuario = await obtenerMiUsuario(token);
-await crearContacto(token, "Carlos Pérez", "+584161234567");
+// Usage:
+const token = await login("jane@example.com", "aStrongPassword");
+const user = await getMyUser(token);
+await createContact(token, "John Doe", "+584161234567");
 ```
 
-## Consideraciones específicas para Capacitor
+## Capacitor-specific considerations
 
-Dos cosas a tener en cuenta cuando este cliente deje de ser un ejemplo y pase a ser la app real, ninguna de las dos resuelta todavía del lado del backend:
+Two things to keep in mind once this client stops being an example and becomes the real app, neither of them solved yet on the backend side:
 
-- **CORS**: en el navegador o en la WebView de Capacitor, las peticiones a un origen distinto al de la app (por ejemplo, la app corre en `capacitor://localhost` y la API en `http://192.168.x.x:8000`) están sujetas a la política CORS del navegador. FastAPI **no** trae CORS habilitado por defecto — hoy la API solo responde sin problemas a peticiones que no dependan de esa política (como los ejemplos de Python de arriba, que no corren en un navegador). Antes de que la app Capacitor pueda hablarle a esta API directamente desde JavaScript, va a hacer falta agregar `CORSMiddleware` en `main.py` con los orígenes permitidos — queda pendiente para cuando arranque el desarrollo de la app.
-- **Dónde guardar `access_token`**: los ejemplos de arriba no muestran dónde persistir el token entre aperturas de la app — `localStorage` funciona pero no está pensado para datos sensibles en un dispositivo móvil. Para la app real, conviene usar un plugin de Capacitor pensado para esto (por ejemplo, `@capacitor/preferences` como mínimo, o una opción de almacenamiento seguro/cifrado si se quiere ir más allá) en vez de `localStorage` a secas.
+- **CORS**: in the browser or in Capacitor's WebView, requests to an origin different from the app's own (for example, the app runs at `capacitor://localhost` and the API at `http://192.168.x.x:8000`) are subject to the browser's CORS policy. FastAPI does **not** ship with CORS enabled by default — today the API only responds without issue to requests that don't depend on that policy (like the Python examples above, which don't run in a browser). Before the Capacitor app can talk to this API directly from JavaScript, `CORSMiddleware` will need to be added to `main.py` with the allowed origins — left pending until app development starts.
+- **Where to store `access_token`**: the examples above don't show where to persist the token between app launches — `localStorage` works but isn't meant for sensitive data on a mobile device. For the real app, it's better to use a Capacitor plugin built for this (for example, `@capacitor/preferences` at minimum, or a secure/encrypted storage option for something stronger) instead of plain `localStorage`.

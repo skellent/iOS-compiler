@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <body style="font-family: sans-serif; line-height: 1.5; color: #222;">
+    <p style="font-size: 1.2em;"><strong>⚠️ Panic alert</strong></p>
+    <p>Hi {{ contact_name }},</p>
+    <p>
+      <strong>{{ user_name }}</strong> ({{ user_phone }}) triggered a panic
+      alert on PanicSwitch at {{ timestamp }}. You are one of their confirmed
+      emergency contacts.
+    </p>
+    <p>Last reported location:</p>
+    <p><a href="{{ map_url }}">View on the map ({{ latitude }}, {{ longitude }})</a></p>
+    <p>Please try to contact {{ user_name }} as soon as possible.</p>
+  </body>
+</html>

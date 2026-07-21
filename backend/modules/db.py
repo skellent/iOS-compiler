@@ -1,13 +1,13 @@
-from modules.cursor       import Cursor
-from modules.credenciales import obtener_credenciales
+from modules.cursor      import Cursor
+from modules.credentials import get_credentials
 
 
-credenciales: dict = obtener_credenciales()
+credentials: dict = get_credentials()
 
 cursor: Cursor = Cursor(
-    credenciales['database']['user'],
-    credenciales['database']['password'],
-    credenciales['database']['host'],
-    credenciales['database']['port'],
-    credenciales['database']['database'],
+    credentials['database']['user'],
+    credentials['database']['password'],
+    credentials['database']['host'],
+    credentials['database']['port'],
+    credentials['database']['database'],
 )
