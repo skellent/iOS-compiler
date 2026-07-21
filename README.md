@@ -101,6 +101,17 @@ gitGraph
    commit id: "e239c62 Alertas de pánico por correo"
    commit id: "58f9a1a Limpieza de TASK.md en docs"
    commit id: "d2d8fa6 Guía de contraseña de aplicación SMTP"
+   commit id: "58899ca Historial de commits al día"
+   checkout devs
+   branch feature/correo-oauth2
+   checkout feature/correo-oauth2
+   commit id: "820c07b Confirmación de contactos (OAuth2)"
+   commit id: "0cccfaa Alertas de pánico por correo"
+   commit id: "2ef4493 Limpieza de TASK.md en docs"
+   commit id: "3b470f8 Guía de OAuth2 / Service Account"
+   commit id: "f4bb174 Historial de commits al día"
+   checkout devs
+   merge feature/correo-app-password id: "ebca6da Merge correo-app-password -> devs"
 ```
 
 - **`83b5d3e` — Initial commit** (rama `main`): primer commit del repositorio, solo el `README.md` inicial. `main` no volvió a avanzar desde acá; todo el desarrollo ocurre en `devs` (y, temporalmente, en ramas como `testing` o `feature/*`).
@@ -112,7 +123,14 @@ gitGraph
 - **`bea6008` — Merge testing → devs**: integra los tres commits anteriores (desarrollados y revisados primero en la rama local `testing`) a `devs`, trayendo todo el trabajo de esta etapa a la rama principal de desarrollo.
 - **`1f1bb32` — Agregar diagrama gitGraph e historial de commits al README**: documenta visualmente la relación entre `main`, `devs` y `testing` con un diagrama Mermaid, junto con esta misma explicación de qué aportó cada commit.
 - **`9ca8023` — Ligera modificación a `.gitignore`**: ajuste menor al archivo de exclusiones de git.
-- **`7047342` — Agregar confirmación de contactos por correo (Gmail App Password)**: primer uso real de la columna `contactos.confirmado` — `POST /contactos` dispara un correo de confirmación en segundo plano con un JWT de un solo propósito (`Token.CrearConfirmacionContacto`), y el nuevo `GET /contactos/confirmar/{token}` lo valida y marca el contacto como confirmado. Esta rama autentica el envío contra Gmail con una contraseña de aplicación de la cuenta de Google Workspace (ver `docs/backend/correo.md`); la rama hermana `feature/correo-oauth2` resuelve el mismo módulo con OAuth2/Service Account, a la espera de que el cliente elija un método.
+- **`7047342` — Agregar confirmación de contactos por correo (Gmail App Password)**: primer uso real de la columna `contactos.confirmado` — `POST /contactos` dispara un correo de confirmación en segundo plano con un JWT de un solo propósito (`Token.CrearConfirmacionContacto`), y el nuevo `GET /contactos/confirmar/{token}` lo valida y marca el contacto como confirmado. Esta rama autentica el envío contra Gmail con una contraseña de aplicación de la cuenta de Google Workspace (ver `docs/backend/correo.md`); la rama hermana `feature/correo-oauth2` resolvió el mismo módulo con OAuth2/Service Account como alternativa, hasta que el cliente definiera un método.
 - **`e239c62` — Agregar sistema de alertas de pánico con notificación por correo**: `POST /alertas` inserta el registro de la alerta y notifica por correo, en un único lote (`Correo.EnviarMasivo`, una sola conexión SMTP para todos los destinatarios), solo a los contactos **confirmados** del usuario — los que nunca confirmaron no reciben nada.
 - **`58f9a1a` — Eliminar referencias a TASK.md de la documentación del backend**: `TASK.md` es un archivo de uso personal (ignorado por git) para organizar tareas propias, así que se quitaron las menciones que habían quedado citadas desde `docs/backend/` y `backend/API.md`.
 - **`d2d8fa6` — Documentar cómo obtener la contraseña de aplicación SMTP en el README**: guía paso a paso (activar 2FA, confirmar la política del administrador de Workspace, generar la contraseña de 16 caracteres) para completar `SMTP_PASSWORD` sin depender de contexto externo a este repositorio.
+- **`58899ca` — Actualizar el historial de commits del README**: en la rama `feature/correo-app-password`, pone al día este mismo diagrama y esta lista con los commits que faltaban desde `bea6008`.
+- **`820c07b` — Agregar confirmación de contactos por correo (Gmail OAuth2 / Service Account)**: mismo mecanismo de confirmación que `7047342`, pero resuelto sobre la rama hermana `feature/correo-oauth2`: el envío se autentica contra Gmail con una cuenta de servicio y delegación de dominio (`https://mail.google.com/`) en vez de una contraseña de aplicación (ver `docs/backend/correo.md` en esa rama).
+- **`0cccfaa` — Agregar sistema de alertas de pánico con notificación por correo**: equivalente a `e239c62`, implementado sobre `feature/correo-oauth2`.
+- **`2ef4493` — Eliminar referencias a TASK.md de la documentación del backend**: misma limpieza que `58f9a1a`, aplicada en paralelo sobre `feature/correo-oauth2`.
+- **`3b470f8` — Documentar cómo configurar OAuth2 (Service Account + delegación de dominio) en el README**: guía paso a paso (proyecto de Google Cloud + Gmail API, cuenta de servicio, clave JSON, autorización de delegación de dominio en el panel de administración de Workspace) para dejar operativo `GOOGLE_SERVICE_ACCOUNT_FILE` sin depender de contexto externo a este repositorio.
+- **`f4bb174` — Actualizar el historial de commits del README**: en `feature/correo-oauth2`, equivalente a `58899ca` pero documentando el historial desde el punto de vista de esa rama.
+- **`ebca6da` — Merge feature/correo-app-password (contraseña de aplicación) a devs**: el cliente definió usar contraseña de aplicación de Google Workspace como método de autenticación SMTP, así que `feature/correo-app-password` se integra a `devs` con un merge explícito. `feature/correo-oauth2` queda documentada en este historial como alternativa evaluada, pero no se integra.
