@@ -116,6 +116,9 @@ gitGraph
    branch traduccion
    checkout traduccion
    commit id: "0159f94 Translate the entire project to English"
+   commit id: "fe73848 Commit history brought up to date"
+   checkout devs
+   merge traduccion id: "892930a Merge traduccion -> devs"
 ```
 
 - **`83b5d3e` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` never advanced past this point; all development happens on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
@@ -139,4 +142,6 @@ gitGraph
 - **`f4bb174` — Bring the README's commit history up to date**: on `feature/correo-oauth2`, equivalent to `58899ca` but documenting the history from that branch's point of view.
 - **`ebca6da` — Merge feature/correo-app-password (app password) into devs**: the client settled on using a Google Workspace app password as the SMTP authentication method, so `feature/correo-app-password` is merged into `devs` with an explicit merge commit. `feature/correo-oauth2` stays documented in this history as an alternative that was evaluated, but isn't merged in.
 - **`b10ad2d` — Bring the README's commit history up to date**: on `devs`, after the merge, extends the diagram and this list with the `ebca6da` merge and with `feature/correo-oauth2`'s full history, so the diagram reflects the repository's complete history.
-- **`0159f94` — Translate the entire project to English** (branch `traduccion`, off `devs`): the client requested that the whole project — database schema, API paths, Pydantic models, module and function names, email templates, and every doc — be in English instead of Spanish. Tables/columns (`usuarios`/`contactos`/`alertas` → `users`/`contacts`/`alerts`, `nombre`/`telefono`/`correo`/`contraseña_hash` → `name`/`phone`/`email`/`password_hash`, etc.), API paths (`/auth/registro` → `/auth/register`, `/usuarios` → `/users`, `/contactos` → `/contacts`, `/alertas` → `/alerts`), and every backend module (`correo.py` → `mail.py`, `credenciales.py` → `credentials.py`, `querys/` → `queries/`, and so on) were renamed and translated together in a single commit, verified by importing `main.py` and inspecting the resulting OpenAPI schema. Still pending review before merging into `devs`.
+- **`0159f94` — Translate the entire project to English** (branch `traduccion`, off `devs`): the client requested that the whole project — database schema, API paths, Pydantic models, module and function names, email templates, and every doc — be in English instead of Spanish. Tables/columns (`usuarios`/`contactos`/`alertas` → `users`/`contacts`/`alerts`, `nombre`/`telefono`/`correo`/`contraseña_hash` → `name`/`phone`/`email`/`password_hash`, etc.), API paths (`/auth/registro` → `/auth/register`, `/usuarios` → `/users`, `/contactos` → `/contacts`, `/alertas` → `/alerts`), and every backend module (`correo.py` → `mail.py`, `credenciales.py` → `credentials.py`, `querys/` → `queries/`, and so on) were renamed and translated together in a single commit, verified by importing `main.py` and inspecting the resulting OpenAPI schema.
+- **`fe73848` — Bring the README's commit history up to date**: on `traduccion`, documents that same commit in this diagram and list before the branch is reviewed and merged.
+- **`892930a` — Merge traduccion → devs**: the translation was reviewed and approved, so `traduccion` is merged into `devs` with an explicit merge commit. The whole project — code, schema, API, docs — is now in English on the main development branch.
