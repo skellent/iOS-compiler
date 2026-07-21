@@ -1,9 +1,16 @@
-from modules.routers import auth, users, contacts, alerts
+from modules.credentials import get_credentials
+from modules.routers     import auth, users, contacts, alerts
 
-from fastapi          import FastAPI
+from fastapi              import FastAPI
 
 
-app = FastAPI()
+_docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
+
+app = FastAPI(
+    docs_url=("/docs" if _docs_enabled else None),
+    redoc_url=("/redoc" if _docs_enabled else None),
+    openapi_url=("/openapi.json" if _docs_enabled else None),
+)
 
 @app.get("/")
 def root():

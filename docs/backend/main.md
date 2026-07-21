@@ -5,12 +5,19 @@
 It's the API's entry point: this is where the FastAPI application is instantiated and the rest of the functionality gets mounted. It's the module `uvicorn` loads when running `uvicorn main:app` (see README, "Prepare the Environment" section).
 
 ```python
-from modules.routers import auth, users, contacts, alerts
+from modules.credentials import get_credentials
+from modules.routers     import auth, users, contacts, alerts
 
-from fastapi          import FastAPI
+from fastapi              import FastAPI
 
 
-app = FastAPI()
+_docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
+
+app = FastAPI(
+    docs_url=("/docs" if _docs_enabled else None),
+    redoc_url=("/redoc" if _docs_enabled else None),
+    openapi_url=("/openapi.json" if _docs_enabled else None),
+)
 
 @app.get("/")
 def root():
@@ -23,7 +30,25 @@ app.include_router(contacts.router)
 app.include_router(alerts.router)
 ```
 
-There used to be a single business endpoint (`registrar_usuario`) written directly here, and `main.py` also used to be responsible for reading credentials and opening the MariaDB connection. With login, editing users, and the contacts CRUD arriving, that file would have grown without limit and mixed together things that have nothing to do with each other (registration, authentication, contacts) in one place. That's why this file was deliberately emptied out: now `main.py` only does two things — create the app and tell it which routers exist — and all the business logic lives in `modules/routers/` (see `routers.md`).
+There used to be a single business endpoint (`registrar_usuario`) written directly here, and `main.py` also used to be responsible for reading credentials and opening the MariaDB connection. With login, editing users, and the contacts CRUD arriving, that file would have grown without limit and mixed together things that have nothing to do with each other (registration, authentication, contacts) in one place. That's why this file was deliberately emptied out: now `main.py` only does three things — create the app (deciding whether its automatic docs are exposed), tell it which routers exist, and mount them — and all the business logic lives in `modules/routers/` (see `routers.md`).
+
+## `APP_MODE` and FastAPI's automatic docs
+
+```python
+_docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
+
+app = FastAPI(
+    docs_url=("/docs" if _docs_enabled else None),
+    redoc_url=("/redoc" if _docs_enabled else None),
+    openapi_url=("/openapi.json" if _docs_enabled else None),
+)
+```
+
+By default, FastAPI exposes three routes that describe the API itself: `/docs` (Swagger UI), `/redoc` (ReDoc) and `/openapi.json` (the raw OpenAPI schema the other two are built from). That's convenient in development — it's how `/docs` has been used throughout this documentation to describe request/response shapes — but it also means anyone who can reach the API can enumerate every endpoint, every field each one expects, and every response shape, without needing a token. That's more surface than a production deployment should hand out for free.
+
+`FastAPI(...)` accepts `docs_url`, `redoc_url` and `openapi_url` as constructor arguments; passing `None` to any of them disables that specific route entirely (not just hides it from a menu — it stops being registered, so hitting it returns `404`). `_docs_enabled` reads `app_mode` (see `credentials.md`) once, at module level, and the three arguments are computed off of it: when `app_mode` is `"Deploy"`, all three become `None` and the docs disappear; for `"Debug"` (or any other value, including `APP_MODE` not being set at all) they keep their usual paths. Defaulting to enabled means a `.env` that doesn't mention `APP_MODE` — like any existing development setup from before this feature — keeps behaving exactly as it did before; a deployment has to opt in to hiding the docs by setting `APP_MODE=Deploy` explicitly, rather than accidentally shipping them hidden (or accidentally shipping them exposed) by omission.
+
+This check happens once, when the module loads and `app` is constructed — not on every request — since FastAPI needs to know at construction time whether to register those routes at all.
 
 ## Module diagram
 
@@ -54,6 +79,7 @@ flowchart TD
     APP --> USR
     APP --> CON
     APP --> ALT
+    APP --> CRED
 
     AUTH --> GUARD
     AUTH --> TOKEN
@@ -80,15 +106,21 @@ flowchart TD
     MAIL --> SMTP
 ```
 
-This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, or SMTP — it only needs to know about the four routers and mount them.
+This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, or SMTP — it only needs to know about the four routers, mount them, and read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs.
 
 ## Module-level initialization
 
 ```python
-app = FastAPI()
+_docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
+
+app = FastAPI(
+    docs_url=("/docs" if _docs_enabled else None),
+    redoc_url=("/redoc" if _docs_enabled else None),
+    openapi_url=("/openapi.json" if _docs_enabled else None),
+)
 ```
 
-This is all `main.py` initializes on its own. The MariaDB connection (previously created here, see this document's git history if you need to compare) now opens in `modules/db.py` (see `db.md`) the first time some router imports it. The underlying behavior is identical to before — it's still **a single connection**, shared, opened when the process starts, not one per request — only the file it lives in changed, so routers can import it without depending on `main.py` (which would have created a circular import: `main` imports the routers, and the routers would need to import back from `main` to get the cursor).
+This is all `main.py` initializes on its own: the `app_mode`-driven docs toggle described above, and the `FastAPI` instance itself. The MariaDB connection (previously created here, see this document's git history if you need to compare) now opens in `modules/db.py` (see `db.md`) the first time some router imports it. The underlying behavior is identical to before — it's still **a single connection**, shared, opened when the process starts, not one per request — only the file it lives in changed, so routers can import it without depending on `main.py` (which would have created a circular import: `main` imports the routers, and the routers would need to import back from `main` to get the cursor).
 
 ## `GET /`
 

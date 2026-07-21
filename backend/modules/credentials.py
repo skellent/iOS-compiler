@@ -27,4 +27,5 @@ def get_credentials() -> dict:
             'port':     int(os.getenv("SMTP_PORT", 587)),
         },
         "api_base_url": os.getenv("API_BASE_URL", "http://127.0.0.1:8000"),
+        "app_mode": os.getenv("APP_MODE", "Debug"),
     }
