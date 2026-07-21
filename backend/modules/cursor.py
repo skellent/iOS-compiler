@@ -12,6 +12,10 @@ class Querys:
 
     INSERT_CONTACTO: str = "INSERT INTO contactos (id_usuario, nombre, telefono, correo) VALUES (%s, %s, %s, %s);"
     SELECT_CONTACTOS_POR_USUARIO: str = "SELECT id, nombre, telefono, correo, confirmado FROM contactos WHERE id_usuario = %s;"
+    SELECT_CONTACTOS_CONFIRMADOS_POR_USUARIO: str = "SELECT nombre, telefono, correo FROM contactos WHERE id_usuario = %s AND confirmado = TRUE;"
+    CONFIRMAR_CONTACTO: str = "UPDATE contactos SET confirmado = TRUE WHERE id = %s;"
+
+    INSERT_ALERTA: str = "INSERT INTO alertas (id_usuario, latitud, longitud) VALUES (%s, %s, %s);"
 
 class Cursor:
 
@@ -44,6 +48,11 @@ class Cursor:
     @property
     def rowcount(self) -> int:
         return self.cursor.rowcount
+
+
+    @property
+    def lastrowid(self) -> int:
+        return self.cursor.lastrowid
 
 
     def commit(self) -> None:

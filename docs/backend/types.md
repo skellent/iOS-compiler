@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Este módulo define los modelos de datos (`pydantic.BaseModel`) que describen la forma que deben tener los datos que entran al backend a través de la API. Empezó con un único modelo (`Usuario`) y ahora tiene cinco, uno por cada forma distinta de dato que un endpoint necesita recibir:
+Este módulo define los modelos de datos (`pydantic.BaseModel`) que describen la forma que deben tener los datos que entran al backend a través de la API. Empezó con un único modelo (`Usuario`) y ahora tiene seis, uno por cada forma distinta de dato que un endpoint necesita recibir:
 
 ```python
 class Usuario(BaseModel):
@@ -30,6 +30,10 @@ class ContactoUpdate(BaseModel):
     nombre:   str | None = None
     telefono: str | None = None
     correo:   str | None = None
+
+class Alerta(BaseModel):
+    latitud:  float
+    longitud: float
 ```
 
 ## Por qué Pydantic y no un `dict` simple
@@ -40,9 +44,9 @@ FastAPI usa las anotaciones de tipo de estas clases para tres cosas a la vez, si
 2. **Documentación automática**: FastAPI genera el esquema OpenAPI/Swagger (`/docs`) a partir de estas clases, así que el modelo sirve simultáneamente como contrato de la API y como documentación interactiva.
 3. **Tipado en el resto del código**: dentro del endpoint, `data: Usuario` permite acceder a `data.nombre`, `data.telefono`, etc. con autocompletado y chequeo de tipos, en vez de indexar un diccionario sin garantías (`data["nombre"]`).
 
-## Por qué `Usuario` y `Contacto` tienen todos los campos obligatorios
+## Por qué `Usuario`, `Contacto` y `Alerta` tienen todos los campos obligatorios
 
-Ninguno de los campos de `Usuario` o `Contacto` (salvo `correo` en este último, ver más abajo) tiene un valor por defecto ni está envuelto en `| None`, lo que en Pydantic significa que son requeridos. Esto es consistente con el esquema de las tablas `usuarios` y `contactos` (ver `sql.md`), donde las columnas equivalentes son `NOT NULL`: no tiene sentido que la API acepte un registro incompleto si la base de datos lo va a rechazar de todas formas, así que la validación se adelanta a la capa de entrada. `Contacto.correo` es la única excepción, y es intencional: refleja que `contactos.correo` es la única columna nullable de esa tabla (un contacto de emergencia puede ser alcanzable solo por teléfono).
+Ninguno de los campos de `Usuario`, `Contacto` (salvo `correo`, ver más abajo) o `Alerta` tiene un valor por defecto ni está envuelto en `| None`, lo que en Pydantic significa que son requeridos. Esto es consistente con el esquema de las tablas `usuarios`, `contactos` y `alertas` (ver `sql.md`), donde las columnas equivalentes son `NOT NULL`: no tiene sentido que la API acepte un registro incompleto si la base de datos lo va a rechazar de todas formas, así que la validación se adelanta a la capa de entrada. `Contacto.correo` es la única excepción, y es intencional: refleja que `contactos.correo` es la única columna nullable de esa tabla (un contacto de emergencia puede ser alcanzable solo por teléfono). `Alerta` no tiene un campo opcional equivalente: no existe un escenario donde tenga sentido registrar una alerta sin ubicación, así que `latitud` y `longitud` son obligatorios los dos, igual que en la tabla.
 
 ## Por qué `UsuarioUpdate` y `ContactoUpdate` tienen todos los campos opcionales
 
@@ -86,5 +90,8 @@ Cada modelo se usa como tipo de parámetro en exactamente un endpoint de `module
 | `UsuarioUpdate`    | `PUT /usuarios/me`    |
 | `Contacto`         | `POST /contactos`     |
 | `ContactoUpdate`   | `PUT /contactos/{id}` |
+| `Alerta`           | `POST /alertas`       |
 
-A medida que la API crezca (registro de alertas, integración con la API de terceros para notificaciones), se espera que este archivo siga acumulando un modelo por cada forma de dato que entra o sale de la API, siguiendo el mismo patrón.
+`GET /contactos/confirmar/{token}` (ver `routers.md`, `correo.md`) es la única excepción a "un endpoint, un modelo": no recibe cuerpo, el `token` viaja en la URL, así que no necesitó ningún modelo nuevo acá.
+
+A medida que la API crezca (integración con una API de terceros como Twilio para notificar por SMS), se espera que este archivo siga acumulando un modelo por cada forma de dato que entra o sale de la API, siguiendo el mismo patrón.

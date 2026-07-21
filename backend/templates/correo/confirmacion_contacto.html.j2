@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="es">
+  <body style="font-family: sans-serif; line-height: 1.5; color: #222;">
+    <p>Hola {{ nombre_contacto }},</p>
+    <p>
+      <strong>{{ nombre_usuario }}</strong> te agregó como contacto de emergencia en
+      PanicSwitch. Si esa persona activa una alerta de pánico, vas a ser notificado.
+    </p>
+    <p>Para confirmar que aceptás recibir esas alertas, hacé clic en el siguiente enlace:</p>
+    <p><a href="{{ url_confirmacion }}">Confirmar contacto de emergencia</a></p>
+    <p>Si no conocés a esta persona, podés ignorar este correo.</p>
+  </body>
+</html>

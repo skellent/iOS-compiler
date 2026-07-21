@@ -150,6 +150,8 @@ Crea un contacto de emergencia nuevo.
 
 `correo` es opcional (puede omitirse o mandarse `null`); `nombre` y `telefono` son obligatorios. Respuesta: `201` sin cuerpo relevante.
 
+Si se manda `correo`, la API dispara en segundo plano un correo de confirmación a esa dirección (no bloquea la respuesta `201`, ver `docs/backend/correo.md`), con un link a `GET /contactos/confirmar/{token}`. Mientras el contacto no confirme haciendo clic en ese link, `confirmado` sigue en `false` en `GET /contactos` (ver más abajo). Si no se manda `correo`, no hay forma de confirmarlo todavía y queda en `false` indefinidamente.
+
 ### `GET /contactos`
 
 Lista todos los contactos del usuario autenticado.
@@ -170,6 +172,18 @@ Lista todos los contactos del usuario autenticado.
 
 `confirmado` indica si ese contacto ya aceptó recibir alertas en su nombre; hoy siempre llega en `false`, porque el flujo de confirmación todavía no está implementado (ver `docs/backend/sql.md`).
 
+### `GET /contactos/confirmar/{token}`
+
+Es el único endpoint de este grupo que **no** requiere el header `Authorization` — a propósito: a este endpoint se llega haciendo clic en el link del correo de confirmación (ver `POST /contactos` más arriba), no desde una sesión iniciada en la app. El `token` de la URL no es el mismo tipo de token que `access_token` (no sirve para autenticarse contra ningún otro endpoint, y viceversa: un `access_token` de sesión no sirve acá).
+
+**Respuestas:**
+
+| Código | Cuándo ocurre |
+|--------|----------------|
+| `200`  | El contacto quedó marcado como confirmado. Cuerpo: `{"mensaje": "Contacto confirmado exitosamente"}`. |
+| `401`  | El token es inválido, no es del tipo esperado, o ya expiró (vence a los 7 días de emitido). |
+| `404`  | El token era válido pero el contacto al que apunta ya no existe. |
+
 ### `PUT /contactos/{id}`
 
 Edita un contacto existente, identificado por su `id` (el mismo que devuelve `GET /contactos`). Igual que `PUT /usuarios/me`, solo acepta los campos que se quieran cambiar:
@@ -186,6 +200,31 @@ Edita un contacto existente, identificado por su `id` (el mismo que devuelve `GE
 | `400`  | El cuerpo no traía ningún campo para actualizar. |
 | `404`  | No existe un contacto con ese `id` **perteneciente al usuario autenticado** (incluye el caso de que el `id` exista pero sea de otra cuenta — a propósito no se distingue, ver `docs/backend/routers.md`). |
 | `401`  | Token ausente, inválido o expirado. |
+
+## Endpoints de Alertas
+
+### `POST /alertas`
+
+Registra la activación del botón de pánico: guarda la ubicación del usuario autenticado y notifica por correo a todos sus contactos de emergencia **que ya confirmaron** (ver `GET /contactos/confirmar/{token}` más arriba — un contacto que nunca confirmó no recibe nada, ver `docs/backend/sql.md`).
+
+**Cuerpo de la petición:**
+
+```json
+{
+  "latitud": 10.4880600,
+  "longitud": -66.8791500
+}
+```
+
+**Respuestas:**
+
+| Código | Cuándo ocurre |
+|--------|----------------|
+| `201`  | Alerta registrada. La notificación por correo se dispara en segundo plano (no bloquea esta respuesta, ver `docs/backend/correo.md`) — un `201` no garantiza que los correos ya se hayan mandado, solo que la alerta quedó guardada. |
+| `401`  | Token ausente, inválido o expirado. |
+| `422`  | Falta `latitud` o `longitud`, o no son números. |
+
+Si el usuario no tiene ningún contacto confirmado con `correo`, la alerta igual se registra — simplemente no hay a quién notificar todavía.
 
 ## Ejemplos en Python
 
@@ -299,5 +338,5 @@ await crearContacto(token, "Carlos Pérez", "+584161234567");
 
 Dos cosas a tener en cuenta cuando este cliente deje de ser un ejemplo y pase a ser la app real, ninguna de las dos resuelta todavía del lado del backend:
 
-- **CORS**: en el navegador o en la WebView de Capacitor, las peticiones a un origen distinto al de la app (por ejemplo, la app corre en `capacitor://localhost` y la API en `http://192.168.x.x:8000`) están sujetas a la política CORS del navegador. FastAPI **no** trae CORS habilitado por defecto — hoy la API solo responde sin problemas a peticiones que no dependan de esa política (como los ejemplos de Python de arriba, que no corren en un navegador). Antes de que la app Capacitor pueda hablarle a esta API directamente desde JavaScript, va a hacer falta agregar `CORSMiddleware` en `main.py` con los orígenes permitidos — queda pendiente para cuando arranque el desarrollo de la app (ver `TASK.md`).
+- **CORS**: en el navegador o en la WebView de Capacitor, las peticiones a un origen distinto al de la app (por ejemplo, la app corre en `capacitor://localhost` y la API en `http://192.168.x.x:8000`) están sujetas a la política CORS del navegador. FastAPI **no** trae CORS habilitado por defecto — hoy la API solo responde sin problemas a peticiones que no dependan de esa política (como los ejemplos de Python de arriba, que no corren en un navegador). Antes de que la app Capacitor pueda hablarle a esta API directamente desde JavaScript, va a hacer falta agregar `CORSMiddleware` en `main.py` con los orígenes permitidos — queda pendiente para cuando arranque el desarrollo de la app.
 - **Dónde guardar `access_token`**: los ejemplos de arriba no muestran dónde persistir el token entre aperturas de la app — `localStorage` funciona pero no está pensado para datos sensibles en un dispositivo móvil. Para la app real, conviene usar un plugin de Capacitor pensado para esto (por ejemplo, `@capacitor/preferences` como mínimo, o una opción de almacenamiento seguro/cifrado si se quiere ir más allá) en vez de `localStorage` a secas.

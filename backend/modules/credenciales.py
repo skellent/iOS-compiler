@@ -19,5 +19,12 @@ def obtener_credenciales() -> dict:
         },
         "jwt": {
             'secret_key': os.getenv("JWT_SECRET_KEY"),
-        }
+        },
+        "correo": {
+            'usuario':  os.getenv("SMTP_USER"),
+            'password': os.getenv("SMTP_PASSWORD"),
+            'host':     os.getenv("SMTP_HOST", "smtp.gmail.com"),
+            'port':     int(os.getenv("SMTP_PORT", 587)),
+        },
+        "api_base_url": os.getenv("API_BASE_URL", "http://127.0.0.1:8000"),
     }

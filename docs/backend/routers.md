@@ -1,6 +1,6 @@
 # `modules/routers/` — Endpoints de la API
 
-Este directorio contiene toda la lógica de negocio de la API, repartida en tres archivos según el recurso al que pertenecen. A diferencia de los demás módulos del backend, que tienen un `.md` propio, estos tres se documentan juntos en un solo archivo — el mismo criterio que ya se usa en `sql.md` para agrupar los tres scripts de `querys/`, porque son piezas que solo tienen sentido leídas en conjunto (comparten las mismas dependencias y el mismo patrón).
+Este directorio contiene toda la lógica de negocio de la API, repartida en cuatro archivos según el recurso al que pertenecen. A diferencia de los demás módulos del backend, que tienen un `.md` propio, estos se documentan juntos en un solo archivo — el mismo criterio que ya se usa en `sql.md` para agrupar los tres scripts de `querys/`, porque son piezas que solo tienen sentido leídas en conjunto (comparten las mismas dependencias y el mismo patrón).
 
 Cada archivo define un `APIRouter` con un prefijo fijo y lo expone como `router`, que `main.py` monta con `app.include_router(...)` (ver `main.md`):
 
@@ -8,11 +8,12 @@ Cada archivo define un `APIRouter` con un prefijo fijo y lo expone como `router`
 |------------------|---------------|-----------|
 | `auth.py`        | `/auth`       | `POST /registro`, `POST /login` |
 | `usuarios.py`    | `/usuarios`   | `GET /me`, `PUT /me` |
-| `contactos.py`   | `/contactos`  | `POST /`, `GET /`, `PUT /{id_contacto}` |
+| `contactos.py`   | `/contactos`  | `POST /`, `GET /`, `GET /confirmar/{token}`, `PUT /{id_contacto}` |
+| `alertas.py`     | `/alertas`    | `POST /` |
 
 ## Por qué `APIRouter` y no todo junto en `main.py`
 
-`APIRouter` es la pieza de FastAPI pensada exactamente para este problema: permite declarar endpoints en un archivo separado de donde vive la instancia principal `FastAPI()`, con su propio prefijo de ruta y sus propios tags (usados para agrupar visualmente los endpoints en la documentación automática de `/docs`), y después "pegarlos" a la aplicación real con `include_router`. Es lo que le permitió a `main.py` encogerse a apenas diez líneas (ver `main.md`) a pesar de que la API creció de un endpoint a siete.
+`APIRouter` es la pieza de FastAPI pensada exactamente para este problema: permite declarar endpoints en un archivo separado de donde vive la instancia principal `FastAPI()`, con su propio prefijo de ruta y sus propios tags (usados para agrupar visualmente los endpoints en la documentación automática de `/docs`), y después "pegarlos" a la aplicación real con `include_router`. Es lo que le permitió a `main.py` encogerse a apenas diez líneas (ver `main.md`) a pesar de que la API creció de un endpoint a nueve.
 
 ## `auth.py`
 
@@ -144,20 +145,41 @@ Este es el endpoint más elaborado de los siete, porque resuelve el problema de 
 ## `contactos.py`
 
 ```python
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
+from modules.correo       import Correo
+from modules.credenciales import obtener_credenciales
 from modules.cursor       import Querys
 from modules.db           import cursor
 from modules.dependencies import usuario_actual
+from modules.token        import Token
 from modules.types        import Contacto, ContactoUpdate
 
 router = APIRouter(prefix="/contactos", tags=["contactos"])
 
+_URL_BASE: str = obtener_credenciales()['api_base_url']
+
 
 @router.post("", status_code=201)
-def crear_contacto(data: Contacto, id_usuario: int = Depends(usuario_actual)):
+def crear_contacto(data: Contacto, background_tasks: BackgroundTasks, id_usuario: int = Depends(usuario_actual)):
     cursor.execute(Querys.INSERT_CONTACTO, (id_usuario, data.nombre, data.telefono, data.correo))
     cursor.commit()
+    id_contacto: int = cursor.lastrowid
+
+    if data.correo:
+        filas: list[dict] = cursor.execute(Querys.SELECT_USUARIO_POR_ID, (id_usuario,))
+        token: str = Token.CrearConfirmacionContacto(id_contacto)
+        background_tasks.add_task(
+            Correo.Enviar,
+            data.correo,
+            "Confirmá que sos un contacto de emergencia",
+            "confirmacion_contacto",
+            {
+                "nombre_contacto":  data.nombre,
+                "nombre_usuario":   filas[0]["nombre"],
+                "url_confirmacion": f"{_URL_BASE}/contactos/confirmar/{token}",
+            },
+        )
 
     return {"Skellent": "Success!"}
 
@@ -165,6 +187,20 @@ def crear_contacto(data: Contacto, id_usuario: int = Depends(usuario_actual)):
 @router.get("")
 def listar_contactos(id_usuario: int = Depends(usuario_actual)):
     return cursor.execute(Querys.SELECT_CONTACTOS_POR_USUARIO, (id_usuario,))
+
+
+@router.get("/confirmar/{token}")
+def confirmar_contacto(token: str):
+    id_contacto: int | None = Token.ValidarConfirmacionContacto(token)
+    if id_contacto is None:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+    cursor.execute(Querys.CONFIRMAR_CONTACTO, (id_contacto,))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado")
+    cursor.commit()
+
+    return {"mensaje": "Contacto confirmado exitosamente"}
 
 
 @router.put("/{id_contacto}")
@@ -188,18 +224,95 @@ def editar_contacto(id_contacto: int, data: ContactoUpdate, id_usuario: int = De
     return filas[0]
 ```
 
-Es el CRUD de contactos de emergencia. Los tres endpoints comparten `Depends(usuario_actual)` y con eso alcanza para que ninguno permita operar sobre contactos ajenos — el `id_usuario` nunca lo manda el cliente, siempre sale del token.
+Es el CRUD de contactos de emergencia, más el endpoint de confirmación agregado junto con `modules/correo.py` (ver `correo.md` para el flujo completo). Los tres endpoints protegidos (`POST`, `GET ""`, `PUT`) comparten `Depends(usuario_actual)` y con eso alcanza para que ninguno permita operar sobre contactos ajenos — el `id_usuario` nunca lo manda el cliente, siempre sale del token. `GET /confirmar/{token}` es la excepción deliberada, ver su propia sección más abajo.
 
 A diferencia de `usuarios.py`, acá `_COLUMNA_POR_CAMPO` no hizo falta: los tres campos de `ContactoUpdate` (`nombre`, `telefono`, `correo`, ver `types.md`) ya se llaman igual que sus columnas en la tabla `contactos` (ver `sql.md`), así que `set_clause` usa el nombre del campo directamente.
 
 ### `POST /contactos` y `GET /contactos`
 
-Sin sorpresas: siguen el mismo patrón de `INSERT`/`SELECT` parametrizado que el resto del proyecto. Nótese que las rutas se declaran como `""` (cadena vacía), no `"/"` — con el `prefix="/contactos"` del router, `""` resuelve a `/contactos` exactamente, mientras que `"/"` hubiera generado `/contactos/` con la barra final, una URL distinta a efectos de HTTP que hubiera obligado a los clientes a acertar con la barra o lidiar con una redirección.
+Sin sorpresas en el `INSERT`/`SELECT`: siguen el mismo patrón parametrizado que el resto del proyecto. Nótese que las rutas se declaran como `""` (cadena vacía), no `"/"` — con el `prefix="/contactos"` del router, `""` resuelve a `/contactos` exactamente, mientras que `"/"` hubiera generado `/contactos/` con la barra final, una URL distinta a efectos de HTTP que hubiera obligado a los clientes a acertar con la barra o lidiar con una redirección.
+
+Lo que sí es nuevo en `POST /contactos`: si el contacto se creó con un `correo`, se dispara el envío de un correo de confirmación en segundo plano (`background_tasks.add_task(Correo.Enviar, ...)`, ver `correo.md` para por qué en segundo plano y no `await` directo). `cursor.lastrowid` (ver `cursor.md`) da el `id` del contacto recién insertado, necesario para generar el token de confirmación con `Token.CrearConfirmacionContacto` (ver `token.md`) antes de poder armar el link. También se hace un `SELECT_USUARIO_POR_ID` extra para obtener el `nombre` de quien está agregando el contacto — se usa en el cuerpo del correo ("Fulano te agregó como contacto de emergencia"), y no había forma de evitarlo sin cambiar la firma de `usuario_actual` (ver `dependencies.md`), que deliberadamente solo devuelve el `id`, no la fila completa. Si `data.correo` es `None` (recordar que es el único campo opcional de `Contacto`, ver `types.md`), no se manda nada — no hay forma de confirmar un contacto por correo si no se tiene un correo, y ese contacto simplemente queda con `confirmado = FALSE` indefinidamente hasta que el proyecto sume otro canal de confirmación (SMS, por ejemplo, cuando se resuelva la integración con Twilio pendiente).
+
+### `GET /contactos/confirmar/{token}`
+
+Es, junto con las dos rutas de `auth.py`, uno de los pocos endpoints del backend que **no** exige `Depends(usuario_actual)` — y por la misma razón que ellas: a este endpoint se llega haciendo clic en un link dentro de un correo, no navegando la app ya logueado, así que quien hace la petición no tiene (ni puede tener) un JWT de sesión. La autenticación de este endpoint no es "quién sos", sino "¿tenés el token de confirmación correcto, generado específicamente para este contacto?" — de ahí que use `Token.ValidarConfirmacionContacto` (ver `token.md`) en vez de la dependencia estándar.
+
+El flujo es deliberadamente igual de simple que el resto del CRUD: `Token.ValidarConfirmacionContacto(token)` devuelve el `id_contacto` si el token es válido y del tipo correcto, o `None` si no (token corrupto, expirado, o de otro tipo — por ejemplo, un JWT de sesión). Con el `id_contacto` en mano, `Querys.CONFIRMAR_CONTACTO` (ver `cursor.md`) actualiza esa fila, y `cursor.rowcount == 0` cubre el caso "el token era válido pero ese `id_contacto` ya no existe" (por ejemplo, si el contacto fue borrado — aunque hoy no existe un `DELETE /contactos/{id}`, se deja la comprobación por si se agrega en el futuro, mismo criterio defensivo que ya usa `PUT /{id_contacto}`).
 
 ### `PUT /contactos/{id_contacto}` y por qué usa `rowcount` en vez de un `SELECT` previo
 
 Este es el único endpoint del proyecto que necesita responder `404 Not Found`, y lo hace de una forma particular: en vez de primero hacer un `SELECT` para comprobar "¿existe este contacto y es mío?" y después el `UPDATE`, ejecuta directamente el `UPDATE` con `WHERE id = %s AND id_usuario = %s` y revisa cuántas filas afectó con `cursor.rowcount` (ver `cursor.md`). Si el `id_contacto` no existe, o existe pero pertenece a otro usuario, la cláusula `WHERE` no encuentra ninguna fila para actualizar y `rowcount` da `0` — y ambos casos (no existe / no es tuyo) devuelven el mismo `404`, sin distinguirlos en el mensaje, por la misma razón de no dar pistas que ya se explicó para el login: confirmarle a alguien que "el contacto 7 existe pero no es tuyo" revela más de lo necesario. Hacerlo en una sola consulta, además, evita una condición de carrera (que el contacto sea borrado o reasignado entre el `SELECT` de verificación y el `UPDATE` posterior) que sí podría ocurrir con el enfoque de dos pasos.
 
+## `alertas.py`
+
+```python
+from datetime import datetime
+
+from fastapi import APIRouter, BackgroundTasks, Depends
+
+from modules.correo       import Correo
+from modules.cursor       import Querys
+from modules.db           import cursor
+from modules.dependencies import usuario_actual
+from modules.types        import Alerta
+
+router = APIRouter(prefix="/alertas", tags=["alertas"])
+
+
+@router.post("", status_code=201)
+def crear_alerta(data: Alerta, background_tasks: BackgroundTasks, id_usuario: int = Depends(usuario_actual)):
+    cursor.execute(Querys.INSERT_ALERTA, (id_usuario, data.latitud, data.longitud))
+    cursor.commit()
+
+    filas_usuario: list[dict] = cursor.execute(Querys.SELECT_USUARIO_POR_ID, (id_usuario,))
+    contactos: list[dict] = cursor.execute(Querys.SELECT_CONTACTOS_CONFIRMADOS_POR_USUARIO, (id_usuario,))
+
+    destinatarios: list[tuple[str, dict]] = [
+        (
+            contacto["correo"],
+            {
+                "nombre_contacto":  contacto["nombre"],
+                "nombre_usuario":   filas_usuario[0]["nombre"],
+                "telefono_usuario": filas_usuario[0]["telefono"],
+                "fecha_hora":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "latitud":          data.latitud,
+                "longitud":         data.longitud,
+                "url_mapa":         f"https://www.google.com/maps?q={data.latitud},{data.longitud}",
+            },
+        )
+        for contacto in contactos if contacto["correo"]
+    ]
+
+    if destinatarios:
+        background_tasks.add_task(
+            Correo.EnviarMasivo,
+            f"Alerta de pánico de {filas_usuario[0]['nombre']}",
+            "alerta_panico",
+            destinatarios,
+        )
+
+    return {"Skellent": "Success!"}
+```
+
+Es el endpoint que corresponde a activar el botón de pánico en sí — el propósito final del proyecto (ver `sql.md`, sección `alertas`). Un solo endpoint, sin `GET`/`PUT` propios todavía: hoy nadie necesita listar ni editar alertas pasadas, solo crearlas.
+
+### Por qué se notifica solo a los contactos **confirmados**
+
+`Querys.SELECT_CONTACTOS_CONFIRMADOS_POR_USUARIO` (ver `cursor.md`), no `SELECT_CONTACTOS_POR_USUARIO`, es la consulta que decide a quién notificar. Esto no es una limitación técnica sino la razón de ser de la columna `confirmado` (ver `sql.md`, `guard.md`): agregar a alguien como contacto de emergencia no le da automáticamente el consentimiento de recibir alertas en su nombre, y esa persona ya tuvo la oportunidad de confirmarlo haciendo clic en el link que le llegó por correo al ser agregada (`POST /contactos`, ver más arriba). Un contacto que nunca confirmó simplemente no aparece en esta consulta y no recibe nada — ni siquiera se intenta.
+
+### Por qué `Correo.EnviarMasivo` y no `Correo.Enviar` en un loop
+
+A diferencia de `POST /contactos` (que siempre notifica a **un** destinatario, el contacto recién creado), `POST /alertas` puede necesitar notificar a **varios** contactos confirmados a la vez. Llamar a `Correo.Enviar` una vez por contacto abriría y cerraría una conexión SMTP distinta por cada uno; `Correo.EnviarMasivo` (ver `correo.md`) abre una única conexión y manda todos los correos de esa alerta a través de ella, además de garantizar que un contacto con una dirección inválida no le impida al resto recibir la notificación. Ver `correo.md` para el detalle completo de por qué esto importa específicamente acá (y no antes: hasta este endpoint, todo envío del proyecto era 1 a 1).
+
+### Por qué en segundo plano, igual que la confirmación de contactos
+
+El `INSERT` en `alertas` — el registro durable de que la alerta ocurrió — se confirma con `cursor.commit()` **antes** de intentar avisarle a nadie, y la respuesta `201` llega apenas eso termina. Encolar `Correo.EnviarMasivo` con `background_tasks.add_task` (en vez de `await` directo) significa que quien activó el botón de pánico no espera a que se manden N correos para saber que su alerta quedó registrada — algo particularmente importante acá, donde la app debería confirmarle al usuario que la alerta se disparó lo más rápido posible, sin que la latencia de Gmail (o un contacto con problemas de entrega) se interponga en el camino.
+
+### `fecha_hora` en el correo no sale de una consulta a `alertas`
+
+El contexto de la plantilla usa `datetime.now()` calculado en el momento de responder, no un `SELECT` de la fila recién insertada (cuyo `fecha_hora` lo pone `DEFAULT CURRENT_TIMESTAMP` en MariaDB, ver `sql.md`). Son, en la práctica, el mismo instante — no vale la pena una consulta extra solo para mostrar un valor que ya se conoce con precisión suficiente para un correo de notificación.
+
 ## Relación con el resto del backend
 
-`main.py` importa los tres módulos de este directorio y monta sus routers con `include_router` (ver `main.md`). Los tres, a su vez, dependen de `modules/db.py` (el `cursor` compartido), `modules/cursor.py` (`Querys` y, salvo `contactos.py`, `RegistroDuplicadoError`) y `modules/types.py` (los modelos Pydantic de cada petición); `usuarios.py` y `contactos.py` además dependen de `modules/dependencies.py` para exigir autenticación. `modules/guard.py` lo usan tanto `auth.py` (crear el hash al registrar, validarlo al loguear) como `usuarios.py` (crear el hash cuando el usuario cambia su propia contraseña); `modules/token.py`, en cambio, solo lo usa `auth.py`, porque es el único lugar del backend donde se emite un token nuevo — el resto de los routers solo lo validan, indirectamente, a través de `usuario_actual` (ver `dependencies.md`).
+`main.py` importa los cuatro módulos de este directorio y monta sus routers con `include_router` (ver `main.md`). Todos dependen de `modules/db.py` (el `cursor` compartido), `modules/cursor.py` (`Querys` y, salvo `contactos.py`/`alertas.py`, `RegistroDuplicadoError`) y `modules/types.py` (los modelos Pydantic de cada petición); `usuarios.py`, `contactos.py` y `alertas.py` además dependen de `modules/dependencies.py` para exigir autenticación. `modules/guard.py` lo usan tanto `auth.py` (crear el hash al registrar, validarlo al loguear) como `usuarios.py` (crear el hash cuando el usuario cambia su propia contraseña); `modules/token.py` lo usa `auth.py` (emitir el JWT de sesión) y `contactos.py` (emitir y validar el token de confirmación, ver `token.md`) — `alertas.py` no lo necesita, porque no emite ni valida ningún token propio. `modules/correo.py` (ver `correo.md`) lo usan `contactos.py` (`Correo.Enviar`, 1 a 1) y `alertas.py` (`Correo.EnviarMasivo`, 1 a N).
