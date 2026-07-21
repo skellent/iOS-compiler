@@ -129,6 +129,8 @@ gitGraph
    commit id: "fe73848 Commit history brought up to date"
    checkout devs
    merge traduccion id: "892930a Merge traduccion -> devs"
+   commit id: "6c62dbe Commit history brought up to date"
+   commit id: "4ee399b Add APP_MODE docs toggle"
 ```
 
 - **`83b5d3e` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` never advanced past this point; all development happens on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
@@ -155,3 +157,5 @@ gitGraph
 - **`0159f94` — Translate the entire project to English** (branch `traduccion`, off `devs`): the client requested that the whole project — database schema, API paths, Pydantic models, module and function names, email templates, and every doc — be in English instead of Spanish. Tables/columns (`usuarios`/`contactos`/`alertas` → `users`/`contacts`/`alerts`, `nombre`/`telefono`/`correo`/`contraseña_hash` → `name`/`phone`/`email`/`password_hash`, etc.), API paths (`/auth/registro` → `/auth/register`, `/usuarios` → `/users`, `/contactos` → `/contacts`, `/alertas` → `/alerts`), and every backend module (`correo.py` → `mail.py`, `credenciales.py` → `credentials.py`, `querys/` → `queries/`, and so on) were renamed and translated together in a single commit, verified by importing `main.py` and inspecting the resulting OpenAPI schema.
 - **`fe73848` — Bring the README's commit history up to date**: on `traduccion`, documents that same commit in this diagram and list before the branch is reviewed and merged.
 - **`892930a` — Merge traduccion → devs**: the translation was reviewed and approved, so `traduccion` is merged into `devs` with an explicit merge commit. The whole project — code, schema, API, docs — is now in English on the main development branch.
+- **`6c62dbe` — Bring the README's commit history up to date**: on `devs`, documents the `892930a` merge in this diagram and list.
+- **`4ee399b` — Add `APP_MODE` to toggle FastAPI's automatic docs**: `main.py` now reads a new `app_mode` value (see `docs/backend/credentials.md`) to decide whether `/docs`, `/redoc` and `/openapi.json` get registered at all. `APP_MODE=Deploy` disables all three (they return `404`, not just hidden from a menu); `Debug`, or `APP_MODE` not being set, keeps them enabled — the same behavior every environment already had before this change. See `docs/backend/main.md` for the implementation detail.
