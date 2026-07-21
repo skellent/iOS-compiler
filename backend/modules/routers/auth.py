@@ -1,36 +1,36 @@
 from fastapi import APIRouter, HTTPException
 
-from modules.cursor  import Querys, RegistroDuplicadoError
+from modules.cursor  import Queries, DuplicateRecordError
 from modules.db      import cursor
 from modules.guard   import Guard
 from modules.token   import Token
-from modules.types   import Usuario, UsuarioLogin
+from modules.types   import User, UserLogin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/registro", status_code=201)
-def registrar(data: Usuario):
-    hash_contraseña: str = Guard.Crear(data.contraseña)
+@router.post("/register", status_code=201)
+def register(data: User):
+    password_hash: str = Guard.Hash(data.password)
     try:
-        cursor.execute(Querys.INSERT_USUARIO, (
-            data.nombre,
-            data.telefono,
-            data.correo,
-            hash_contraseña)
+        cursor.execute(Queries.INSERT_USER, (
+            data.name,
+            data.phone,
+            data.email,
+            password_hash)
         )
-    except RegistroDuplicadoError:
-        raise HTTPException(status_code=409, detail="El teléfono o correo ya está registrado")
+    except DuplicateRecordError:
+        raise HTTPException(status_code=409, detail="Phone or email already registered")
     cursor.commit()
 
     return {"Skellent": "Success!"}
 
 
 @router.post("/login")
-def login(data: UsuarioLogin):
-    filas: list[dict] = cursor.execute(Querys.SELECT_USUARIO_POR_CORREO, (data.correo,))
-    if not filas or not Guard.Validar(data.contraseña, filas[0]["contraseña_hash"]):
-        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+def login(data: UserLogin):
+    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_EMAIL, (data.email,))
+    if not rows or not Guard.Verify(data.password, rows[0]["password_hash"]):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
 
-    token: str = Token.Crear(filas[0]["id"])
+    token: str = Token.Create(rows[0]["id"])
     return {"access_token": token, "token_type": "bearer"}

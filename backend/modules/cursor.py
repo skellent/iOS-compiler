@@ -1,21 +1,21 @@
 import mariadb
 import sys
 
-class RegistroDuplicadoError(Exception):
+class DuplicateRecordError(Exception):
     pass
 
-class Querys:
+class Queries:
     SHOW_TABLES: str = "SHOW TABLES;"
-    INSERT_USUARIO: str = "INSERT INTO usuarios (nombre, telefono, correo, contraseña_hash) VALUES (%s, %s, %s, %s);"
-    SELECT_USUARIO_POR_CORREO: str = "SELECT id, nombre, telefono, correo, contraseña_hash FROM usuarios WHERE correo = %s;"
-    SELECT_USUARIO_POR_ID: str = "SELECT id, nombre, telefono, correo FROM usuarios WHERE id = %s;"
+    INSERT_USER: str = "INSERT INTO users (name, phone, email, password_hash) VALUES (%s, %s, %s, %s);"
+    SELECT_USER_BY_EMAIL: str = "SELECT id, name, phone, email, password_hash FROM users WHERE email = %s;"
+    SELECT_USER_BY_ID: str = "SELECT id, name, phone, email FROM users WHERE id = %s;"
 
-    INSERT_CONTACTO: str = "INSERT INTO contactos (id_usuario, nombre, telefono, correo) VALUES (%s, %s, %s, %s);"
-    SELECT_CONTACTOS_POR_USUARIO: str = "SELECT id, nombre, telefono, correo, confirmado FROM contactos WHERE id_usuario = %s;"
-    SELECT_CONTACTOS_CONFIRMADOS_POR_USUARIO: str = "SELECT nombre, telefono, correo FROM contactos WHERE id_usuario = %s AND confirmado = TRUE;"
-    CONFIRMAR_CONTACTO: str = "UPDATE contactos SET confirmado = TRUE WHERE id = %s;"
+    INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
+    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed FROM contacts WHERE user_id = %s;"
+    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email FROM contacts WHERE user_id = %s AND confirmed = TRUE;"
+    CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
 
-    INSERT_ALERTA: str = "INSERT INTO alertas (id_usuario, latitud, longitud) VALUES (%s, %s, %s);"
+    INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
 
 class Cursor:
 
@@ -38,7 +38,7 @@ class Cursor:
         try:
             self.cursor.execute(query, params)
         except mariadb.IntegrityError as e:
-            raise RegistroDuplicadoError(str(e)) from e
+            raise DuplicateRecordError(str(e)) from e
         try:
             return self.cursor.fetchall()
         except mariadb.ProgrammingError:

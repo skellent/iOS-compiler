@@ -4,12 +4,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class Guard:
     @staticmethod
-    def Crear(contraseña: str) -> str:
-        return pwd_context.hash(contraseña)
+    def Hash(password: str) -> str:
+        return pwd_context.hash(password)
 
     @staticmethod
-    def Validar(contraseña: str, hash_guardado: str) -> bool:
-        return pwd_context.verify(contraseña, hash_guardado)
-
+    def Verify(password: str, stored_hash: str) -> bool:
+        return pwd_context.verify(password, stored_hash)
 
 

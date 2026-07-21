@@ -1,6 +1,6 @@
 # PanicSwitch
 
-A panic buttom emergency call
+A panic button emergency call
 
 ![badge](https://shieldcn.dev/badge/Python->=%203.12-abcde3.svg?size=default&logo=python)
 ![badge](https://shieldcn.dev/badge/MariaDB-abcde3.svg?size=default&theme=emerald&logo=mariadb&color=08933b)
@@ -8,26 +8,26 @@ A panic buttom emergency call
 ![badge](https://shieldcn.dev/badge/JavaScript-abcde3.svg?size=default&logo=javascript&logoColor=fdfeff&color=efcf44)
 ![badge](https://shieldcn.dev/badge/Capacitor.js-Android%20&%20iOS-abcde3.svg?size=default&logo=ri%3AFaMobileAlt&logoColor=fdfeff&color=8b5cf6)
 
-# Instalación y Ejecución del Backend
+# Backend Installation and Setup
 
-## 1. Configurar MariaDB
+## 1. Configure MariaDB
 
-El proceso de MariaDB debe inicializarse y debe configurarse el usuario y base de datos correspondiente, el usuario y la contraseña serán definidos por el administrador del servidor y dichas credenciales deben ser escritas en un .env dentro del directorio backend al momento de montarlo, vease .envexample para comprender las variables requeridas. Este proceso debe realizarse como usuario root al acceder a la consola de MariaDB mediante `mariadb -u root`
+The MariaDB process must be initialized, and the corresponding user and database must be configured; the user and password will be defined by the server administrator, and those credentials must be written into a `.env` file inside the `backend` directory when it's set up — see `.envexample` to understand the required variables. This must be done as the `root` user, accessing the MariaDB console via `mariadb -u root`.
 
-A su vez, en el directorio ./backend/querys está presente el código SQL a ejecutar para crear las tablas de la base de datos, junto con la antes mencionada creación del usuario y base, también cuenta con ejemplos de cómo funcionarán los INSERT.
+Also, the `./backend/queries` directory contains the SQL code to run to create the database tables, along with the aforementioned user and database creation, and includes examples of how the INSERTs work.
 
-## 2. Preparar el Entorno
-- Primero hay que instalar Python (>=3.12) junto con su versión correspondiente de pip
-- Luego mediante el comando `pip install uv` para poder instalar un gestor más versatil
-- Al momento de haberse instalado uv, dirigirse al directorio ./backend y ejecutar `uv sync`, el gestor automáticamente creará un entorno virtual y instalará las dependencias (Si MariaDB no está funcionando al momento de este paso, saltará un error de building por la librería de mariadb)
-- Crear un archivo .env en el directorio backend y utilizar .envexample como plantilla para llenar las credenciales
-- Ejecutar `uv run uvicorn main:app --reload`
-  
-> Para pruebas puede usar simplemente `uv run main.py`
+## 2. Prepare the Environment
+- First, install Python (>=3.12) along with its corresponding version of pip
+- Then, use the command `pip install uv` to install a more versatile package manager
+- Once uv is installed, go to the `./backend` directory and run `uv sync`; the manager will automatically create a virtual environment and install the dependencies (if MariaDB isn't running at this step, a build error will pop up because of the mariadb library)
+- Create a `.env` file in the `backend` directory and use `.envexample` as a template to fill in the credentials
+- Run `uv run uvicorn main:app --reload`
 
-> En caso de haber algún problema con la versión de Python del servidor, uv puede solucionarlo indicandole qué versión instalar. Igualmente las librerías/dependencias listadas en pyproject.toml son compatibles con Python 3.12 en adelante
+> For testing, you can simply use `uv run main.py`
 
-### Estructura de .env esperada
+> If there's any issue with the server's Python version, uv can resolve it by telling it which version to install. Either way, the libraries/dependencies listed in `pyproject.toml` are compatible with Python 3.12 and up
+
+### Expected `.env` structure
 
 ```env
 USERNAME=''
@@ -43,94 +43,96 @@ SMTP_PORT=587
 API_BASE_URL='http://127.0.0.1:8000'
 ```
 
-`JWT_SECRET_KEY` es la clave con la que el backend firma y verifica los tokens de sesión (JWT) que emite `POST /auth/login` — ver `docs/backend/token.md` para el detalle de cómo se usa. No es una credencial de MariaDB, así que no sale de la configuración de la base de datos del paso 1: hay que generarla aparte.
+`JWT_SECRET_KEY` is the key the backend uses to sign and verify the session tokens (JWT) issued by `POST /auth/login` — see `docs/backend/token.md` for the detail of how it's used. It isn't a MariaDB credential, so it doesn't come out of step 1's database setup: it has to be generated separately.
 
-`SMTP_USER`/`SMTP_PASSWORD` son la cuenta de Google Workspace (`soporte@keylogics.com`) desde la que se mandan los correos de confirmación de contactos de emergencia, y `SMTP_PASSWORD` es específicamente una **contraseña de aplicación** de 16 caracteres (`myaccount.google.com/apppasswords`), no la contraseña real de la cuenta — Google no acepta autenticación SMTP básica en cuentas de Workspace desde marzo de 2025. Requiere verificación en 2 pasos activa en esa cuenta y que el administrador de Workspace permita crear contraseñas de aplicación. Ver `docs/backend/correo.md` para el detalle completo (incluyendo la alternativa con OAuth2, en la rama `feature/correo-oauth2`, si el cliente prefiere no depender de contraseñas de aplicación). `API_BASE_URL` es la URL pública con la que la API arma el link de confirmación que viaja en esos correos — en producción, el dominio real detrás de nginx (ver `NGINX.md`).
+`SMTP_USER`/`SMTP_PASSWORD` are the Google Workspace account (`soporte@keylogics.com`) emails confirming emergency contacts are sent from, and `SMTP_PASSWORD` is specifically a 16-character **app password** (`myaccount.google.com/apppasswords`), not the account's real password — Google hasn't accepted basic SMTP authentication on Workspace accounts since March 2025. It requires 2-Step Verification active on that account and the Workspace administrator allowing app passwords to be created. See `docs/backend/mail.md` for the complete detail (including the OAuth2 alternative, on the `feature/correo-oauth2` branch, if the client prefers not to rely on app passwords). `API_BASE_URL` is the public URL the API uses to build the confirmation link that travels in those emails — in production, the real domain behind nginx (see `NGINX.md`).
 
-#### Generar `JWT_SECRET_KEY` para producción
+#### Generate `JWT_SECRET_KEY` for production
 
-Tiene que ser una cadena larga y aleatoria, no una frase elegida a mano — cualquiera que la conozca puede firmar tokens válidos para cualquier usuario del sistema. Para generar una en la máquina donde se vaya a desplegar el backend, con `uv` ya instalado y `uv sync` ya ejecutado (paso 2), alcanza con:
+It has to be a long, random string, not a hand-picked phrase — anyone who knows it can sign valid tokens for any user of the system. To generate one on the machine where the backend will be deployed, with `uv` already installed and `uv sync` already run (step 2), this is enough:
 
 ```bash
 uv run python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Esto imprime una cadena hexadecimal de 64 caracteres (256 bits de entropía) que se pega tal cual como valor de `JWT_SECRET_KEY` en el `.env` de ese entorno. Cada entorno (desarrollo, producción, etc.) debería tener su propio secreto generado por separado — no reutilizar el mismo valor entre ellos, y nunca versionarlo (por eso `.env` está en `.gitignore`).
+This prints a 64-character hex string (256 bits of entropy) that gets pasted as-is as the value of `JWT_SECRET_KEY` in that environment's `.env`. Each environment (development, production, etc.) should have its own separately generated secret — don't reuse the same value across them, and never commit it (that's why `.env` is in `.gitignore`).
 
-#### Obtener `SMTP_PASSWORD` (contraseña de aplicación de Google Workspace)
+#### Get `SMTP_PASSWORD` (Google Workspace app password)
 
-Esta rama (`feature/correo-app-password`) autentica el envío de correos con una **contraseña de aplicación** de la cuenta de Google Workspace `soporte@keylogics.com`, no con la contraseña real de la cuenta — Google no acepta autenticación SMTP básica (usuario + contraseña normal) en cuentas de Workspace desde marzo de 2025. Pasos para conseguirla:
+This branch (`feature/correo-app-password`) authenticates outgoing email with an **app password** for the Google Workspace account `soporte@keylogics.com`, not the account's real password — Google hasn't accepted basic SMTP authentication (username + normal password) on Workspace accounts since March 2025. Steps to get one:
 
-1. **Activar la verificación en 2 pasos en la cuenta.** Entrar a [`myaccount.google.com/security`](https://myaccount.google.com/security) con la cuenta `soporte@keylogics.com` y activar "Verificación en 2 pasos" si todavía no está activa. Es un requisito obligatorio: sin 2FA activo, Google ni siquiera muestra la opción de contraseñas de aplicación.
-2. **Confirmar que el administrador de Workspace permite contraseñas de aplicación.** Esto se controla a nivel organización, no a nivel de la cuenta individual, así que puede estar bloqueado aunque el paso 1 esté hecho. El administrador de Workspace debe entrar a [Admin Console](https://admin.google.com) → **Seguridad** → **Autenticación** → **Verificación en 2 pasos**, y ahí habilitar "Permitir que los usuarios generen contraseñas de aplicación". Si esta política está deshabilitada, el paso 3 no va a mostrar la opción aunque la cuenta tenga 2FA activo — en ese caso hay que pedirle al administrador que la habilite, o usar la alternativa con OAuth2 (rama `feature/correo-oauth2`, ver `docs/backend/correo.md`) si la organización prefiere no habilitar contraseñas de aplicación.
-3. **Generar la contraseña.** Con la cuenta ya logueada y 2FA activo, ir a [`myaccount.google.com/apppasswords`](https://myaccount.google.com/apppasswords), ponerle un nombre identificable (por ejemplo, "PanicSwitch Backend") y generar. Google muestra una contraseña de 16 caracteres agrupados en 4 bloques de 4 (por ejemplo `abcd efgh ijkl mnop`) — se usa **sin los espacios**.
-4. **Completar el `.env`.** `SMTP_USER` es el correo completo de la cuenta (`soporte@keylogics.com`) y `SMTP_PASSWORD` es la contraseña de 16 caracteres generada en el paso anterior (sin espacios). `SMTP_HOST`/`SMTP_PORT` ya vienen con el valor correcto por defecto (`smtp.gmail.com`/`587`) y no deberían necesitar cambios.
+1. **Enable 2-Step Verification on the account.** Go to [`myaccount.google.com/security`](https://myaccount.google.com/security) with the `soporte@keylogics.com` account and turn on "2-Step Verification" if it isn't already. This is a hard requirement: without 2FA on, Google won't even show the app passwords option.
+2. **Confirm the Workspace administrator allows app passwords.** This is controlled at the organization level, not the individual account level, so it can be blocked even if step 1 is done. The Workspace administrator has to go to [Admin Console](https://admin.google.com) → **Security** → **Authentication** → **2-Step Verification**, and enable "Allow users to create app passwords" there. If this policy is disabled, step 3 won't show the option even if the account has 2FA on — in that case, ask the administrator to enable it, or use the OAuth2 alternative (`feature/correo-oauth2` branch, see `docs/backend/mail.md`) if the organization prefers not to enable app passwords.
+3. **Generate the password.** With the account already logged in and 2FA on, go to [`myaccount.google.com/apppasswords`](https://myaccount.google.com/apppasswords), give it a recognizable name (for example, "PanicSwitch Backend") and generate it. Google shows a 16-character password grouped into 4 blocks of 4 (for example `abcd efgh ijkl mnop`) — use it **without the spaces**.
+4. **Fill in the `.env`.** `SMTP_USER` is the account's full email (`soporte@keylogics.com`) and `SMTP_PASSWORD` is the 16-character password generated in the previous step (no spaces). `SMTP_HOST`/`SMTP_PORT` already come with the correct default value (`smtp.gmail.com`/`587`) and shouldn't need changes.
 
-Esta contraseña se puede revocar en cualquier momento desde la misma página de `apppasswords` sin afectar la contraseña real de la cuenta — conviene generar una distinta por entorno (desarrollo, producción) para poder revocar una sin afectar la otra, igual que con `JWT_SECRET_KEY`.
+This password can be revoked at any time from the same `apppasswords` page without affecting the account's real password — it's worth generating a different one per environment (development, production) so one can be revoked without affecting the other, same as with `JWT_SECRET_KEY`.
 
-# Uso de la API
+# Using the API
 
-Con el servidor corriendo, la API expone rutas de registro y login (`/auth`), gestión del usuario autenticado (`/usuarios/me`), contactos de emergencia (`/contactos`) y activación de alertas de pánico (`/alertas`, que notifica por correo a los contactos confirmados). La guía completa de cada endpoint, con ejemplos de consumo en Python y JavaScript (pensados para el futuro cliente Capacitor), está en [`backend/API.md`](backend/API.md). Las decisiones de diseño detrás de cada módulo del backend (por qué JWT, por qué esa estructura de rutas, etc.) están documentadas una por una en [`docs/backend/`](docs/backend/).
+With the server running, the API exposes registration and login routes (`/auth`), management of the authenticated user (`/users/me`), emergency contacts (`/contacts`), and triggering panic alerts (`/alerts`, which notifies confirmed contacts by email). The complete guide to each endpoint, with usage examples in Python and JavaScript (built with the future Capacitor client in mind), is in [`backend/API.md`](backend/API.md). The design decisions behind each backend module (why JWT, why that route structure, etc.) are documented one by one in [`docs/backend/`](docs/backend/).
 
-# Preparación y Compilación de Aplicaciones
+# App Preparation and Build
 
-> Pendiente por comenzar el desarrollo de la aplicación y detalles técnicos
-> Será desarrollada con capacitor.js y estará disponible para Android y iOS
+> Pending — app development hasn't started yet, technical details TBD
+> Will be built with capacitor.js and available for Android and iOS
 
-# Historial de Commits
+# Commit History
 
 ```mermaid
 gitGraph
    commit id: "83b5d3e Initial commit"
    branch devs
    checkout devs
-   commit id: "bd81c9c Preparación del entorno"
-   commit id: "905986f Documentación + servidor de prueba"
+   commit id: "bd81c9c Prepare the Python environment"
+   commit id: "905986f Documentation + test server"
    branch testing
    checkout testing
-   commit id: "1392a31 Login JWT + Contactos + fix duplicados"
-   commit id: "872b6db Documentación al día"
-   commit id: "89d570e JWT_SECRET_KEY en README"
+   commit id: "1392a31 JWT login + Contacts + duplicate fix"
+   commit id: "872b6db Documentation up to date"
+   commit id: "89d570e JWT_SECRET_KEY in the README"
    checkout devs
    merge testing id: "bea6008 Merge testing -> devs"
-   commit id: "1f1bb32 Diagrama gitGraph en README"
-   commit id: "9ca8023 Ajuste de .gitignore"
+   commit id: "1f1bb32 gitGraph diagram in the README"
+   commit id: "9ca8023 Minor .gitignore tweak"
    branch feature/correo-app-password
    checkout feature/correo-app-password
-   commit id: "7047342 Confirmación de contactos (App Password)"
-   commit id: "e239c62 Alertas de pánico por correo"
-   commit id: "58f9a1a Limpieza de TASK.md en docs"
-   commit id: "d2d8fa6 Guía de contraseña de aplicación SMTP"
-   commit id: "58899ca Historial de commits al día"
+   commit id: "7047342 Contact confirmation (App Password)"
+   commit id: "e239c62 Panic alerts by email"
+   commit id: "58f9a1a Remove TASK.md mentions from docs"
+   commit id: "d2d8fa6 SMTP app password guide"
+   commit id: "58899ca Commit history brought up to date"
    checkout devs
    branch feature/correo-oauth2
    checkout feature/correo-oauth2
-   commit id: "820c07b Confirmación de contactos (OAuth2)"
-   commit id: "0cccfaa Alertas de pánico por correo"
-   commit id: "2ef4493 Limpieza de TASK.md en docs"
-   commit id: "3b470f8 Guía de OAuth2 / Service Account"
-   commit id: "f4bb174 Historial de commits al día"
+   commit id: "820c07b Contact confirmation (OAuth2)"
+   commit id: "0cccfaa Panic alerts by email"
+   commit id: "2ef4493 Remove TASK.md mentions from docs"
+   commit id: "3b470f8 OAuth2 / Service Account guide"
+   commit id: "f4bb174 Commit history brought up to date"
    checkout devs
    merge feature/correo-app-password id: "ebca6da Merge correo-app-password -> devs"
+   commit id: "b10ad2d Commit history brought up to date"
 ```
 
-- **`83b5d3e` — Initial commit** (rama `main`): primer commit del repositorio, solo el `README.md` inicial. `main` no volvió a avanzar desde acá; todo el desarrollo ocurre en `devs` (y, temporalmente, en ramas como `testing` o `feature/*`).
-- **`bd81c9c` — Preparación del entorno de Python**: primer esqueleto funcional del backend — `pyproject.toml`, la clase `Cursor` para hablar con MariaDB, `credenciales.py`, y los scripts SQL de creación de tablas. Se corroboró que la conexión a la base de datos funcionaba correctamente con un `.env` real.
-- **`905986f` — Redacción de documentación + Servidor de prueba**: primer endpoint de negocio (`POST /registrar/usuario`), `Guard` para el hash de contraseñas con bcrypt, y el primer lote de documentación en `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
-- **`1392a31` — Login con JWT, CRUD de Contactos, edición de Usuarios y fix de duplicados** (mergeado desde `testing`): corrige el bug de insertar datos que chocan con un `UNIQUE` existente (ahora responde `409` en vez de un `500` sin manejar), estandariza las rutas bajo `/auth`, `/usuarios` y `/contactos`, agrega login con JWT, y el CRUD completo de contactos de emergencia y edición de usuarios.
-- **`872b6db` — Documentación al día con JWT, routers y CRUD de Contactos/Usuarios** (mergeado desde `testing`): actualiza toda la documentación de `docs/backend/` para que refleje el código del commit anterior, y agrega `backend/API.md` con ejemplos de uso en Python y JavaScript.
-- **`89d570e` — Documentar JWT_SECRET_KEY y uso de la API en el README** (mergeado desde `testing`): agrega al README los pasos para generar el secreto de JWT en producción y enlaza la documentación de la API.
-- **`bea6008` — Merge testing → devs**: integra los tres commits anteriores (desarrollados y revisados primero en la rama local `testing`) a `devs`, trayendo todo el trabajo de esta etapa a la rama principal de desarrollo.
-- **`1f1bb32` — Agregar diagrama gitGraph e historial de commits al README**: documenta visualmente la relación entre `main`, `devs` y `testing` con un diagrama Mermaid, junto con esta misma explicación de qué aportó cada commit.
-- **`9ca8023` — Ligera modificación a `.gitignore`**: ajuste menor al archivo de exclusiones de git.
-- **`7047342` — Agregar confirmación de contactos por correo (Gmail App Password)**: primer uso real de la columna `contactos.confirmado` — `POST /contactos` dispara un correo de confirmación en segundo plano con un JWT de un solo propósito (`Token.CrearConfirmacionContacto`), y el nuevo `GET /contactos/confirmar/{token}` lo valida y marca el contacto como confirmado. Esta rama autentica el envío contra Gmail con una contraseña de aplicación de la cuenta de Google Workspace (ver `docs/backend/correo.md`); la rama hermana `feature/correo-oauth2` resolvió el mismo módulo con OAuth2/Service Account como alternativa, hasta que el cliente definiera un método.
-- **`e239c62` — Agregar sistema de alertas de pánico con notificación por correo**: `POST /alertas` inserta el registro de la alerta y notifica por correo, en un único lote (`Correo.EnviarMasivo`, una sola conexión SMTP para todos los destinatarios), solo a los contactos **confirmados** del usuario — los que nunca confirmaron no reciben nada.
-- **`58f9a1a` — Eliminar referencias a TASK.md de la documentación del backend**: `TASK.md` es un archivo de uso personal (ignorado por git) para organizar tareas propias, así que se quitaron las menciones que habían quedado citadas desde `docs/backend/` y `backend/API.md`.
-- **`d2d8fa6` — Documentar cómo obtener la contraseña de aplicación SMTP en el README**: guía paso a paso (activar 2FA, confirmar la política del administrador de Workspace, generar la contraseña de 16 caracteres) para completar `SMTP_PASSWORD` sin depender de contexto externo a este repositorio.
-- **`58899ca` — Actualizar el historial de commits del README**: en la rama `feature/correo-app-password`, pone al día este mismo diagrama y esta lista con los commits que faltaban desde `bea6008`.
-- **`820c07b` — Agregar confirmación de contactos por correo (Gmail OAuth2 / Service Account)**: mismo mecanismo de confirmación que `7047342`, pero resuelto sobre la rama hermana `feature/correo-oauth2`: el envío se autentica contra Gmail con una cuenta de servicio y delegación de dominio (`https://mail.google.com/`) en vez de una contraseña de aplicación (ver `docs/backend/correo.md` en esa rama).
-- **`0cccfaa` — Agregar sistema de alertas de pánico con notificación por correo**: equivalente a `e239c62`, implementado sobre `feature/correo-oauth2`.
-- **`2ef4493` — Eliminar referencias a TASK.md de la documentación del backend**: misma limpieza que `58f9a1a`, aplicada en paralelo sobre `feature/correo-oauth2`.
-- **`3b470f8` — Documentar cómo configurar OAuth2 (Service Account + delegación de dominio) en el README**: guía paso a paso (proyecto de Google Cloud + Gmail API, cuenta de servicio, clave JSON, autorización de delegación de dominio en el panel de administración de Workspace) para dejar operativo `GOOGLE_SERVICE_ACCOUNT_FILE` sin depender de contexto externo a este repositorio.
-- **`f4bb174` — Actualizar el historial de commits del README**: en `feature/correo-oauth2`, equivalente a `58899ca` pero documentando el historial desde el punto de vista de esa rama.
-- **`ebca6da` — Merge feature/correo-app-password (contraseña de aplicación) a devs**: el cliente definió usar contraseña de aplicación de Google Workspace como método de autenticación SMTP, así que `feature/correo-app-password` se integra a `devs` con un merge explícito. `feature/correo-oauth2` queda documentada en este historial como alternativa evaluada, pero no se integra.
+- **`83b5d3e` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` never advanced past this point; all development happens on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
+- **`bd81c9c` — Prepare the Python environment**: the backend's first working skeleton — `pyproject.toml`, the `Cursor` class to talk to MariaDB, `credentials.py`, and the SQL table-creation scripts. Confirmed the database connection worked correctly with a real `.env`.
+- **`905986f` — Documentation + test server**: the first business endpoint (`POST /registrar/usuario`), `Guard` for bcrypt password hashing, and the first batch of documentation in `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
+- **`1392a31` — JWT login, Contacts CRUD, editing Users and a duplicate fix** (merged from `testing`): fixes the bug where inserting data that collides with an existing `UNIQUE` constraint used to fail; standardizes routes under `/auth`, `/usuarios` and `/contactos`, adds JWT login, and the full CRUD for emergency contacts and editing users.
+- **`872b6db` — Documentation up to date with JWT, routers and Contacts/Users CRUD** (merged from `testing`): updates all of `docs/backend/` to reflect the previous commit's code, and adds `backend/API.md` with usage examples in Python and JavaScript.
+- **`89d570e` — Document JWT_SECRET_KEY and API usage in the README** (merged from `testing`): adds the steps for generating the JWT secret in production to the README, and links to the API documentation.
+- **`bea6008` — Merge testing → devs**: integrates the three previous commits (developed and reviewed first on the local `testing` branch) into `devs`, bringing all of this stage's work to the main development branch.
+- **`1f1bb32` — Add gitGraph diagram and commit history to the README**: visually documents the relationship between `main`, `devs` and `testing` with a Mermaid diagram, along with this same explanation of what each commit contributed.
+- **`9ca8023` — Minor `.gitignore` tweak**: small adjustment to the git exclusions file.
+- **`7047342` — Add contact confirmation by email (Gmail App Password)**: first real use of the `contacts.confirmed` column — `POST /contacts` fires off a confirmation email in the background with a single-purpose JWT (`Token.CreateContactConfirmation`), and the new `GET /contacts/confirm/{token}` validates it and marks the contact as confirmed. This branch authenticates the send against Gmail with an app password on the Google Workspace account (see `docs/backend/mail.md`); the sibling branch `feature/correo-oauth2` solved the same module with OAuth2/Service Account as an alternative, until the client settled on a method.
+- **`e239c62` — Add panic-alert notification system by email**: `POST /alerts` inserts the alert record and notifies by email, in a single batch (`Mail.SendBulk`, one SMTP connection for every recipient), only to the user's **confirmed** contacts — those who never confirmed get nothing.
+- **`58f9a1a` — Remove TASK.md mentions from the backend documentation**: `TASK.md` is a personal file (ignored by git) for organizing personal tasks, so the mentions that had been cited from `docs/backend/` and `backend/API.md` were removed.
+- **`d2d8fa6` — Document how to get the SMTP app password in the README**: step-by-step guide (enable 2FA, confirm the Workspace administrator's policy, generate the 16-character password) to fill in `SMTP_PASSWORD` without needing context outside this repository.
+- **`58899ca` — Bring the README's commit history up to date**: on the `feature/correo-app-password` branch, brings this same diagram and this list up to date with the commits missing since `bea6008`.
+- **`820c07b` — Add contact confirmation by email (Gmail OAuth2 / Service Account)**: the same confirmation mechanism as `7047342`, but solved on the sibling branch `feature/correo-oauth2`: the send authenticates against Gmail with a service account and domain-wide delegation (`https://mail.google.com/`) instead of an app password (see `docs/backend/mail.md` on that branch).
+- **`0cccfaa` — Add panic-alert notification system by email**: equivalent to `e239c62`, implemented on `feature/correo-oauth2`.
+- **`2ef4493` — Remove TASK.md mentions from the backend documentation**: same cleanup as `58f9a1a`, applied in parallel on `feature/correo-oauth2`.
+- **`3b470f8` — Document how to configure OAuth2 (Service Account + domain-wide delegation) in the README**: step-by-step guide (Google Cloud project + Gmail API, service account, JSON key, authorizing domain-wide delegation in the Workspace admin console) to get `GOOGLE_SERVICE_ACCOUNT_FILE` working without needing context outside this repository.
+- **`f4bb174` — Bring the README's commit history up to date**: on `feature/correo-oauth2`, equivalent to `58899ca` but documenting the history from that branch's point of view.
+- **`ebca6da` — Merge feature/correo-app-password (app password) into devs**: the client settled on using a Google Workspace app password as the SMTP authentication method, so `feature/correo-app-password` is merged into `devs` with an explicit merge commit. `feature/correo-oauth2` stays documented in this history as an alternative that was evaluated, but isn't merged in.
+- **`b10ad2d` — Bring the README's commit history up to date**: on `devs`, after the merge, extends the diagram and this list with the `ebca6da` merge and with `feature/correo-oauth2`'s full history, so the diagram reflects the repository's complete history.

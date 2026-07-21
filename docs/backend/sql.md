@@ -1,90 +1,90 @@
-# `querys/` — Scripts SQL
+# `queries/` — SQL scripts
 
-Este directorio contiene el SQL necesario para preparar y poblar la base de datos de PanicSwitch. No es código Python que se ejecute automáticamente: son scripts que un administrador corre manualmente contra MariaDB, en el orden descrito en el README principal (sección "1. Configurar MariaDB").
+This directory holds the SQL needed to set up and seed PanicSwitch's database. It isn't Python code that runs automatically: these are scripts an administrator runs manually against MariaDB, in the order described in the main README (section "1. Configure MariaDB").
 
-## `creation.sql` — provisión inicial
+## `creation.sql` — initial provisioning
 
 ```sql
-CREATE DATABASE <Nombre de base de datos> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER '<Nombre de Usuario>'@'localhost' IDENTIFIED BY '<Una contraseña>';
-GRANT ALL PRIVILEGES ON panic_dev.* TO '<Nombre de Usuario>'@'localhost';
+CREATE DATABASE <Database Name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER '<Username>'@'localhost' IDENTIFIED BY '<A Password>';
+GRANT ALL PRIVILEGES ON panic_dev.* TO '<Username>'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-Este script se ejecuta una única vez, como usuario `root` de MariaDB, y resuelve dos decisiones de diseño:
+This script runs exactly once, as MariaDB's `root` user, and settles two design decisions:
 
-- **`utf8mb4` / `utf8mb4_unicode_ci`**: se elige explícitamente sobre el `latin1` o `utf8` (de 3 bytes) que MariaDB podría usar por defecto, porque los datos de la aplicación (nombres, correos) están en español y pueden incluir tildes, la letra "ñ" y, potencialmente, emojis desde un cliente móvil. `utf8mb4` es el único de los tres que representa correctamente el conjunto completo de caracteres Unicode.
-- **Un usuario de base de datos dedicado, no `root`**: se crea un usuario propio con privilegios acotados a la base de datos del proyecto (`panic_dev`), en vez de que el backend se conecte con las credenciales de administrador. Es una aplicación directa del principio de menor privilegio: si las credenciales del backend (guardadas en `.env`) se filtran, el daño queda contenido a esa única base de datos.
+- **`utf8mb4` / `utf8mb4_unicode_ci`**: chosen explicitly over the `latin1` or (3-byte) `utf8` that MariaDB might default to, because the application's data (names, emails) may include accented characters, the letter "ñ," and, potentially, emojis from a mobile client. `utf8mb4` is the only one of the three that correctly represents the full Unicode character set.
+- **A dedicated database user, not `root`**: a dedicated user is created with privileges scoped to the project's database (`panic_dev`), instead of the backend connecting with administrator credentials. This is a direct application of the principle of least privilege: if the backend's credentials (stored in `.env`) leak, the damage stays contained to that single database.
 
-Los marcadores `<...>` son placeholders a rellenar por quien despliega el proyecto; los valores reales nunca deben quedar versionados en este archivo (de ahí que `.env` esté en `.gitignore`).
+The `<...>` markers are placeholders to be filled in by whoever deploys the project; the real values should never be committed to this file (hence why `.env` is in `.gitignore`).
 
-## `tables.sql` — esquema de datos
+## `tables.sql` — data schema
 
-Define las tres tablas que modelan el dominio de la aplicación.
+Defines the three tables that model the application's domain.
 
-### `usuarios`
+### `users`
 
 ```sql
-CREATE TABLE usuarios (
-    id              INT          AUTO_INCREMENT PRIMARY KEY,
-    nombre          VARCHAR(100) NOT NULL,
-    telefono        VARCHAR(20)  NOT NULL UNIQUE,
-    correo          VARCHAR(120) NOT NULL UNIQUE,
-    contraseña_hash VARCHAR(255) NOT NULL,
-    creado_en       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE users (
+    id            INT          AUTO_INCREMENT PRIMARY KEY,
+    name          VARCHAR(100) NOT NULL,
+    phone         VARCHAR(20)  NOT NULL UNIQUE,
+    email         VARCHAR(120) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-Es la tabla central: cada fila es una persona registrada en la app. Algunas decisiones a resaltar:
+This is the central table: each row is a person registered in the app. A few design decisions worth pointing out:
 
-- `telefono` y `correo` son `UNIQUE`: cada número de teléfono y cada correo solo puede pertenecer a una cuenta. Esto previene registros duplicados y es coherente con que, en una app de botón de pánico, el teléfono es probablemente el identificador que otros sistemas (SMS, llamadas) usarán para ubicar a un usuario.
-- `contraseña_hash VARCHAR(255)`: el tamaño generoso no es casualidad — los hashes de bcrypt (ver `guard.md`) tienen un formato de longitud fija conocida, pero dejar margen evita tener que migrar el esquema si el algoritmo de hashing cambia en el futuro (por ejemplo, a Argon2, cuyos hashes son más largos).
-- `creado_en DATETIME DEFAULT CURRENT_TIMESTAMP`: se registra automáticamente cuándo se creó la cuenta, sin que la aplicación tenga que enviarlo explícitamente en cada `INSERT` (de hecho, `Querys.INSERT_USUARIO` en `cursor.py` no incluye esta columna).
+- `phone` and `email` are `UNIQUE`: each phone number and each email can only belong to one account. This prevents duplicate registrations and is consistent with the fact that, in a panic-button app, the phone number is probably the identifier other systems (SMS, calls) will use to locate a user.
+- `password_hash VARCHAR(255)`: the generous size isn't accidental — bcrypt hashes (see `guard.md`) have a known, fixed-length format, but leaving margin avoids having to migrate the schema if the hashing algorithm ever changes (for example, to Argon2, whose hashes are longer).
+- `created_at DATETIME DEFAULT CURRENT_TIMESTAMP`: automatically records when the account was created, without the application having to send it explicitly on every `INSERT` (in fact, `Queries.INSERT_USER` in `cursor.py` doesn't include this column).
 
-### `contactos`
+### `contacts`
 
 ```sql
-CREATE TABLE contactos (
+CREATE TABLE contacts (
     id         INT          AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT          NOT NULL,
-    nombre     VARCHAR(100) NOT NULL,
-    telefono   VARCHAR(20)  NOT NULL,
-    correo     VARCHAR(120),
-    confirmado BOOLEAN      NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+    user_id    INT          NOT NULL,
+    name       VARCHAR(100) NOT NULL,
+    phone      VARCHAR(20)  NOT NULL,
+    email      VARCHAR(120),
+    confirmed  BOOLEAN      NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
 
-Representa los **contactos de emergencia** de cada usuario: las personas que deben ser notificadas cuando se activa una alerta. Es una relación uno-a-muchos con `usuarios` mediante la clave foránea `id_usuario`.
+Represents each user's **emergency contacts**: the people who must be notified when an alert is triggered. It's a one-to-many relationship with `users` through the `user_id` foreign key.
 
-- `correo` es nullable a diferencia de `usuarios.correo`: un contacto de emergencia puede ser alcanzable solo por teléfono (por ejemplo, vía SMS), sin que eso impida registrarlo.
-- `confirmado BOOLEAN DEFAULT FALSE`: existe porque agregar a alguien como contacto de emergencia no debería depender únicamente de la palabra del usuario que lo registra — esa persona probablemente deba confirmar (por ejemplo, respondiendo un mensaje o correo de verificación) que acepta recibir alertas en su nombre. El valor por defecto `FALSE` refleja que ese consentimiento no se asume, se otorga explícitamente en un paso posterior. Ese paso ya está implementado (ver `correo.md`, `token.md` y `routers.md`): `POST /contactos` manda un correo con un link de confirmación cuando el contacto tiene `correo`, y `GET /contactos/confirmar/{token}` es quien efectivamente pone esta columna en `TRUE`. Un contacto creado sin `correo` (recordar que es el único campo opcional de `Contacto`, ver `types.md`) sigue quedando en `FALSE` indefinidamente, porque hoy no existe otro canal (SMS, por ejemplo) para confirmarlo.
+- `email` is nullable, unlike `users.email`: an emergency contact might only be reachable by phone (via SMS, for example), without that preventing them from being registered.
+- `confirmed BOOLEAN DEFAULT FALSE`: exists because adding someone as an emergency contact shouldn't rely solely on the word of the user registering them — that person should probably confirm (for example, by replying to a message or verification email) that they agree to receive alerts on their behalf. The `FALSE` default reflects that this consent isn't assumed, it's granted explicitly in a later step. That step is already implemented (see `mail.md`, `token.md` and `routers.md`): `POST /contacts` sends an email with a confirmation link when the contact has an `email`, and `GET /contacts/confirm/{token}` is what actually sets this column to `TRUE`. A contact created without an `email` (remember it's the only optional field on `Contact`, see `types.md`) stays at `FALSE` indefinitely, since there's currently no other channel (SMS, for example) to confirm it.
 
-### `alertas`
+### `alerts`
 
 ```sql
-CREATE TABLE alertas (
+CREATE TABLE alerts (
     id         INT      AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT      NOT NULL,
-    fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    latitud    DOUBLE   NOT NULL,
-    longitud   DOUBLE   NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+    user_id    INT      NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    latitude   DOUBLE   NOT NULL,
+    longitude  DOUBLE   NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
 
-Es el registro histórico de cada vez que un usuario activa el botón de pánico: qué usuario, cuándo (`fecha_hora`, con el mismo patrón de `DEFAULT CURRENT_TIMESTAMP` que `usuarios.creado_en`) y dónde (`latitud`/`longitud` como `DOUBLE`, la precisión estándar para coordenadas GPS). Esta tabla es, en cierto sentido, la razón de ser del proyecto: las otras dos tablas existen para poder responder correctamente cuando aquí se inserta una fila.
+This is the historical record of every time a user hits the panic button: which user, when (`created_at`, with the same `DEFAULT CURRENT_TIMESTAMP` pattern as `users.created_at`) and where (`latitude`/`longitude` as `DOUBLE`, the standard precision for GPS coordinates). In a sense, this table is the whole reason the project exists: the other two tables exist so the app can respond correctly whenever a row gets inserted here.
 
-Desde que se agregó el CRUD de contactos (ver `routers.md`), esta tabla ya se lee y escribe activamente: `POST /contactos`, `GET /contactos`, `GET /contactos/confirmar/{token}` y `PUT /contactos/{id}`. A diferencia de antes, `confirmado` ya no es un campo que ningún endpoint toque: `GET /contactos/confirmar/{token}` la pone en `TRUE` cuando el contacto hace clic en el link que le llegó por correo (ver `correo.md`).
+Since the contact CRUD was added (see `routers.md`), this table is now actively read and written to: `POST /contacts`, `GET /contacts`, `GET /contacts/confirm/{token}` and `PUT /contacts/{id}`. Unlike before, `confirmed` is no longer a field no endpoint touches: `GET /contacts/confirm/{token}` sets it to `TRUE` when the contact clicks the link they received by email (see `mail.md`).
 
-`alertas` ya tampoco es solo un esquema preparado con anticipación: `POST /alertas` (ver `routers.md`) inserta acá una fila por cada vez que se activa el botón de pánico, y usa exactamente esa fila (`id_usuario`, `latitud`, `longitud`) para armar la notificación que le llega a los contactos de emergencia **confirmados** de ese usuario (ver `correo.md`). El vínculo entre `confirmado` y esta tabla es, en el fondo, el motivo de ser de esa columna: un contacto que nunca aceptó recibir alertas no debería empezar a recibirlas justo en el momento más crítico, así que `POST /alertas` filtra por `confirmado = TRUE` antes de notificar a nadie (`Querys.SELECT_CONTACTOS_CONFIRMADOS_POR_USUARIO`, ver `cursor.md`). Notificar por SMS (además de o en vez de correo) sigue pendiente de la integración con Twilio.
+`alerts` also isn't just a schema prepared in advance anymore: `POST /alerts` (see `routers.md`) inserts a row here every time the panic button is triggered, and uses that exact row (`user_id`, `latitude`, `longitude`) to build the notification that reaches that user's **confirmed** emergency contacts (see `mail.md`). The link between `confirmed` and this table is, at bottom, that column's whole reason for existing: a contact who never agreed to receive alerts shouldn't start receiving them right at the most critical moment, so `POST /alerts` filters by `confirmed = TRUE` before notifying anyone (`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER`, see `cursor.md`). Notifying by SMS (in addition to or instead of email) is still pending the Twilio integration.
 
-## `insertions.sql` — datos de ejemplo
+## `insertions.sql` — sample data
 
 ```sql
-INSERT INTO usuarios (...) VALUES ('Nombre Apellido', '+1234567891233', 'nombre@example.com', '$2b$12$...hashdeejemplo');
-INSERT INTO contactos (...) VALUES (1, 'María Pérez', ...), (1, 'Carlos Pérez', ...);
-INSERT INTO alertas (id_usuario, latitud, longitud) VALUES (1, 10.4880600, -66.8791500);
+INSERT INTO users (...) VALUES ('First Last', '+1234567891233', 'name@example.com', '$2b$12$...hashdeejemplo');
+INSERT INTO contacts (...) VALUES (1, 'Jane Doe', ...), (1, 'John Doe', ...);
+INSERT INTO alerts (user_id, latitude, longitude) VALUES (1, 10.4880600, -66.8791500);
 ```
 
-No es un script que la aplicación ejecute: es material de referencia, mencionado en el README, para que quien configura el entorno por primera vez pueda ver un ejemplo concreto del formato esperado por cada tabla (incluyendo cómo luce un hash de bcrypt real) y, opcionalmente, sembrar datos de prueba en un entorno de desarrollo local. El hash de contraseña que aparece ahí es un valor de ejemplo, no corresponde a una contraseña real utilizable.
+Not a script the application runs: it's reference material, mentioned in the README, so whoever sets up the environment for the first time can see a concrete example of the format each table expects (including what a real bcrypt hash looks like) and, optionally, seed test data into a local development environment. The password hash shown there is a sample value, and doesn't correspond to any usable real password.

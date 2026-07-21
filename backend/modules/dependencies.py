@@ -3,11 +3,11 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from modules.token import Token
 
-_seguridad = HTTPBearer()
+_security = HTTPBearer()
 
 
-def usuario_actual(credenciales: HTTPAuthorizationCredentials = Depends(_seguridad)) -> int:
-    payload: dict | None = Token.Validar(credenciales.credentials)
+def current_user(credentials: HTTPAuthorizationCredentials = Depends(_security)) -> int:
+    payload: dict | None = Token.Validate(credentials.credentials)
     if payload is None:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
     return int(payload["sub"])

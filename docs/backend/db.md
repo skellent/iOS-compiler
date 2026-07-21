@@ -1,49 +1,49 @@
 # `modules/db.py`
 
-## Propósito
+## Purpose
 
 ```python
-from modules.cursor       import Cursor
-from modules.credenciales import obtener_credenciales
+from modules.cursor      import Cursor
+from modules.credentials import get_credentials
 
 
-credenciales: dict = obtener_credenciales()
+credentials: dict = get_credentials()
 
 cursor: Cursor = Cursor(
-    credenciales['database']['user'],
-    credenciales['database']['password'],
-    credenciales['database']['host'],
-    credenciales['database']['port'],
-    credenciales['database']['database'],
+    credentials['database']['user'],
+    credentials['database']['password'],
+    credentials['database']['host'],
+    credentials['database']['port'],
+    credentials['database']['database'],
 )
 ```
 
-Este módulo es, a propósito, casi todo repetición de algo que ya existía: es exactamente el mismo código que antes vivía a nivel de módulo en `main.py` (lee las credenciales con `obtener_credenciales()`, ver `credenciales.md`, y abre la única conexión a MariaDB envuelta en `Cursor`, ver `cursor.md`). Lo único que cambió es el archivo donde vive.
+This module is, on purpose, almost entirely a repeat of something that already existed: it's exactly the same code that used to live at module level in `main.py` (reads the credentials with `get_credentials()`, see `credentials.md`, and opens the single MariaDB connection wrapped in `Cursor`, see `cursor.md`). The only thing that changed is which file it lives in.
 
-## Por qué se extrajo de `main.py`
+## Why it was extracted from `main.py`
 
-Mientras la única lógica de negocio era `registrar_usuario`, tenía sentido que viviera junto a la conexión, en `main.py`. Pero apenas se necesitó repartir los endpoints en varios routers (`modules/routers/auth.py`, `usuarios.py`, `contactos.py`, ver `routers.md`), surgió un problema: **todos esos routers también necesitan usar el mismo `cursor`**, y `main.py` es quien los importa a ellos (`from modules.routers import auth, usuarios, contactos`), no al revés. Si `cursor` se hubiera quedado definido en `main.py`, cada router hubiera tenido que escribir `from main import cursor` — y eso crea un **import circular**: Python empieza a cargar `main.py`, que en la primera línea intenta importar `auth.py`, que a su vez intenta importar de vuelta a `main.py`, que todavía no terminó de definir `cursor` porque se quedó a mitad de la primera línea. El resultado es un `ImportError` al arrancar.
+While the only business logic was `registrar_usuario` (now `register`), it made sense for it to live alongside the connection, in `main.py`. But as soon as the endpoints needed to be split across several routers (`modules/routers/auth.py`, `users.py`, `contacts.py`, see `routers.md`), a problem showed up: **all of those routers also need to use the same `cursor`**, and it's `main.py` that imports them (`from modules.routers import auth, users, contacts`), not the other way around. If `cursor` had stayed defined in `main.py`, each router would have had to write `from main import cursor` — and that creates a **circular import**: Python starts loading `main.py`, which on its first line tries to import `auth.py`, which in turn tries to import back from `main.py`, which hasn't finished defining `cursor` yet because it's stuck partway through its first line. The result is an `ImportError` at startup.
 
-La solución estándar a este problema es sacar el recurso compartido (`cursor`) a un tercer módulo que no dependa de ninguno de los dos lados: ni de `main.py` ni de los routers. Por eso existe `modules/db.py` — un módulo "hoja" en el árbol de imports (no importa nada de `modules/routers/` ni de `main.py`), del que tanto `main.py` como cualquier router pueden importar `cursor` sin generar un ciclo:
+The standard solution to this problem is to pull the shared resource (`cursor`) out into a third module that neither side depends on: neither `main.py` nor the routers. That's why `modules/db.py` exists — a "leaf" module in the import tree (it imports nothing from `modules/routers/` or from `main.py`), from which both `main.py` and any router can import `cursor` without creating a cycle:
 
 ```mermaid
 flowchart LR
-    subgraph antes["Antes (hubiera generado un ciclo)"]
-        M1["main.py<br/>(cursor vive aquí)"] -->|importa| R1["routers/*.py"]
-        R1 -.->|necesitaría importar de vuelta| M1
+    subgraph before["Before (would have created a cycle)"]
+        M1["main.py<br/>(cursor lives here)"] -->|imports| R1["routers/*.py"]
+        R1 -.->|would need to import back| M1
     end
 
-    subgraph ahora["Ahora"]
-        M2["main.py"] -->|importa| R2["routers/*.py"]
-        M2 -->|importa| D["db.py<br/>(cursor vive aquí)"]
-        R2 -->|importa| D
+    subgraph now["Now"]
+        M2["main.py"] -->|imports| R2["routers/*.py"]
+        M2 -->|imports| D["db.py<br/>(cursor lives here)"]
+        R2 -->|imports| D
     end
 ```
 
-## Por qué no es una clase ni una función
+## Why it isn't a class or a function
 
-`db.py` no encapsula nada en una función tipo `obtener_cursor()`: simplemente ejecuta el código a nivel de módulo y expone `cursor` como una variable del módulo. Esto es intencional y aprovecha cómo funciona el sistema de imports de Python: un módulo solo se ejecuta la **primera** vez que se importa en todo el proceso; cualquier import posterior (desde `main.py`, desde `auth.py`, desde `usuarios.py`, etc.) reutiliza el mismo objeto ya creado, en vez de volver a abrir una conexión nueva. Es, en la práctica, un patrón singleton implementado con las herramientas nativas del lenguaje, sin necesitar una clase dedicada a eso.
+`db.py` doesn't wrap anything in a function like `get_cursor()`: it simply runs the code at module level and exposes `cursor` as a module variable. This is intentional and takes advantage of how Python's import system works: a module only runs the **first** time it's imported anywhere in the process; any later import (from `main.py`, from `auth.py`, from `users.py`, etc.) reuses the same already-created object, instead of opening a new connection again. In practice, it's a singleton pattern implemented with the language's native tools, without needing a dedicated class for it.
 
-## Relación con el resto del backend
+## Relationship with the rest of the backend
 
-`main.py` ya no importa este módulo directamente (no necesita el cursor, solo monta routers, ver `main.md`). Quienes sí importan `cursor` desde acá son los tres routers de `modules/routers/` (ver `routers.md`), cada vez que necesitan leer o escribir en la base de datos.
+`main.py` no longer imports this module directly (it doesn't need the cursor, it only mounts routers, see `main.md`). The ones that do import `cursor` from here are the routers in `modules/routers/` (see `routers.md`), whenever they need to read or write to the database.

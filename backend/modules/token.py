@@ -2,42 +2,42 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 
-from modules.credenciales import obtener_credenciales
+from modules.credentials import get_credentials
 
-ALGORITMO: str = "HS256"
-EXPIRACION: timedelta = timedelta(hours=24)
-EXPIRACION_CONFIRMACION_CONTACTO: timedelta = timedelta(days=7)
+ALGORITHM: str = "HS256"
+EXPIRATION: timedelta = timedelta(hours=24)
+CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
 
-_secreto: str = obtener_credenciales()['jwt']['secret_key']
+_secret: str = get_credentials()['jwt']['secret_key']
 
 class Token:
     @staticmethod
-    def Crear(id_usuario: int) -> str:
+    def Create(user_id: int) -> str:
         payload: dict = {
-            "sub": str(id_usuario),
-            "exp": datetime.now(timezone.utc) + EXPIRACION,
+            "sub": str(user_id),
+            "exp": datetime.now(timezone.utc) + EXPIRATION,
         }
-        return jwt.encode(payload, _secreto, algorithm=ALGORITMO)
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
 
     @staticmethod
-    def Validar(token: str) -> dict | None:
+    def Validate(token: str) -> dict | None:
         try:
-            return jwt.decode(token, _secreto, algorithms=[ALGORITMO])
+            return jwt.decode(token, _secret, algorithms=[ALGORITHM])
         except jwt.InvalidTokenError:
             return None
 
     @staticmethod
-    def CrearConfirmacionContacto(id_contacto: int) -> str:
+    def CreateContactConfirmation(contact_id: int) -> str:
         payload: dict = {
-            "contacto_id": id_contacto,
-            "tipo": "confirmacion_contacto",
-            "exp": datetime.now(timezone.utc) + EXPIRACION_CONFIRMACION_CONTACTO,
+            "contact_id": contact_id,
+            "type": "contact_confirmation",
+            "exp": datetime.now(timezone.utc) + CONTACT_CONFIRMATION_EXPIRATION,
         }
-        return jwt.encode(payload, _secreto, algorithm=ALGORITMO)
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
 
     @staticmethod
-    def ValidarConfirmacionContacto(token: str) -> int | None:
-        payload: dict | None = Token.Validar(token)
-        if payload is None or payload.get("tipo") != "confirmacion_contacto":
+    def ValidateContactConfirmation(token: str) -> int | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != "contact_confirmation":
             return None
-        return int(payload["contacto_id"])
+        return int(payload["contact_id"])
