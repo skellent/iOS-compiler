@@ -1,0 +1,58 @@
+import { getToken } from "./session.js";
+
+const BASE_URL = import.meta.env.API_BASE_URL;
+
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function extractMessage(body) {
+  if (!body) return "Something went wrong. Please try again.";
+  if (typeof body.detail === "string") return body.detail;
+  if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
+  return "Something went wrong. Please try again.";
+}
+
+async function request(path, { method = "GET", body, auth = false } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (auth) {
+    const token = await getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError("Can't reach the server. Check your connection.", 0);
+  }
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new ApiError(extractMessage(data), response.status);
+  }
+  return data;
+}
+
+export const Api = {
+  register: (data) => request("/auth/register", { method: "POST", body: data }),
+  login: (data) => request("/auth/login", { method: "POST", body: data }),
+
+  getMe: () => request("/users/me", { auth: true }),
+  updateMe: (data) => request("/users/me", { method: "PUT", body: data, auth: true }),
+
+  listContacts: () => request("/contacts", { auth: true }),
+  createContact: (data) => request("/contacts", { method: "POST", body: data, auth: true }),
+  updateContact: (id, data) => request(`/contacts/${id}`, { method: "PUT", body: data, auth: true }),
+
+  createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
+};
