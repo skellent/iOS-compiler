@@ -130,9 +130,18 @@ gitGraph
    merge traduccion id: "892930a Merge traduccion -> devs"
    commit id: "6c62dbe Commit history brought up to date"
    commit id: "4ee399b Add APP_MODE docs toggle"
+   commit id: "7f07a32 Redesign confirmation/alert emails"
+   commit id: "9268954 Extend session token to 30 days"
+   branch app
+   checkout app
+   commit id: "feda462 Configure CORS for the mobile app"
+   commit id: "1672bd1 Add the PanicSwitch mobile app"
+   checkout main
+   merge devs id: "05f822b Merge devs -> main"
+   merge app id: "074906d Merge app -> main"
 ```
 
-- **`83b5d3e` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` never advanced past this point; all development happens on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
+- **`83b5d3e` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` didn't advance past this point until `05f822b`/`074906d` below — until then, all development happened on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
 - **`bd81c9c` — Prepare the Python environment**: the backend's first working skeleton — `pyproject.toml`, the `Cursor` class to talk to MariaDB, `credentials.py`, and the SQL table-creation scripts. Confirmed the database connection worked correctly with a real `.env`.
 - **`905986f` — Documentation + test server**: the first business endpoint (`POST /registrar/usuario`), `Guard` for bcrypt password hashing, and the first batch of documentation in `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
 - **`1392a31` — JWT login, Contacts CRUD, editing Users and a duplicate fix** (merged from `testing`): fixes the bug where inserting data that collides with an existing `UNIQUE` constraint used to fail; standardizes routes under `/auth`, `/usuarios` and `/contactos`, adds JWT login, and the full CRUD for emergency contacts and editing users.
@@ -158,3 +167,9 @@ gitGraph
 - **`892930a` — Merge traduccion → devs**: the translation was reviewed and approved, so `traduccion` is merged into `devs` with an explicit merge commit. The whole project — code, schema, API, docs — is now in English on the main development branch.
 - **`6c62dbe` — Bring the README's commit history up to date**: on `devs`, documents the `892930a` merge in this diagram and list.
 - **`4ee399b` — Add `APP_MODE` to toggle FastAPI's automatic docs**: `main.py` now reads a new `app_mode` value (see `docs/backend/credentials.md`) to decide whether `/docs`, `/redoc` and `/openapi.json` get registered at all. `APP_MODE=Deploy` disables all three (they return `404`, not just hidden from a menu); `Debug`, or `APP_MODE` not being set, keeps them enabled — the same behavior every environment already had before this change. See `docs/backend/main.md` for the implementation detail.
+- **`7f07a32` — Redesign confirmation/alert emails and serve a real HTML result page**: `contact_confirmation.html.j2`/`panic_alert.html.j2` moved from plain unstyled paragraphs to a table-based layout with the red panic-button palette and a real styled button; `GET /contacts/confirm/{token}` stopped returning raw JSON and now renders a styled success/error page instead (new `modules/pages.py`, `templates/web/`). See `docs/backend/mail.md`, `docs/backend/pages.md`.
+- **`9268954` — Extend the session token's lifetime from 24 hours to 30 days**: `Token.EXPIRATION` (see `docs/backend/token.md`) went from `timedelta(hours=24)` to `timedelta(days=30)`, so the mobile app (below) can keep a user logged in across sessions instead of asking for the password again every day.
+- **`feda462` — Configure CORS so the mobile app's WebView can call the API** (branch `app`, off `devs`): `main.py` added `CORSMiddleware` allowing the fixed origins Capacitor's WebView presents (`capacitor://localhost`, `https://localhost`, `http://localhost`) — without it, the app's own JavaScript would never see a response, even though every request would still reach the server and succeed. See `docs/backend/main.md`'s CORS section.
+- **`1672bd1` — Add the PanicSwitch mobile app (Capacitor + vanilla JS)**: the `app/` Capacitor project (Android + iOS), built with plain HTML/CSS/JavaScript bundled by Bun — registration, login, the panic button (GPS via `@capacitor/geolocation` and a press-and-hold confirm gesture, `POST /alerts`), and managing emergency contacts manually or by picking them from the device's address book (`@capacitor-community/contacts`). Visually matches the emails' red panic-button palette. See `docs/app/`.
+- **`05f822b` — Merge devs → main**: with the mobile app about to be merged in too, `devs`'s full history (everything above, up through `9268954`) is brought into `main` for the first time since the initial commit — the start of preparing a test deployment.
+- **`074906d` — Merge app → main**: the `app` branch (`feda462`, `1672bd1`) is merged into `main` right after, so `main` now holds both the backend and the mobile client together, ready to deploy.
