@@ -90,7 +90,7 @@ Every route described below, except the two under `/auth`, requires sending the 
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-If the header is missing, malformed, or the token has expired or is invalid, the API responds `401 Unauthorized` before running any business logic (see `docs/backend/dependencies.md`). The token expires 24 hours after being issued (see `docs/backend/token.md`); after that, you have to log in again — there's no (yet) automatic refresh mechanism.
+If the header is missing, malformed, or the token has expired or is invalid, the API responds `401 Unauthorized` before running any business logic (see `docs/backend/dependencies.md`). The token expires 30 days after being issued (see `docs/backend/token.md`); after that, you have to log in again — there's no (yet) automatic refresh mechanism.
 
 ## User endpoints
 

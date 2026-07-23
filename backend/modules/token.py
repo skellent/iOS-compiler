@@ -5,7 +5,7 @@ import jwt
 from modules.credentials import get_credentials
 
 ALGORITHM: str = "HS256"
-EXPIRATION: timedelta = timedelta(hours=24)
+EXPIRATION: timedelta = timedelta(days=30)
 CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
 
 _secret: str = get_credentials()['jwt']['secret_key']

@@ -211,7 +211,7 @@ Token.ValidateContactConfirmation(token) -> int | None
 
 A confirmation token's payload includes `"type": "contact_confirmation"` alongside `"contact_id"`. This isn't decorative: if a confirmation token had the same shape as a login JWT (`{"sub": ..., "exp": ...}`), and a `contact_id` numerically matched a valid user's `id`, a stolen or leaked session JWT could, in theory, slip through the confirmation endpoint (or vice versa) because both would be signed with the same secret and have an indistinguishable shape. The `"type"` claim makes `ValidateContactConfirmation` reject any token that wasn't created specifically for this purpose, even if it's correctly signed and hasn't expired.
 
-Expiration is also different, and deliberately longer: `CONTACT_CONFIRMATION_EXPIRATION = timedelta(days=7)`, versus a session token's 24 hours. An emergency contact might take days to check their email; it wouldn't make sense for the link to expire with the same urgency as an active app session.
+Expiration is also its own constant, independent of the session token's: `CONTACT_CONFIRMATION_EXPIRATION = timedelta(days=7)`, versus `Token`'s `EXPIRATION = timedelta(days=30)` for sessions (see `token.md`). An emergency contact might take days to check their email, but there's no reason to tie that window to however long a logged-in session happens to last.
 
 ## Module diagram
 

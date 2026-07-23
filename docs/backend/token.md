@@ -10,7 +10,7 @@ import jwt
 from modules.credentials import get_credentials
 
 ALGORITHM: str = "HS256"
-EXPIRATION: timedelta = timedelta(hours=24)
+EXPIRATION: timedelta = timedelta(days=30)
 
 _secret: str = get_credentials()['jwt']['secret_key']
 
@@ -56,7 +56,7 @@ payload: dict = {
 
 What matters about a signed JWT is that its content **can't be altered without invalidating the signature**: if someone intercepts a token and changes its `sub` to impersonate another user, `jwt.decode` detects that the signature no longer matches the content and rejects it. That property is exactly what lets `Token.Validate` avoid asking the database, or any "active sessions" table, anything at all: if the signature is valid and hasn't expired, the `sub` is trusted to be who it says it is, with no SQL query involved. This is deliberately simpler than other alternatives (for example, storing sessions in a table and checking that table on every request) and is consistent with the rest of the project, which avoids extra infrastructure until it's actually needed (see also `main.md`, architecture section).
 
-The tradeoff of this design is that a token can't be "invalidated" before it expires — there's no possible `DELETE /sessions/{token}`, because there's nowhere the server is keeping track of it. That's why `EXPIRATION` is fixed at 24 hours: it's a balance between not forcing the user to log in constantly and not leaving a stolen token usable indefinitely. If the project ever needed to be able to revoke active sessions (for example, a "log out on all devices"), it would need to introduce server-side state, something deliberately not implemented today.
+The tradeoff of this design is that a token can't be "invalidated" before it expires — there's no possible `DELETE /sessions/{token}`, because there's nowhere the server is keeping track of it. That's why `EXPIRATION` is fixed at 30 days: it's a balance between not forcing the user to log in constantly (the mobile app expects to keep a user logged in across sessions, the same way most phone apps do — logging in every 24 hours would be a poor experience for something meant to be ready at a moment's notice during an emergency) and not leaving a stolen token usable indefinitely. If the project ever needed to be able to revoke active sessions (for example, a "log out on all devices"), it would need to introduce server-side state, something deliberately not implemented today.
 
 ## Why `pyjwt` and not another library
 
@@ -104,6 +104,6 @@ These were added for the emergency-contact confirmation flow (see `mail.md` for 
 
 - **It's deliberately not the same payload shape as a session token**: a session token carries `{"sub": user_id, "exp": ...}`; a confirmation token carries `{"contact_id": ..., "type": "contact_confirmation", "exp": ...}`. The `"type"` claim is what keeps the two token types from being interchangeable — without it, a session token and a confirmation token signed with the same secret would be indistinguishable in shape, and one could slip through the endpoint meant for the other if the numeric values (`user_id` vs `contact_id`) happened to match. `ValidateContactConfirmation` rejects (returns `None`) any token that doesn't have exactly `"type": "contact_confirmation"`, even if it's correctly signed and hasn't expired.
 - **It reuses `Token.Validate` for the decode step**, instead of reimplementing signature/expiration verification: `ValidateContactConfirmation` first calls `Validate` (which already knows how to catch `jwt.InvalidTokenError` and uniformly return `None`, see above) and only adds, on top of that, the check on the `"type"` claim. This avoids duplicating `jwt.decode` logic in two places in the same file.
-- **Deliberately longer expiration** (`7 days` versus a session token's `24 hours`): an emergency contact might take a while to check their email, and there's no security urgency equivalent to an active session that would justify a short window.
+- **Its own, independent expiration** (`7 days`, versus a session token's `30 days`): both are long-lived compared to what's typical for a JWT, but for different reasons — a session token stays valid for weeks so the app doesn't force the user to log in again while it's meant to be ready in an emergency (see above), while a confirmation token only needs to survive long enough for someone to notice an email in their inbox. `CONTACT_CONFIRMATION_EXPIRATION` is defined as its own constant, not derived from `EXPIRATION`, precisely so the two can move independently — nothing ties a future change to one to the other.
 
 `modules/routers/contacts.py` is the only place that uses this second pair of methods: `POST /contacts` calls `CreateContactConfirmation` to generate the link sent by email (see `mail.md`), and `GET /contacts/confirm/{token}` calls `ValidateContactConfirmation` to decide whether it can set `confirmed = TRUE` (see `routers.md`).
