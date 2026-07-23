@@ -1,0 +1,43 @@
+from datetime import datetime, timedelta, timezone
+
+import jwt
+
+from modules.credentials import get_credentials
+
+ALGORITHM: str = "HS256"
+EXPIRATION: timedelta = timedelta(days=30)
+CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
+
+_secret: str = get_credentials()['jwt']['secret_key']
+
+class Token:
+    @staticmethod
+    def Create(user_id: int) -> str:
+        payload: dict = {
+            "sub": str(user_id),
+            "exp": datetime.now(timezone.utc) + EXPIRATION,
+        }
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def Validate(token: str) -> dict | None:
+        try:
+            return jwt.decode(token, _secret, algorithms=[ALGORITHM])
+        except jwt.InvalidTokenError:
+            return None
+
+    @staticmethod
+    def CreateContactConfirmation(contact_id: int) -> str:
+        payload: dict = {
+            "contact_id": contact_id,
+            "type": "contact_confirmation",
+            "exp": datetime.now(timezone.utc) + CONTACT_CONFIRMATION_EXPIRATION,
+        }
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateContactConfirmation(token: str) -> int | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != "contact_confirmation":
+            return None
+        return int(payload["contact_id"])
