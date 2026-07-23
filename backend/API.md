@@ -176,13 +176,15 @@ Lists all of the authenticated user's contacts.
 
 The only endpoint in this group that does **not** require the `Authorization` header — on purpose: this endpoint is reached by clicking the link in the confirmation email (see `POST /contacts` above), not from a session logged into the app. The `token` in the URL isn't the same kind of token as `access_token` (it doesn't work to authenticate against any other endpoint, and vice versa: a session `access_token` doesn't work here).
 
+Unlike every other endpoint in this API, **this one doesn't return JSON** — it returns a rendered HTML page (`Content-Type: text/html`), since whoever hits it is a person clicking a link in their browser, not an API client. This isn't meant to be called from application code; if the future app ever needs to check a contact's confirmation status programmatically, that's what `GET /contacts` (`confirmed` field) is for.
+
 **Responses:**
 
 | Code | When it happens |
 |--------|----------------|
-| `200`  | The contact was marked as confirmed. Body: `{"message": "Contact confirmed successfully"}`. |
-| `401`  | The token is invalid, isn't of the expected type, or has already expired (expires 7 days after being issued). |
-| `404`  | The token was valid but the contact it points to no longer exists. |
+| `200`  | The contact was marked as confirmed. Renders a success page. |
+| `401`  | The token is invalid, isn't of the expected type, or has already expired (expires 7 days after being issued). Renders an error page. |
+| `404`  | The token was valid but the contact it points to no longer exists. Renders an error page. |
 
 ### `PUT /contacts/{id}`
 

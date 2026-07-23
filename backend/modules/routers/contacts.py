@@ -1,10 +1,12 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 
 from modules.mail         import Mail
 from modules.credentials  import get_credentials
 from modules.cursor       import Queries
 from modules.db           import cursor
 from modules.dependencies import current_user
+from modules.pages        import Pages
 from modules.token        import Token
 from modules.types        import Contact, ContactUpdate
 
@@ -42,18 +44,35 @@ def list_contacts(user_id: int = Depends(current_user)):
     return cursor.execute(Queries.SELECT_CONTACTS_BY_USER, (user_id,))
 
 
-@router.get("/confirm/{token}")
+@router.get("/confirm/{token}", response_class=HTMLResponse)
 def confirm_contact(token: str):
     contact_id: int | None = Token.ValidateContactConfirmation(token)
     if contact_id is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return HTMLResponse(
+            Pages.Render("confirmation_result", {
+                "success": False,
+                "message": "This confirmation link is invalid or has expired. Ask to be added as an emergency contact again to get a new one.",
+            }),
+            status_code=401,
+        )
 
     cursor.execute(Queries.CONFIRM_CONTACT, (contact_id,))
     if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        return HTMLResponse(
+            Pages.Render("confirmation_result", {
+                "success": False,
+                "message": "This contact no longer exists, so there's nothing left to confirm.",
+            }),
+            status_code=404,
+        )
     cursor.commit()
 
-    return {"message": "Contact confirmed successfully"}
+    return HTMLResponse(
+        Pages.Render("confirmation_result", {
+            "success": True,
+            "message": "You'll now be notified by email if this person triggers a panic alert.",
+        })
+    )
 
 
 @router.put("/{contact_id}")

@@ -145,13 +145,15 @@ This is the most elaborate of the seven endpoints, because it solves the **parti
 ## `contacts.py`
 
 ```python
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 
 from modules.mail         import Mail
 from modules.credentials  import get_credentials
 from modules.cursor       import Queries
 from modules.db           import cursor
 from modules.dependencies import current_user
+from modules.pages        import Pages
 from modules.token        import Token
 from modules.types        import Contact, ContactUpdate
 
@@ -189,18 +191,35 @@ def list_contacts(user_id: int = Depends(current_user)):
     return cursor.execute(Queries.SELECT_CONTACTS_BY_USER, (user_id,))
 
 
-@router.get("/confirm/{token}")
+@router.get("/confirm/{token}", response_class=HTMLResponse)
 def confirm_contact(token: str):
     contact_id: int | None = Token.ValidateContactConfirmation(token)
     if contact_id is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return HTMLResponse(
+            Pages.Render("confirmation_result", {
+                "success": False,
+                "message": "This confirmation link is invalid or has expired. Ask to be added as an emergency contact again to get a new one.",
+            }),
+            status_code=401,
+        )
 
     cursor.execute(Queries.CONFIRM_CONTACT, (contact_id,))
     if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        return HTMLResponse(
+            Pages.Render("confirmation_result", {
+                "success": False,
+                "message": "This contact no longer exists, so there's nothing left to confirm.",
+            }),
+            status_code=404,
+        )
     cursor.commit()
 
-    return {"message": "Contact confirmed successfully"}
+    return HTMLResponse(
+        Pages.Render("confirmation_result", {
+            "success": True,
+            "message": "You'll now be notified by email if this person triggers a panic alert.",
+        })
+    )
 
 
 @router.put("/{contact_id}")
@@ -239,6 +258,8 @@ What is new in `POST /contacts`: if the contact was created with an `email`, sen
 Along with `auth.py`'s two routes, this is one of the few backend endpoints that does **not** require `Depends(current_user)` — for the same reason as those: this endpoint is reached by clicking a link inside an email, not by navigating the app while already logged in, so whoever makes the request doesn't have (and can't have) a session JWT. This endpoint's authentication isn't "who are you," but "do you have the correct confirmation token, generated specifically for this contact?" — hence it uses `Token.ValidateContactConfirmation` (see `token.md`) instead of the standard dependency.
 
 The flow is deliberately just as simple as the rest of the CRUD: `Token.ValidateContactConfirmation(token)` returns the `contact_id` if the token is valid and of the correct type, or `None` if not (corrupt token, expired, or of another type — a session JWT, for example). With the `contact_id` in hand, `Queries.CONFIRM_CONTACT` (see `cursor.md`) updates that row, and `cursor.rowcount == 0` covers the case "the token was valid but that `contact_id` no longer exists" (for example, if the contact was deleted — though there's no `DELETE /contacts/{id}` today, the check is kept in case one is added later, the same defensive rationale `PUT /{contact_id}` already uses).
+
+Unlike every other endpoint in the project, this one doesn't respond with JSON: `response_class=HTMLResponse` plus `Pages.Render` (see `pages.md`) return a full HTML page instead, because the caller here is a person reading a browser tab after clicking a link in an email, not an API client. `HTTPException` (which the rest of the project uses for error responses) isn't used in this endpoint precisely for that reason — it would still produce a JSON body, which is exactly what this change moves away from. Both the success and the two failure cases (invalid/expired token, contact no longer exists) render the same template with a different `success`/`message` context, so the visitor always lands on a styled result page instead of raw `{"detail": "..."}`.
 
 ### `PUT /contacts/{contact_id}` and why it uses `rowcount` instead of a prior `SELECT`
 
@@ -315,4 +336,4 @@ The template's context uses `datetime.now()`, computed at the moment of respondi
 
 ## Relationship with the rest of the backend
 
-`main.py` imports the four modules in this directory and mounts their routers with `include_router` (see `main.md`). All of them depend on `modules/db.py` (the shared `cursor`), `modules/cursor.py` (`Queries` and, except for `contacts.py`/`alerts.py`, `DuplicateRecordError`) and `modules/types.py` (the Pydantic models for each request); `users.py`, `contacts.py` and `alerts.py` additionally depend on `modules/dependencies.py` to require authentication. `modules/guard.py` is used by both `auth.py` (creating the hash at registration, verifying it at login) and `users.py` (creating the hash when a user changes their own password); `modules/token.py` is used by `auth.py` (issuing the session JWT) and `contacts.py` (issuing and validating the confirmation token, see `token.md`) — `alerts.py` doesn't need it, since it neither issues nor validates any token of its own. `modules/mail.py` (see `mail.md`) is used by `contacts.py` (`Mail.Send`, 1 to 1) and `alerts.py` (`Mail.SendBulk`, 1 to N).
+`main.py` imports the four modules in this directory and mounts their routers with `include_router` (see `main.md`). All of them depend on `modules/db.py` (the shared `cursor`), `modules/cursor.py` (`Queries` and, except for `contacts.py`/`alerts.py`, `DuplicateRecordError`) and `modules/types.py` (the Pydantic models for each request); `users.py`, `contacts.py` and `alerts.py` additionally depend on `modules/dependencies.py` to require authentication. `modules/guard.py` is used by both `auth.py` (creating the hash at registration, verifying it at login) and `users.py` (creating the hash when a user changes their own password); `modules/token.py` is used by `auth.py` (issuing the session JWT) and `contacts.py` (issuing and validating the confirmation token, see `token.md`) — `alerts.py` doesn't need it, since it neither issues nor validates any token of its own. `modules/mail.py` (see `mail.md`) is used by `contacts.py` (`Mail.Send`, 1 to 1) and `alerts.py` (`Mail.SendBulk`, 1 to N). `modules/pages.py` (see `pages.md`) is used only by `contacts.py`, to render the HTML result page `GET /contacts/confirm/{token}` shows instead of JSON.

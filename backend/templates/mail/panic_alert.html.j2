@@ -1,15 +1,87 @@
 <!doctype html>
 <html lang="en">
-  <body style="font-family: sans-serif; line-height: 1.5; color: #222;">
-    <p style="font-size: 1.2em;"><strong>⚠️ Panic alert</strong></p>
-    <p>Hi {{ contact_name }},</p>
-    <p>
-      <strong>{{ user_name }}</strong> ({{ user_phone }}) triggered a panic
-      alert on PanicSwitch at {{ timestamp }}. You are one of their confirmed
-      emergency contacts.
-    </p>
-    <p>Last reported location:</p>
-    <p><a href="{{ map_url }}">View on the map ({{ latitude }}, {{ longitude }})</a></p>
-    <p>Please try to contact {{ user_name }} as soon as possible.</p>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panic alert</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f4f4f5; font-family:'Segoe UI', Helvetica, Arial, sans-serif;">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
+      {{ user_name }} triggered a panic alert at {{ timestamp }} — you're one of their confirmed emergency contacts.
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08); border:1px solid #fecaca;">
+
+            <tr>
+              <td style="background-color:#b91c1c; padding:28px 32px; text-align:center;">
+                <span style="font-size:30px; vertical-align:middle;">🆘</span>
+                <span style="color:#ffffff; font-size:22px; font-weight:800; letter-spacing:1px; vertical-align:middle; margin-left:10px;">
+                  PANIC ALERT
+                </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:32px 32px 8px 32px;">
+                <p style="margin:0 0 16px 0; font-size:16px; color:#27272a;">Hi {{ contact_name }},</p>
+                <p style="margin:0 0 24px 0; font-size:16px; line-height:1.6; color:#3f3f46;">
+                  <strong>{{ user_name }}</strong> ({{ user_phone }}) triggered a panic alert on PanicSwitch.
+                  You are receiving this because you are one of their <strong>confirmed</strong> emergency contacts.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0 32px 24px 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                       style="background-color:#fef2f2; border-left:4px solid #dc2626; border-radius:6px;">
+                  <tr>
+                    <td style="padding:16px 20px;">
+                      <p style="margin:0 0 6px 0; font-size:13px; color:#7f1d1d;"><strong>Time:</strong> {{ timestamp }}</p>
+                      <p style="margin:0; font-size:13px; color:#7f1d1d;"><strong>Last reported location:</strong> {{ latitude }}, {{ longitude }}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0 32px 32px 32px; text-align:center;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                  <tr>
+                    <td style="border-radius:8px; background-color:#dc2626;">
+                      <a href="{{ map_url }}"
+                         style="display:inline-block; padding:14px 36px; font-size:16px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:8px;">
+                        View Location on Map
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0 32px 32px 32px; border-top:1px solid #f4f4f5;">
+                <p style="margin:24px 0 0 0; font-size:14px; color:#52525b; line-height:1.5;">
+                  Please try to contact <strong>{{ user_name }}</strong> as soon as possible.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="background-color:#fafafa; padding:20px 32px; text-align:center;">
+                <p style="margin:0; font-size:11px; color:#a1a1aa;">
+                  PanicSwitch &middot; Emergency alert system
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

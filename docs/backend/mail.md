@@ -183,13 +183,13 @@ sequenceDiagram
     API->>BG: queues Mail.Send(...)
     BG->>SMTP: connect + STARTTLS + auth (App Password)
     SMTP-->>Contact: email with confirmation link
-    Contact->>API: GET /contacts/confirm/{token}
+    Contact->>API: GET /contacts/confirm/{token} (clicks the button)
     API->>API: Token.ValidateContactConfirmation(token)
     alt invalid/expired token
-        API-->>Contact: 401
+        API-->>Contact: 401 + HTML result page (Pages.Render)
     else valid token
         API->>API: UPDATE contacts SET confirmed = TRUE
-        API-->>Contact: 200 {"message": "Contact confirmed successfully"}
+        API-->>Contact: 200 + HTML result page (Pages.Render)
     end
 ```
 
@@ -198,6 +198,7 @@ Points worth noting about this flow:
 - The `201` from `POST /contacts` doesn't wait on the email — it arrives as soon as the `INSERT` is confirmed (see the `BackgroundTasks` section above).
 - `GET /contacts/confirm/{token}` is, along with `auth.py`'s two routes, one of the few backend endpoints that does **not** require `Depends(current_user)` (see `dependencies.md`) — and for the same reason as those: whoever clicks the link comes from an email, not from a session logged into the app, so they can't possibly have a login JWT.
 - Precisely because it's a public endpoint, the token traveling in the URL isn't the session JWT (`Token.Create`/`Token.Validate`) but a different one, with its own `"type": "contact_confirmation"` claim — see the next section.
+- Whoever clicks the link is a person looking at a browser tab, not an API client parsing JSON — so this endpoint responds with a rendered HTML page (`modules/pages.py`, see `pages.md`) instead of the raw `{"message": ...}` the rest of the API returns. `Mail.Send`/`Mail.SendBulk` themselves are unaffected by this: they still only build and send the email, the result page is purely about what happens *after* the link is clicked.
 
 ## Why the confirmation token doesn't reuse `Token.Create`/`Token.Validate` unchanged
 
@@ -228,6 +229,8 @@ flowchart TD
     JINJA["templates/mail/*.j2"]
     SMTPLIB["aiosmtplib"]
     GMAIL[(smtp.gmail.com)]
+    PAGES["modules/pages.py<br/>Pages.Render"]
+    WEBTPL["templates/web/*.j2"]
 
     POST --> TOKEN
     POST --> CURSOR
@@ -239,7 +242,24 @@ flowchart TD
 
     GET_CONF --> TOKEN
     GET_CONF --> CURSOR
+    GET_CONF --> PAGES
+    PAGES --> WEBTPL
 ```
+
+## Visual design of the HTML templates
+
+`contact_confirmation.html.j2` and `panic_alert.html.j2` aren't plain `<p>` tags anymore — they're built as a table-based layout (a single-column `<table>` wrapping the whole card, buttons built with a one-cell `<table>` around the `<a>`) instead of `<div>`/flexbox, because that's still the layout method the widest range of email clients (Outlook desktop in particular) renders consistently; CSS Grid/Flexbox support in email clients is inconsistent enough that it isn't worth the risk here. Both share the same palette, tying them visually to the panic-button concept the project is named after:
+
+| Color | Hex | Used for |
+|---|---|---|
+| Dark red | `#7f1d1d` / `#991b1b` / `#b91c1c` | Header bar background |
+| Primary red | `#dc2626` | Call-to-action button, accents |
+| Light red tint | `#fef2f2` | The details callout box in `panic_alert.html.j2` |
+| Near-white / gray | `#f4f4f5`, `#fafafa`, `#3f3f46`, `#a1a1aa` | Page background, footer, body text |
+
+Both templates include a hidden preheader (`display:none` div with a one-line summary) so the snippet shown in an inbox list (Gmail, Outlook) is meaningful instead of showing the first stray words of the HTML. The confirmation button is real markup (a table-wrapped `<a>`), not just a plain link, but the raw URL is still printed below it in small gray text — some email clients strip inline styles or block images, so a link that still works even if the button doesn't render is kept as a fallback, not a decorative afterthought.
+
+There's no project logo yet, so the "brand" is expressed purely through the color palette and a 🆘 emoji standing in for a mark until a real one exists — swapping in a logo later only means changing the header cell's contents, not restructuring the templates.
 
 ## Relationship with the rest of the backend
 
