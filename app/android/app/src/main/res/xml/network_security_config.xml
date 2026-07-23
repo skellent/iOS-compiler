@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TEMPORARY: allows plain HTTP (no TLS) only for the test-deployment domain, while
+  the client finishes setting up the HTTPS certificate (see NGINX.md). Remove this
+  file and the networkSecurityConfig reference in AndroidManifest.xml once
+  devs.buttonhelpme.com serves over HTTPS — Android blocks cleartext traffic by
+  default from API 28 onward, this is the explicit, narrowly-scoped opt-out.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">devs.buttonhelpme.com</domain>
+    </domain-config>
+</network-security-config>
