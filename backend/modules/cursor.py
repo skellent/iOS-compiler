@@ -20,13 +20,22 @@ class Queries:
 class Cursor:
 
     def __init__(self, username: str, password: str, host: str, port: int, database: str):
+        self._username = username
+        self._password = password
+        self._host     = host
+        self._port     = port
+        self._database = database
+        self._connect()
+
+
+    def _connect(self) -> None:
         try:
             self.conn = mariadb.connect(
-                user     = username,
-                password = password,
-                host     = host,
-                port     = port,
-                database = database
+                user     = self._username,
+                password = self._password,
+                host     = self._host,
+                port     = self._port,
+                database = self._database
             )
         except mariadb.Error as e:
             print(f"Error connecting to MariaDB: {e}")
@@ -39,6 +48,11 @@ class Cursor:
             self.cursor.execute(query, params)
         except mariadb.IntegrityError as e:
             raise DuplicateRecordError(str(e)) from e
+        except mariadb.InterfaceError:
+            # The idle connection was closed server-side (e.g. wait_timeout).
+            # Reconnect and retry the query once before giving up.
+            self._connect()
+            self.cursor.execute(query, params)
         try:
             return self.cursor.fetchall()
         except mariadb.ProgrammingError:
