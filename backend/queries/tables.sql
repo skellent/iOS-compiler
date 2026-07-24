@@ -5,7 +5,8 @@ CREATE TABLE users (
     email         VARCHAR(120) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     confirmed     BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_users_unconfirmed (confirmed, created_at)
 );
 
 

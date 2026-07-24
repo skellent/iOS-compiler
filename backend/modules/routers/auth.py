@@ -51,6 +51,8 @@ def login(data: UserLogin):
     rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_EMAIL, (data.email,))
     if not rows or not Guard.Verify(data.password, rows[0]["password_hash"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if not rows[0]["confirmed"]:
+        raise HTTPException(status_code=403, detail="Please confirm your email before logging in")
 
     token: str = Token.Create(rows[0]["id"])
     return {"access_token": token, "token_type": "bearer"}

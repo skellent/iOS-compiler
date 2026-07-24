@@ -7,7 +7,7 @@ class DuplicateRecordError(Exception):
 class Queries:
     SHOW_TABLES: str = "SHOW TABLES;"
     INSERT_USER: str = "INSERT INTO users (name, phone, email, password_hash) VALUES (%s, %s, %s, %s);"
-    SELECT_USER_BY_EMAIL: str = "SELECT id, name, phone, email, password_hash FROM users WHERE email = %s;"
+    SELECT_USER_BY_EMAIL: str = "SELECT id, name, phone, email, password_hash, confirmed FROM users WHERE email = %s;"
     SELECT_USER_BY_ID: str = "SELECT id, name, phone, email FROM users WHERE id = %s;"
 
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
@@ -17,6 +17,7 @@ class Queries:
     DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
 
     CONFIRM_USER: str = "UPDATE users SET confirmed = TRUE WHERE id = %s;"
+    PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"
 
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
 
