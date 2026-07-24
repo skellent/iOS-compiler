@@ -4,6 +4,7 @@ CREATE TABLE users (
     phone         VARCHAR(20)  NOT NULL UNIQUE,
     email         VARCHAR(120) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    confirmed     BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -14,6 +14,9 @@ class Queries:
     SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed FROM contacts WHERE user_id = %s;"
     SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email FROM contacts WHERE user_id = %s AND confirmed = TRUE;"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
+    DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
+
+    CONFIRM_USER: str = "UPDATE users SET confirmed = TRUE WHERE id = %s;"
 
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
 

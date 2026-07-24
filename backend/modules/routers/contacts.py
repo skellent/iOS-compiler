@@ -94,3 +94,11 @@ def update_contact(contact_id: int, data: ContactUpdate, user_id: int = Depends(
         (contact_id,)
     )
     return rows[0]
+
+
+@router.delete("/{contact_id}", status_code=204)
+def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.DELETE_CONTACT, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()

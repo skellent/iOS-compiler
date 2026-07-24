@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="0; url={{ deep_link }}" />
+    <title>Account confirmed — PanicSwitch</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+        background: linear-gradient(160deg, #7f1d1d 0%, #b91c1c 45%, #dc2626 100%);
+      }
+      .card {
+        width: 100%;
+        max-width: 440px;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        padding: 40px 36px;
+        text-align: center;
+      }
+      .icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px auto;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #dc2626;
+      }
+      .icon svg { width: 36px; height: 36px; }
+      h1 {
+        margin: 0 0 12px 0;
+        font-size: 22px;
+        color: #18181b;
+      }
+      p.message {
+        margin: 0 0 28px 0;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #52525b;
+      }
+      .button {
+        display: inline-block;
+        padding: 14px 32px;
+        border-radius: 8px;
+        background: #dc2626;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .brand {
+        display: block;
+        margin-top: 28px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #dc2626;
+      }
+      .footnote {
+        margin-top: 8px;
+        font-size: 11px;
+        color: #a1a1aa;
+      }
+    </style>
+    <script>
+      window.location.replace("{{ deep_link }}");
+    </script>
+  </head>
+  <body>
+    <div class="card">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 12 9 18 20 6"></polyline>
+        </svg>
+      </div>
+
+      <h1>You're confirmed!</h1>
+      <p class="message">Taking you back to the PanicSwitch app now.</p>
+
+      <a class="button" href="{{ deep_link }}">Open PanicSwitch</a>
+
+      <span class="brand">🆘 PANICSWITCH</span>
+      <p class="footnote">Emergency alert system</p>
+    </div>
+  </body>
+</html>
