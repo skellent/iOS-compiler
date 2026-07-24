@@ -51,23 +51,5 @@
 	<string>PanicSwitch needs your location to include it in the panic alert sent to your emergency contacts.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>PanicSwitch needs access to your contacts so you can pick someone to add as an emergency contact.</string>
-	<!--
-	  TEMPORARY: allows plain HTTP (no TLS) only for the test-deployment domain, while
-	  the client finishes setting up the HTTPS certificate (see NGINX.md). Remove this
-	  NSAppTransportSecurity block once devs.buttonhelpme.com serves over HTTPS — iOS
-	  blocks cleartext traffic by default (App Transport Security), this is the
-	  explicit, narrowly-scoped opt-out for that one domain.
-	-->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>devs.buttonhelpme.com</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
 </dict>
 </plist>
