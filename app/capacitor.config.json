@@ -1,5 +1,19 @@
 {
   "appId": "com.keycodelogics.panicswitch",
   "appName": "Panic Switch",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#e15671",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": true,
+      "androidSpinnerStyle": "large",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#f3f3f3ff",
+      "splashFullScreen": true,
+      "splashImmersive": true,
+    },
+  },
 }
