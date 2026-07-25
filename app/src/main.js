@@ -15,7 +15,7 @@ const navTabs = [...document.querySelectorAll("#bottom-nav .nav-tab")];
 const ROUTES = {
   login: { render: renderLogin, title: "Log In", public: true },
   register: { render: renderRegister, title: "Create Account", public: true },
-  home: { render: renderHome, title: "PanicSwitch", public: false },
+  home: { render: renderHome, title: "Panic Switch", public: false },
   contacts: { render: renderContacts, title: "Emergency Contacts", public: false },
   profile: { render: renderProfile, title: "My Profile", public: false },
 };

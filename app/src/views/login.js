@@ -6,8 +6,8 @@ import { setLoading, shake } from "../lib/dom.js";
 export async function renderLogin(container, { navigate, refreshUser }) {
   container.innerHTML = `
     <div class="auth-screen">
-      <div class="brand-mark">🆘</div>
-      <h1 class="auth-title">PanicSwitch</h1>
+      <img class="brand-mark" src="assets/brand-mark.png" alt="" />
+      <h1 class="auth-title">Panic Switch</h1>
       <p class="auth-subtitle">Sign in to keep your emergency contacts one tap away.</p>
 
       <form id="login-form" class="form" novalidate>
