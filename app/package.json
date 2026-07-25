@@ -1,0 +1,23 @@
+{
+  "name": "panicswitch-app",
+  "private": true,
+  "scripts": {
+    "build": "bun build.js",
+    "sync": "bun run build && bunx cap sync",
+    "android": "bun run sync && bunx cap open android",
+    "ios": "bun run sync && bunx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor-community/contacts": "^8.0.0",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/geolocation": "^8.2.0",
+    "@capacitor/ios": "^8.4.2",
+    "@capacitor/preferences": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/splash-screen": "^8.0.2"
+  }
+}

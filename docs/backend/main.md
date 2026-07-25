@@ -8,7 +8,8 @@ It's the API's entry point: this is where the FastAPI application is instantiate
 from modules.credentials import get_credentials
 from modules.routers     import auth, users, contacts, alerts
 
-from fastapi              import FastAPI
+from fastapi                  import FastAPI
+from fastapi.middleware.cors  import CORSMiddleware
 
 
 _docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
@@ -17,6 +18,13 @@ app = FastAPI(
     docs_url=("/docs" if _docs_enabled else None),
     redoc_url=("/redoc" if _docs_enabled else None),
     openapi_url=("/openapi.json" if _docs_enabled else None),
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["capacitor://localhost", "http://localhost", "https://localhost"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
@@ -30,7 +38,7 @@ app.include_router(contacts.router)
 app.include_router(alerts.router)
 ```
 
-There used to be a single business endpoint (`registrar_usuario`) written directly here, and `main.py` also used to be responsible for reading credentials and opening the MariaDB connection. With login, editing users, and the contacts CRUD arriving, that file would have grown without limit and mixed together things that have nothing to do with each other (registration, authentication, contacts) in one place. That's why this file was deliberately emptied out: now `main.py` only does three things — create the app (deciding whether its automatic docs are exposed), tell it which routers exist, and mount them — and all the business logic lives in `modules/routers/` (see `routers.md`).
+There used to be a single business endpoint (`registrar_usuario`) written directly here, and `main.py` also used to be responsible for reading credentials and opening the MariaDB connection. With login, editing users, and the contacts CRUD arriving, that file would have grown without limit and mixed together things that have nothing to do with each other (registration, authentication, contacts) in one place. That's why this file was deliberately emptied out: now `main.py` only does four things — create the app (deciding whether its automatic docs are exposed), configure CORS, tell it which routers exist, and mount them — and all the business logic lives in `modules/routers/` (see `routers.md`).
 
 ## `APP_MODE` and FastAPI's automatic docs
 
@@ -49,6 +57,21 @@ By default, FastAPI exposes three routes that describe the API itself: `/docs` (
 `FastAPI(...)` accepts `docs_url`, `redoc_url` and `openapi_url` as constructor arguments; passing `None` to any of them disables that specific route entirely (not just hides it from a menu — it stops being registered, so hitting it returns `404`). `_docs_enabled` reads `app_mode` (see `credentials.md`) once, at module level, and the three arguments are computed off of it: when `app_mode` is `"Deploy"`, all three become `None` and the docs disappear; for `"Debug"` (or any other value, including `APP_MODE` not being set at all) they keep their usual paths. Defaulting to enabled means a `.env` that doesn't mention `APP_MODE` — like any existing development setup from before this feature — keeps behaving exactly as it did before; a deployment has to opt in to hiding the docs by setting `APP_MODE=Deploy` explicitly, rather than accidentally shipping them hidden (or accidentally shipping them exposed) by omission.
 
 This check happens once, when the module loads and `app` is constructed — not on every request — since FastAPI needs to know at construction time whether to register those routes at all.
+
+## CORS: why the API needs to know about origins at all
+
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["capacitor://localhost", "http://localhost", "https://localhost"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Every client that existed before the `app/` Capacitor app (`curl`, `requests`, the automatic docs) talks to this API from *outside* any browser engine, so none of them were ever subject to CORS — that's a restriction browsers (and browser-based WebViews) enforce, not something servers hit on their own. The mobile app changes that: it's a web page (`app/www/`, see the app's own docs) running inside Capacitor's WebView, and `fetch()` calls from that page to this API are cross-origin as far as the WebView's engine is concerned, even though both "sides" are pieces of the same project. Without `CORSMiddleware`, the WebView's engine would block every response from reaching the app's JavaScript, regardless of whether the request itself reached the server and succeeded.
+
+`allow_origins` lists Capacitor's own fixed WebView origins instead of `["*"]`: `capacitor://localhost` for iOS, `https://localhost` for Android's default `androidScheme`, and `http://localhost` as a fallback for testing the same `www/` folder in a desktop browser during development. These don't change per install or per device — every copy of the app, on every phone, presents one of these same three origins — so there's no reason to open this up to arbitrary origins just to cover a set that's actually fixed and known in advance.
 
 ## Module diagram
 

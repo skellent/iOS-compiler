@@ -2,11 +2,11 @@ TASK.md
 NGINX.md
 .directory
 
-# app/ isn't tracked on this branch, so its own .gitignore (and
-# app/android/.gitignore, app/ios/.gitignore) never exists on disk here —
-# git deletes them on checkout along with the rest of that branch's tree.
-# These rules exist so that a broad `git add` run while on this branch can't
-# vacuum up node_modules or native build caches by accident.
+# app/ is now tracked directly (its own .gitignore, plus
+# app/android/.gitignore and app/ios/.gitignore, handle build artifacts
+# under app/). These extra rules are a second line of defense in case a
+# broad `git add` runs before those nested files are on disk (e.g. right
+# after a fresh checkout).
 app/node_modules/
 app/www/js/
 app/bun.lock

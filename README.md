@@ -84,8 +84,7 @@ With the server running, the API exposes registration and login routes (`/auth`)
 
 # App Preparation and Build
 
-> Pending — app development hasn't started yet, technical details TBD
-> Will be built with capacitor.js and available for Android and iOS
+The mobile client lives in [`app/`](app), built with [Capacitor](https://capacitorjs.com/) and plain HTML/CSS/JavaScript (no frontend framework) — Android and iOS from the same codebase. It's a client of the backend above: registration, login, the panic button (captures GPS and hits `POST /alerts`), and managing emergency contacts (including picking them straight from the phone's address book). See [`app/README.md`](app/README.md) for setup instructions and [`docs/app/`](docs/app) for the design decisions behind how it's built.
 
 # Commit History
 
