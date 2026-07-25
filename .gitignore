@@ -1,3 +1,22 @@
 TASK.md
 NGINX.md
 .directory
+
+# app/ isn't tracked on this branch, so its own .gitignore (and
+# app/android/.gitignore, app/ios/.gitignore) never exists on disk here —
+# git deletes them on checkout along with the rest of that branch's tree.
+# These rules exist so that a broad `git add` run while on this branch can't
+# vacuum up node_modules or native build caches by accident.
+app/node_modules/
+app/www/js/
+app/bun.lock
+app/.env
+app/android/.gradle/
+app/android/**/build/
+app/android/.idea/caches/
+app/android/.idea/workspace.xml
+app/ios/App/build/
+app/ios/App/Pods/
+app/ios/App/output/
+app/ios/DerivedData/
+app/ios/xcuserdata/
