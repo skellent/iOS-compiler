@@ -35,7 +35,7 @@ def register(data: User, background_tasks: BackgroundTasks):
     background_tasks.add_task(
         Mail.Send,
         data.email,
-        "Confirm your PanicSwitch account",
+        "Confirm your Panic Switch account",
         "user_confirmation",
         {
             "user_name":        data.name,

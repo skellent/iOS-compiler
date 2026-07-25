@@ -11,13 +11,13 @@ class Mail:
         ...
 ```
 
-`Mail.Send` receives the recipient, the subject, the **name** of a template (without extension) and a context dictionary, and takes care of three things: rendering the template in HTML and plain text with Jinja2, assembling the MIME message with both versions, and sending it over SMTP with `aiosmtplib`. `Mail.SendBulk` (see below) solves the same problem for when the same type of email needs to go out to several recipients at once, as happens when a panic alert is triggered.
+`Mail.Send` receives the recipient, the subject, the **name** of a template (without extension) and a context dictionary, and takes care of three things: rendering the template in HTML and plain text with Jinja2, assembling the MIME message with both versions, and sending it over SMTP with `aiosmtplib`. `Mail.SendBulk` solves the same problem for when the same type of email needs to go out to several recipients at once, as happens when a panic alert is triggered.
 
 ## Why it's the backend's only `async` piece
 
 Everything else in the project (`cursor.py`, the routers) is synchronous code — `mariadb` has no async driver and it wasn't worth introducing one just for that. `aiosmtplib`, on the other hand, *is* an asynchronous library (that's its whole point: not blocking `uvicorn`'s event loop while waiting for an SMTP server's response, which can take longer than a query against the local database). That's why `Mail.Send` is the only `async` function in the business logic.
 
-This doesn't force the endpoints that use it to be `async def`: FastAPI can accept both synchronous functions and coroutines in `BackgroundTasks.add_task`, and runs them correctly either way. `POST /contacts` (see `routers.md`) stays a `def`, not `async def`, and can still queue `Mail.Send` as a background task.
+This doesn't force the endpoints that use it to be `async def`: FastAPI can accept both synchronous functions and coroutines in `BackgroundTasks.add_task`, and runs them correctly either way. Every router that queues an email stays a plain `def`.
 
 ## Why `BackgroundTasks` instead of a direct `await` in the endpoint
 
@@ -26,9 +26,9 @@ background_tasks.add_task(Mail.Send, data.email, subject, "contact_confirmation"
 return {"Skellent": "Success!"}
 ```
 
-If the endpoint did `await Mail.Send(...)` before responding, the client creating a contact would have to wait for the email to finish sending (SMTP connection, TLS, authentication, server response) before getting its `201`. That could take noticeably longer than the operation the caller actually cares about (saving the contact), and it would also mean a transient Gmail problem (slow, down, rate-limited) would directly degrade the experience of creating a contact. `BackgroundTasks` makes Starlette run `Mail.Send` **after** the response has already been sent to the client: the `201` arrives as fast as ever, and the email is sent in parallel.
+If an endpoint did `await Mail.Send(...)` before responding, the client would have to wait for the email to finish sending (SMTP connection, TLS, authentication, server response) before getting its `201`. That could take noticeably longer than the operation the caller actually cares about (saving a contact, registering an account), and it would mean a transient Gmail problem directly degrades an unrelated action. `BackgroundTasks` makes Starlette run `Mail.Send` **after** the response has already been sent: the `201` arrives as fast as ever, and the email is sent in parallel.
 
-The tradeoff, and it's important to keep in mind: if the send fails, the client never finds out (it already got its `201` before the send attempt even started). Today that failure only shows up in the process log — there's no automatic retry or a "pending/failed emails" audit table. It's a known and acceptable limitation for the project's current volume (one-to-one confirmations, not bulk sends), but if the project grew to need delivery guarantees, the next step would be a real task queue (Celery, RQ) instead of `BackgroundTasks`, which is deliberately the simplest option FastAPI offers.
+The tradeoff, and it's important to keep in mind: if the send fails, the client never finds out (it already got its success response before the send attempt even started). Today that failure only shows up in the process log — there's no automatic retry or a "pending/failed emails" audit table. It's a known and acceptable limitation for the project's current volume, but if it grew to need delivery guarantees, the next step would be a real task queue (Celery, RQ) instead of `BackgroundTasks`, which is deliberately the simplest option FastAPI offers.
 
 ## Why Jinja2 instead of f-strings for the email body
 
@@ -39,9 +39,9 @@ _jinja_env: Environment = Environment(
 )
 ```
 
-Templates live as separate files in `backend/templates/mail/` (`contact_confirmation.html.j2`, `contact_confirmation.txt.j2`), not as strings assembled by hand inside `mail.py` — the same rationale as keeping SQL separate in `Queries` (see `cursor.md`): content shown to a person shouldn't be mixed in with the logic that sends it.
+Templates live as separate files in `backend/templates/mail/`, not as strings assembled by hand inside `mail.py` — the same rationale as keeping SQL separate in `Queries` (see `cursor.md`): content shown to a person shouldn't be mixed in with the logic that sends it.
 
-`autoescape=select_autoescape(["html", "xml"])` **is not optional**: the values interpolated into the template (`contact_name`, `user_name`) ultimately come from fields a user typed in while registering or adding a contact (see `types.py`). Without autoescape, someone could set their `name` to something like `<script>...</script>`, and that HTML would end up executing in the recipient's mail client. With autoescape on, Jinja2 automatically escapes any special HTML character before inserting it into the `.html.j2` template — the same class of defense the project already uses at the other end (`%s` parameters in SQL, see `cursor.md`), applied here to HTML instead of SQL.
+`autoescape=select_autoescape(["html", "xml"])` **is not optional**: values interpolated into a template (a contact's or user's name) ultimately come from fields someone typed in while registering or adding a contact (see `types.py`). Without autoescape, someone could set their `name` to something like `<script>...</script>`, and that HTML would end up executing in the recipient's mail client. With autoescape on, Jinja2 automatically escapes any special HTML character before inserting it — the same class of defense the project uses at the other end (`%s` parameters in SQL, see `cursor.md`), applied here to HTML instead of SQL.
 
 ## Why plain text *and* HTML, not just HTML
 
@@ -50,25 +50,16 @@ message.set_content(text_body)
 message.add_alternative(html_body, subtype="html")
 ```
 
-This builds a `multipart/alternative` message: the recipient's mail client picks which of the two versions to show (most render the HTML if they can, and fall back to plain text if not). Sending both versions improves deliverability (some spam filters penalize HTML-only emails for looking more like spam/marketing) and guarantees the message is still readable on a client that doesn't render HTML.
+This builds a `multipart/alternative` message: the recipient's mail client picks which of the two versions to show (most render the HTML if they can, and fall back to plain text if not). Sending both versions improves deliverability (some spam filters penalize HTML-only emails for looking more like marketing) and guarantees the message is still readable on a client that doesn't render HTML.
 
 ## Why `MailNotSentError` instead of letting `aiosmtplib`'s exceptions propagate
 
 ```python
 class MailNotSentError(Exception):
     pass
-
-class Mail:
-    @staticmethod
-    async def Send(...) -> None:
-        ...
-        try:
-            await aiosmtplib.send(...)
-        except aiosmtplib.SMTPException as e:
-            raise MailNotSentError(str(e)) from e
 ```
 
-Same rationale as `DuplicateRecordError` in `cursor.py`: `mail.py` is, on purpose, the only backend file that imports `aiosmtplib` directly. Any code that in the future wants to react to a send failure (for example, retrying, or logging the failure in a table) can catch `MailNotSentError` without needing to know the transport is SMTP or that the library used is `aiosmtplib` — if the project ever migrated to a different provider or protocol (an HTTP email-sending API, for example), only this file would change.
+Same rationale as `DuplicateRecordError` in `cursor.py`: `mail.py` is, on purpose, the only backend file that imports `aiosmtplib` directly. Any code that in the future wants to react to a send failure can catch `MailNotSentError` without needing to know the transport is SMTP or that the library used is `aiosmtplib` — if the project ever migrated to a different provider or protocol, only this file would change.
 
 ## `Mail.SendBulk`: when an email has to reach several contacts at once
 
@@ -76,13 +67,9 @@ Same rationale as `DuplicateRecordError` in `cursor.py`: `mail.py` is, on purpos
 @staticmethod
 async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
     failed: list[str] = []
-
     async with aiosmtplib.SMTP(
-        hostname=_credentials['host'],
-        port=_credentials['port'],
-        start_tls=True,
-        username=_credentials['user'],
-        password=_credentials['password'],
+        hostname=_credentials['host'], port=_credentials['port'], start_tls=True,
+        username=_credentials['user'], password=_credentials['password'],
     ) as smtp:
         for recipient, context in recipients:
             try:
@@ -95,46 +82,13 @@ async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict
         raise MailNotSentError(f"Could not notify: {', '.join(failed)}")
 ```
 
-Until `POST /alerts` (see `routers.md`) arrived, every send in this project was one-to-one: `Mail.Send` opens a connection, sends one email to a single recipient, and closes it. A panic alert breaks that assumption — it may need to notify several confirmed contacts at once, and calling `Mail.Send` in a loop would have opened and closed an SMTP connection for each one of them, exactly the pattern we'd already flagged as unnecessary overhead for the project's current volume (see the Gmail limits section below).
+`Mail.Send` opens a connection, sends one message and closes it — fine for an isolated send, but wasteful (TCP handshake, STARTTLS, authentication) when repeated several times in a row for the same batch, as `POST /alerts` needs when a user has more than one confirmed contact. `SendBulk` opens the connection once and reuses it for every message in the batch, closing it automatically when the `async with` block exits.
 
-### Why it takes `list[tuple[str, dict]]` and not `list[str]` plus a single `dict`
-
-Each recipient of an alert needs their own template context (`contact_name` changes depending on who's being written to, even though `user_name`/`latitude`/`longitude` are the same for everyone). That's why `SendBulk` takes a list of `(recipient, context)` pairs instead of separating recipients from a shared context — each message renders with the data that belongs to that specific person.
-
-### Why it reuses a single connection (`async with aiosmtplib.SMTP(...)`)
-
-`Mail.Send` uses `aiosmtplib.send(...)`, which internally opens a connection, sends one message and closes it — perfect for an isolated send, but wasteful (TCP handshake, STARTTLS, authentication) if it has to be repeated several times in a row for the same batch. `SendBulk`, instead, opens the connection once (`async with aiosmtplib.SMTP(...) as smtp`) and reuses it for every message in the batch with `smtp.send_message(...)`, closing it automatically when the `async with` block exits. It's exactly the optimization we'd already noted as pending for the day the project needed to notify several contacts at once — that day is this one.
-
-### Why the `except` catches generic `Exception`, not `aiosmtplib.SMTPException`
-
-Unlike `Mail.Send` (where a single failing recipient is, by definition, 100% of the send), here the goal is that a problem with **one** contact doesn't stop the rest from receiving the alert. Catching only `aiosmtplib.SMTPException` isn't enough for that guarantee: any unexpected exception while building or sending a specific message (not necessarily an SMTP exception) could cut the `for` loop short and leave contacts whose turn hadn't come up yet without a notification. That's why the `try`/`except` wraps both `_build_message` and `smtp.send_message`, and catches `Exception` broadly — in a panic-alert system, the priority is that one isolated failure never takes down the rest of the batch.
-
-### Why it collects failures and raises a single error at the end, instead of one per recipient
-
-`failed` accumulates which addresses couldn't receive the message, and only at the end — if the list isn't empty — does it raise a single `MailNotSentError` listing all of them. This preserves the same visibility as any other `Mail` failure (the project doesn't have a dedicated logger; it relies on uncaught exceptions ending up in `uvicorn`'s log, see the `BackgroundTasks` section above), without needing to raise and swallow one exception per failing contact in the middle of the loop.
-
-### Diagram: the difference with `Mail.Send`
-
-```mermaid
-flowchart LR
-    subgraph send["Mail.Send (1 to 1)"]
-        E1["aiosmtplib.send(...)"] --> E2["opens connection"] --> E3["sends 1 message"] --> E4["closes connection"]
-    end
-
-    subgraph bulk["Mail.SendBulk (1 to N)"]
-        M1["async with aiosmtplib.SMTP(...)"] --> M2["opens connection once"]
-        M2 --> M3["for each (recipient, context):<br/>build message + smtp.send_message"]
-        M3 -->|"one fails"| M3
-        M3 --> M4["closes connection on 'with' exit"]
-        M4 --> M5{"any failures?"}
-        M5 -->|yes| M6["MailNotSentError with the list"]
-        M5 -->|no| M7["finishes without error"]
-    end
-```
+- **Why it takes `list[tuple[str, dict]]`, not `list[str]` plus a single `dict`**: each recipient of an alert needs their own template context (`contact_name` changes depending on who's being written to, even though `user_name`/`latitude`/`longitude` are the same for everyone). A list of `(recipient, context)` pairs lets each message render with the data that belongs to that specific person.
+- **Why the `except` catches generic `Exception`, not `aiosmtplib.SMTPException`**: the goal is that a problem with **one** contact doesn't stop the rest from receiving the alert. Catching only `SMTPException` isn't enough for that guarantee — any unexpected exception while building or sending a specific message could cut the loop short and leave contacts whose turn hadn't come up yet without a notification. The `try`/`except` wraps both `_build_message` and `smtp.send_message` and catches broadly, because in a panic-alert system the priority is that one isolated failure never takes down the rest of the batch.
+- **Why it collects failures and raises a single error at the end**: `failed` accumulates which addresses couldn't receive the message, and only at the end — if the list isn't empty — does it raise one `MailNotSentError` listing all of them, preserving the same visibility as any other `Mail` failure without raising and swallowing one exception per recipient mid-loop.
 
 ## Authentication with Gmail/Google Workspace: App Password
-
-For `soporte@keylogics.com` (a Google Workspace account with its own domain), `Mail.Send` authenticates against `smtp.gmail.com` with a username and app password:
 
 ```python
 await aiosmtplib.send(
@@ -147,11 +101,9 @@ await aiosmtplib.send(
 )
 ```
 
-- **`start_tls=True`**: the message always sends encrypted. Port `587` is the standard for STARTTLS (plaintext connection that upgrades to TLS), as opposed to `465`, which would be implicit TLS from the start of the connection.
-- **App password, not the account's real password**: since March 2025, Google no longer accepts SMTP authentication with a "normal" (basic) username+password on Workspace accounts — you have to generate a specific *App Password* (a 16-character string, at `myaccount.google.com/apppasswords`) and use it as `SMTP_PASSWORD`. This **requires two client-side preconditions, outside this code's control**:
-  1. 2-Step Verification enabled on `soporte@keylogics.com`.
-  2. The Workspace administrator having enabled the option "allow users to create app passwords" — some organizations disable it by security policy, in which case this branch wouldn't work and it would be necessary to migrate to the OAuth2 variant (see the `feature/correo-oauth2` branch of this same repository, which solves this exact same module but with a Service Account + domain-wide delegation instead of an App Password).
-- **Google Workspace sending limits**: an account can send up to 10,000 unique recipients and 10,000 messages within 24 hours using `smtp.gmail.com` directly. The project's current volume (one confirmation per contact created, and one notification per confirmed contact when an alert fires, see below) is well under that. `Mail.SendBulk` already reuses a single connection per batch of recipients (instead of opening one per contact), which is the relevant optimization for the current volume — a limit on **concurrent** connections between alerts from *different* users fired at the same time (`asyncio.Semaphore`) would still be a later step, only needed if the project reached a volume of simultaneous alerts much higher than today's.
+- **`start_tls=True`**: the message always sends encrypted. Port `587` is the standard for STARTTLS, as opposed to `465`, which would be implicit TLS from the start of the connection.
+- **App password, not the account's real password**: Google no longer accepts SMTP authentication with a "normal" username+password on Workspace accounts — a specific *App Password* (a 16-character string, generated at `myaccount.google.com/apppasswords`) has to be used as `SMTP_PASSWORD`. This requires two client-side preconditions outside this code's control: 2-Step Verification enabled on the sending account, and the Workspace administrator having allowed app passwords to be created (some organizations disable this by policy, in which case the alternative is the OAuth2 variant on the `feature/correo-oauth2` branch, which solves this same module with a Service Account + domain-wide delegation instead).
+- **Google Workspace sending limits**: an account can send up to 10,000 unique recipients and 10,000 messages within 24 hours using `smtp.gmail.com` directly — well above this project's current volume.
 
 ## Environment variables introduced by this module
 
@@ -163,104 +115,101 @@ SMTP_PORT=587              # default value if not defined
 API_BASE_URL=http://127.0.0.1:8000   # or the real domain in production, see NGINX.md
 ```
 
-`API_BASE_URL` isn't an email credential, but was added alongside this feature because the confirmation email needs to build an absolute link (`{API_BASE_URL}/contacts/confirm/{token}`) and the API, running behind nginx (see `NGINX.md`), has no way of knowing its own public domain from the inside.
+`API_BASE_URL` isn't an email credential (see `credentials.md`), but it's needed here because every confirmation email builds an absolute link the recipient can click, and the API — running behind nginx (see root `NGINX.md`) — has no way of knowing its own public domain from the inside.
 
-## The full flow: from creating a contact to confirming it
+## The two confirmation flows this module powers
+
+Two different things get confirmed by email, and both follow the same shape: create something in an unconfirmed state, email a link, flip a flag when the link is clicked.
 
 ```mermaid
 sequenceDiagram
-    participant App as App (Capacitor)
+    participant App as App / browser
     participant API
     participant BG as BackgroundTasks
     participant SMTP as smtp.gmail.com
-    participant Contact as Emergency contact
+    participant Person as Contact or new user
 
-    App->>API: POST /contacts {name, phone, email}
-    API->>API: INSERT_CONTACT + commit
-    API->>API: contact_id = cursor.lastrowid
-    API->>API: Token.CreateContactConfirmation(contact_id)
+    App->>API: POST /auth/register or POST /contacts
+    API->>API: INSERT + commit, read back the new id
+    API->>API: Token.Create*Confirmation(id)
     API-->>App: 201 Created (immediate response)
     API->>BG: queues Mail.Send(...)
     BG->>SMTP: connect + STARTTLS + auth (App Password)
-    SMTP-->>Contact: email with confirmation link
-    Contact->>API: GET /contacts/confirm/{token} (clicks the button)
-    API->>API: Token.ValidateContactConfirmation(token)
+    SMTP-->>Person: email with confirmation link
+    Person->>API: GET /auth/confirm/{token} or GET /contacts/confirm/{token}
+    API->>API: Token.Validate*Confirmation(token)
     alt invalid/expired token
-        API-->>Contact: 401 + HTML result page (Pages.Render)
+        API-->>Person: 401 + HTML result page
     else valid token
-        API->>API: UPDATE contacts SET confirmed = TRUE
-        API-->>Contact: 200 + HTML result page (Pages.Render)
+        API->>API: UPDATE ... SET confirmed = TRUE
+        API-->>Person: HTML result page, or a redirect into the app
     end
 ```
 
-Points worth noting about this flow:
-
-- The `201` from `POST /contacts` doesn't wait on the email — it arrives as soon as the `INSERT` is confirmed (see the `BackgroundTasks` section above).
-- `GET /contacts/confirm/{token}` is, along with `auth.py`'s two routes, one of the few backend endpoints that does **not** require `Depends(current_user)` (see `dependencies.md`) — and for the same reason as those: whoever clicks the link comes from an email, not from a session logged into the app, so they can't possibly have a login JWT.
-- Precisely because it's a public endpoint, the token traveling in the URL isn't the session JWT (`Token.Create`/`Token.Validate`) but a different one, with its own `"type": "contact_confirmation"` claim — see the next section.
-- Whoever clicks the link is a person looking at a browser tab, not an API client parsing JSON — so this endpoint responds with a rendered HTML page (`modules/pages.py`, see `pages.md`) instead of the raw `{"message": ...}` the rest of the API returns. `Mail.Send`/`Mail.SendBulk` themselves are unaffected by this: they still only build and send the email, the result page is purely about what happens *after* the link is clicked.
-
-## Why the confirmation token doesn't reuse `Token.Create`/`Token.Validate` unchanged
-
-`modules/token.py` (see `token.md`) adds two new methods instead of reusing the existing ones as-is:
-
-```python
-Token.CreateContactConfirmation(contact_id) -> str
-Token.ValidateContactConfirmation(token) -> int | None
-```
-
-A confirmation token's payload includes `"type": "contact_confirmation"` alongside `"contact_id"`. This isn't decorative: if a confirmation token had the same shape as a login JWT (`{"sub": ..., "exp": ...}`), and a `contact_id` numerically matched a valid user's `id`, a stolen or leaked session JWT could, in theory, slip through the confirmation endpoint (or vice versa) because both would be signed with the same secret and have an indistinguishable shape. The `"type"` claim makes `ValidateContactConfirmation` reject any token that wasn't created specifically for this purpose, even if it's correctly signed and hasn't expired.
-
-Expiration is also its own constant, independent of the session token's: `CONTACT_CONFIRMATION_EXPIRATION = timedelta(days=7)`, versus `Token`'s `EXPIRATION = timedelta(days=30)` for sessions (see `token.md`). An emergency contact might take days to check their email, but there's no reason to tie that window to however long a logged-in session happens to last.
+- The success response from `POST /auth/register`/`POST /contacts` never waits on the email — it arrives as soon as the row is committed (see the `BackgroundTasks` section above).
+- Both `GET .../confirm/{token}` endpoints are public — see `routers.md` for why neither requires `Depends(current_user)`. The token traveling in the URL is never the session JWT; it's a purpose-built one with its own `"type"` claim (`token.md`), so a leaked session token and a leaked confirmation link can't be swapped for each other.
+- Whoever clicks the link is a person looking at a browser tab, not an API client parsing JSON, so both endpoints respond with rendered HTML (`modules/pages.py`, see `pages.md`) instead of the `{"message": ...}` shape the rest of the API returns.
+- The two flows diverge after the flag flips: confirming a contact renders a result page and stops there (see `pages.md`); confirming a user redirects straight into the app instead (see `routers.md`, `GET /auth/confirm/{token}`) — a contact has nothing further to do, but a newly confirmed user still needs to go log in.
 
 ## Module diagram
 
 ```mermaid
 flowchart TD
-    subgraph routers["modules/routers/contacts.py"]
-        POST["POST /contacts"]
-        GET_CONF["GET /contacts/confirm/{token}"]
+    subgraph auth["modules/routers/auth.py"]
+        REG["POST /auth/register"]
+        CONF_U["GET /auth/confirm/{token}"]
+    end
+    subgraph contacts["modules/routers/contacts.py"]
+        POST_C["POST /contacts"]
+        CONF_C["GET /contacts/confirm/{token}"]
+    end
+    subgraph alerts["modules/routers/alerts.py"]
+        POST_A["POST /alerts"]
     end
 
-    MAIL["modules/mail.py<br/>Mail.Send"]
-    TOKEN["modules/token.py<br/>Token.CreateContactConfirmation<br/>Token.ValidateContactConfirmation"]
-    CURSOR["modules/cursor.py<br/>Queries.CONFIRM_CONTACT<br/>Cursor.lastrowid"]
+    MAIL["modules/mail.py<br/>Mail.Send / Mail.SendBulk"]
+    TOKEN["modules/token.py"]
+    CURSOR["modules/cursor.py"]
     CRED["modules/credentials.py<br/>'email' section"]
     JINJA["templates/mail/*.j2"]
-    SMTPLIB["aiosmtplib"]
     GMAIL[(smtp.gmail.com)]
-    PAGES["modules/pages.py<br/>Pages.Render"]
-    WEBTPL["templates/web/*.j2"]
+    PAGES["modules/pages.py"]
 
-    POST --> TOKEN
-    POST --> CURSOR
-    POST -->|background_tasks.add_task| MAIL
+    REG --> TOKEN
+    REG -->|background_tasks.add_task| MAIL
+    CONF_U --> TOKEN
+    CONF_U --> CURSOR
+    CONF_U --> PAGES
+
+    POST_C --> TOKEN
+    POST_C -->|background_tasks.add_task| MAIL
+    CONF_C --> TOKEN
+    CONF_C --> CURSOR
+    CONF_C --> PAGES
+
+    POST_A -->|background_tasks.add_task| MAIL
+
     MAIL --> JINJA
     MAIL --> CRED
-    MAIL --> SMTPLIB
-    SMTPLIB --> GMAIL
-
-    GET_CONF --> TOKEN
-    GET_CONF --> CURSOR
-    GET_CONF --> PAGES
-    PAGES --> WEBTPL
+    MAIL --> GMAIL
 ```
 
-## Visual design of the HTML templates
+## Visual identity of the HTML templates
 
-`contact_confirmation.html.j2` and `panic_alert.html.j2` aren't plain `<p>` tags anymore — they're built as a table-based layout (a single-column `<table>` wrapping the whole card, buttons built with a one-cell `<table>` around the `<a>`) instead of `<div>`/flexbox, because that's still the layout method the widest range of email clients (Outlook desktop in particular) renders consistently; CSS Grid/Flexbox support in email clients is inconsistent enough that it isn't worth the risk here. Both share the same palette, tying them visually to the panic-button concept the project is named after:
+`contact_confirmation.html.j2`, `user_confirmation.html.j2` and `panic_alert.html.j2` are built as table-based layouts (a single-column `<table>` wrapping the whole card, buttons built with a one-cell `<table>` around the `<a>`) instead of `<div>`/flexbox, because that's still the layout method the widest range of email clients (Outlook desktop in particular) renders consistently — CSS Grid/Flexbox support in email clients is inconsistent enough that it isn't worth the risk. All three, plus the web pages in `templates/web/` (see `pages.md`), share one palette derived from the app's real icon color:
 
 | Color | Hex | Used for |
 |---|---|---|
-| Dark red | `#7f1d1d` / `#991b1b` / `#b91c1c` | Header bar background |
-| Primary red | `#dc2626` | Call-to-action button, accents |
-| Light red tint | `#fef2f2` | The details callout box in `panic_alert.html.j2` |
+| Primary | `#EA2052` | Header band, call-to-action buttons, links |
+| Dark text-on-tint | `#690E25` | Small readable text inside the light-tint callout box |
+| Light tint | `#FCE4EA` | The details callout box background in `panic_alert.html.j2` |
+| Light-medium tint | `#F7A6BA` | The callout box border in `panic_alert.html.j2` |
 | Near-white / gray | `#f4f4f5`, `#fafafa`, `#3f3f46`, `#a1a1aa` | Page background, footer, body text |
 
-Both templates include a hidden preheader (`display:none` div with a one-line summary) so the snippet shown in an inbox list (Gmail, Outlook) is meaningful instead of showing the first stray words of the HTML. The confirmation button is real markup (a table-wrapped `<a>`), not just a plain link, but the raw URL is still printed below it in small gray text — some email clients strip inline styles or block images, so a link that still works even if the button doesn't render is kept as a fallback, not a decorative afterthought.
+The brand mark is the words "PANIC SWITCH," set in bold uppercase in the header band — there's no image logo embedded in the mail templates (email clients frequently block remote images by default, so text is the more reliable mark here); the app itself uses the real icon image where an embedded image is reliable (see `docs/app/architecture.md`).
 
-There's no project logo yet, so the "brand" is expressed purely through the color palette and a 🆘 emoji standing in for a mark until a real one exists — swapping in a logo later only means changing the header cell's contents, not restructuring the templates.
+Every HTML template includes a hidden preheader (`display:none` div with a one-line summary) so the snippet shown in an inbox list (Gmail, Outlook) is meaningful instead of showing the first stray words of the HTML. Confirmation buttons are real markup (a table-wrapped `<a>`), not just a plain link, but the raw URL is still printed below in small gray text — some email clients strip inline styles or block images, so a link that still works even if the button doesn't render is kept as a fallback, not a decorative afterthought.
 
 ## Relationship with the rest of the backend
 
-Two routers import `Mail` today (see `routers.md`): `contacts.py` uses `Mail.Send` (1 to 1) for the confirmation email when a contact is created, and `alerts.py` uses `Mail.SendBulk` (1 to N) to notify all of a user's confirmed contacts when an alert fires. `mail.py` depends on `modules/credentials.py` for the SMTP credentials, and on `modules/cursor.py` only indirectly, through the routers that call it (not directly: `mail.py` never touches the database). `modules/token.py`, on the other hand, is only needed by `contacts.py` for the confirmation token — `alerts.py` neither issues nor validates any token of its own.
+`auth.py` and `contacts.py` both use `Mail.Send` (one recipient at a time) for their respective confirmation emails; `alerts.py` uses `Mail.SendBulk` (one to many) to notify a user's confirmed contacts. `mail.py` depends on `modules/credentials.py` for the SMTP credentials, and on `modules/cursor.py` only indirectly, through the routers that call it — `mail.py` never touches the database directly. `modules/token.py` is used by `auth.py` and `contacts.py` for their respective confirmation tokens — `alerts.py` neither issues nor validates any token of its own.

@@ -15,12 +15,13 @@ export const Api = {
   listContacts: () => request("/contacts", { auth: true }),
   createContact: (data) => request("/contacts", { method: "POST", body: data, auth: true }),
   updateContact: (id, data) => request(`/contacts/${id}`, { method: "PUT", body: data, auth: true }),
+  deleteContact: (id) => request(`/contacts/${id}`, { method: "DELETE", auth: true }),
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
 };
 ```
 
-This mirrors `backend/API.md` one endpoint at a time — every route the backend exposes for a logged-in user to consume has exactly one matching `Api.*` function here, named after the same action rather than the raw HTTP verb+path, the same way `modules/routers/*.py` groups endpoints by resource on the backend side.
+This mirrors `backend/API.md` one endpoint at a time — every route the backend exposes for a logged-in user to consume has exactly one matching `Api.*` function here, named after the same action rather than the raw HTTP verb+path, the same way `modules/routers/*.py` groups endpoints by resource on the backend side. `register` and `login` are the only two entries without `auth: true`, since neither can carry a session token yet — they're what produces one.
 
 ## Why a shared `request()` instead of one `fetch()` call per function
 
@@ -35,7 +36,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 }
 ```
 
-Every one of the eight endpoints needs the same three things: a JSON `Content-Type` header, JSON-encoding the request body when there is one, and — for everything except register/login — the session token attached as `Authorization: Bearer <token>` (see `docs/backend/dependencies.md` for how the backend reads that same header). Writing that logic eight times would mean eight places to keep in sync if, for example, the token header name ever changed; `auth: true` is the one bit each endpoint definition needs to opt into it.
+Every one of the nine endpoints needs the same three things: a JSON `Content-Type` header, JSON-encoding the request body when there is one, and — for everything except register/login — the session token attached as `Authorization: Bearer <token>` (see `docs/backend/dependencies.md` for how the backend reads that same header). Writing that logic nine times would mean nine places to keep in sync if, for example, the token header name ever changed; `auth: true` is the one bit each endpoint definition needs to opt into it.
 
 ## `BASE_URL` and `import.meta.env.API_BASE_URL`
 
@@ -63,7 +64,9 @@ function extractMessage(body) {
 }
 ```
 
-FastAPI's error responses take two different shapes depending on what went wrong (see `backend/API.md`): a raised `HTTPException(status_code=..., detail="...")` produces `{"detail": "some string"}` (a `409` for a duplicate email, a `401` for a bad login, etc.), while a `422` from Pydantic's own request validation (a missing required field, a `latitude` that isn't a number) produces `{"detail": [{"loc": [...], "msg": "...", ...}, ...]}` — a list of per-field problems, not a single string. `extractMessage` normalizes both into one human-readable string (taking the first validation message when there are several) so every view can display `error.message` without needing to know or check which shape the backend happened to return for that particular failure.
+FastAPI's error responses take two different shapes depending on what went wrong (see `backend/API.md`): a raised `HTTPException(status_code=..., detail="...")` produces `{"detail": "some string"}` (a `409` for a duplicate email, a `401` for a bad login, a `403` for an unconfirmed account, a `404` for a missing contact), while a `422` from Pydantic's own request validation produces `{"detail": [{"loc": [...], "msg": "...", ...}, ...]}` — a list of per-field problems, not a single string. `extractMessage` normalizes both into one human-readable string (taking the first validation message when there are several) so every view can display `error.message` without needing to know or check which shape the backend happened to return for that particular failure. This is also what lets the login screen surface the backend's exact wording ("Please confirm your email before logging in") without any special-casing on the app side — it's just whatever string `extractMessage` found in `detail`.
+
+`ApiError` carries the HTTP `status` alongside the message, even though most call sites only read `.message` — it's there for the cases that do care which failure happened, not just that one did.
 
 A network failure (no connectivity, DNS failure, the backend simply not running) never reaches the "parse the response body" stage at all — `fetch()` itself rejects — so `request()` catches that separately and raises its own `ApiError("Can't reach the server. Check your connection.", 0)`, giving the UI a message to show even when there was no HTTP response to read a `detail` field from.
 

@@ -1,90 +1,108 @@
 # `modules/routers/` — API endpoints
 
-This directory holds all of the API's business logic, split across four files by the resource they belong to. Unlike the other backend modules, which each have their own `.md`, these are documented together in a single file — the same approach already used in `sql.md` to group the three `queries/` scripts, because these are pieces that only make sense read together (they share the same dependencies and the same pattern).
+This directory holds all of the API's business logic, split across four files by the resource they belong to. Unlike the other backend modules, which each have their own `.md`, these are documented together in a single file — the same approach `sql.md` uses to group the three `queries/` scripts, because these are pieces that only make sense read together (they share the same dependencies and the same patterns).
 
 Each file defines an `APIRouter` with a fixed prefix and exposes it as `router`, which `main.py` mounts with `app.include_router(...)` (see `main.md`):
 
 | File            | Prefix       | Endpoints |
 |------------------|---------------|-----------|
-| `auth.py`        | `/auth`       | `POST /register`, `POST /login` |
+| `auth.py`        | `/auth`       | `POST /register`, `POST /login`, `GET /confirm/{token}` |
 | `users.py`       | `/users`      | `GET /me`, `PUT /me` |
-| `contacts.py`    | `/contacts`   | `POST /`, `GET /`, `GET /confirm/{token}`, `PUT /{contact_id}` |
+| `contacts.py`    | `/contacts`   | `POST /`, `GET /`, `GET /confirm/{token}`, `PUT /{contact_id}`, `DELETE /{contact_id}` |
 | `alerts.py`      | `/alerts`     | `POST /` |
 
 ## Why `APIRouter` instead of putting it all in `main.py`
 
-`APIRouter` is the FastAPI piece designed exactly for this problem: it allows declaring endpoints in a file separate from where the main `FastAPI()` instance lives, with its own route prefix and its own tags (used to visually group endpoints in the `/docs` automatic documentation), and then "attaching" them to the real application with `include_router`. It's what let `main.py` shrink down to barely ten lines (see `main.md`) even as the API grew from one endpoint to nine.
+`APIRouter` is the FastAPI piece designed exactly for this: it allows declaring endpoints in a file separate from where the main `FastAPI()` instance lives, with its own route prefix and its own tags (used to visually group endpoints in the `/docs` automatic documentation), and then "attaching" them to the real application with `include_router`. It's what lets `main.py` stay barely ten lines (see `main.md`) even as the API grew to a dozen endpoints across four resources.
 
 ## `auth.py`
 
 ```python
-from fastapi import APIRouter, HTTPException
-
-from modules.cursor  import Queries, DuplicateRecordError
-from modules.db      import cursor
-from modules.guard   import Guard
-from modules.token   import Token
-from modules.types   import User, UserLogin
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+_URL_BASE: str = get_credentials()['api_base_url']
+_APP_DEEP_LINK: str = get_credentials()['app_deep_link']
+```
 
+Groups everything about proving who you are: creating an account, exchanging credentials for a session token, and confirming an email address. `POST /register` and `GET /confirm/{token}` don't require `Depends(current_user)` for the same underlying reason (there's no session to require yet, or the caller isn't inside the app at all); `POST /login` doesn't either, since it's the endpoint that produces the token everything else needs.
+
+### `POST /auth/register`
+
+```python
 @router.post("/register", status_code=201)
-def register(data: User):
+def register(data: User, background_tasks: BackgroundTasks):
     password_hash: str = Guard.Hash(data.password)
     try:
-        cursor.execute(Queries.INSERT_USER, (
-            data.name,
-            data.phone,
-            data.email,
-            password_hash)
-        )
+        cursor.execute(Queries.INSERT_USER, (data.name, data.phone, data.email, password_hash))
     except DuplicateRecordError:
         raise HTTPException(status_code=409, detail="Phone or email already registered")
     cursor.commit()
+    user_id: int = cursor.lastrowid
 
+    token: str = Token.CreateUserConfirmation(user_id)
+    background_tasks.add_task(
+        Mail.Send, data.email, "Confirm your Panic Switch account", "user_confirmation",
+        {"user_name": data.name, "confirmation_url": f"{_URL_BASE}/auth/confirm/{token}"},
+    )
     return {"Skellent": "Success!"}
+```
 
+`Guard.Hash` (see `guard.md`) hashes the password before the plain text ever touches the database. Registering an already-existing `phone` or `email` (both `UNIQUE` on `users`, see `sql.md`) is caught as `DuplicateRecordError` (see `cursor.md`) and turned into a `409 Conflict` — the client sent data that collides with an existing resource, not a server failure.
 
+The new account starts unconfirmed (`users.confirmed` defaults to `FALSE`, see `sql.md`), so this endpoint immediately queues a confirmation email: `cursor.lastrowid` gives the just-inserted row's `id`, `Token.CreateUserConfirmation` (see `token.md`) turns it into a single-purpose JWT, and `background_tasks.add_task` sends the email without making the caller wait for SMTP (see `mail.md` for why background tasks are used throughout this codebase for outgoing email). The response arrives as soon as the row is committed — before the email has even started sending.
+
+### `POST /auth/login`
+
+```python
 @router.post("/login")
 def login(data: UserLogin):
     rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_EMAIL, (data.email,))
     if not rows or not Guard.Verify(data.password, rows[0]["password_hash"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if not rows[0]["confirmed"]:
+        raise HTTPException(status_code=403, detail="Please confirm your email before logging in")
 
     token: str = Token.Create(rows[0]["id"])
     return {"access_token": token, "token_type": "bearer"}
 ```
 
-Groups the only two routes that **don't** require authentication — that makes sense, since their whole purpose is, precisely, to obtain the credentials (`/register`) or the token (`/login`) everything else will require.
+Two checks, in a deliberate order:
 
-### `POST /auth/register`
+1. `if not rows or not Guard.Verify(...)`: a single condition covers both "the email doesn't exist" and "the password doesn't match," and both cases respond with exactly the same `401` and the same generic message. If the message differed depending on which of the two failed, anyone could use the endpoint to discover which emails are registered by trying them one by one (a user-enumeration attack). `not rows or ...` also short-circuits before ever indexing `rows[0]` when there's no row to index.
+2. Only once the credentials themselves check out does the endpoint look at `confirmed`. Checking this second (not first) means a wrong password on an unconfirmed account still reports "incorrect email or password," not "please confirm your email" — the latter would confirm to an attacker that the email/password pair they just tried was actually correct, just blocked by a separate gate.
 
-This is the project's original endpoint (it used to live in `main.py` as `POST /registrar/usuario`), moved here without changing its underlying logic, plus one important fix: the `try/except DuplicateRecordError` block. Before, registering an already-existing `phone` or `email` (both are `UNIQUE` on the `users` table, see `sql.md`) made MariaDB reject the `INSERT` with an error that wasn't caught anywhere, and that error ended up bubbling all the way to FastAPI as a `500 Internal Server Error` — the worst possible response for what is actually a client error (it sent data that collides with an existing one), not a server error. `DuplicateRecordError` (see `cursor.md`) is the translation of that specific MariaDB error into something this file can understand without importing `mariadb`, and it turns into a `409 Conflict` — the HTTP code meant exactly for "this request couldn't be completed because it conflicts with the resource's current state."
+If both checks pass, `Token.Create` (see `token.md`) signs a 30-day session JWT.
 
-The rest of the flow is the same as what `main.md` used to document before this change: `Guard.Hash` (see `guard.md`) hashes the password before the plain text ever touches the database, and `status_code=201` is declared explicitly because the operation creates a new resource.
+### `GET /auth/confirm/{token}`
 
-### `POST /auth/login`
+```python
+@router.get("/confirm/{token}", response_class=HTMLResponse)
+def confirm_user(token: str):
+    user_id: int | None = Token.ValidateUserConfirmation(token)
+    if user_id is None:
+        return HTMLResponse(Pages.Render("confirmation_result", {
+            "success": False,
+            "message": "This confirmation link is invalid or has expired.",
+        }), status_code=401)
 
-This is the entirely new endpoint in this file. The flow:
+    cursor.execute(Queries.CONFIRM_USER, (user_id,))
+    if cursor.rowcount == 0:
+        return HTMLResponse(Pages.Render("confirmation_result", {
+            "success": False,
+            "message": "This account no longer exists, so there's nothing left to confirm.",
+        }), status_code=404)
+    cursor.commit()
 
-1. `Queries.SELECT_USER_BY_EMAIL` (see `cursor.md`) looks up the user by their email, also fetching `password_hash` — the only query in the project that exposes that field, because it's the only one that needs it.
-2. `if not rows or not Guard.Verify(...)`: a single condition checks both "the email doesn't exist" (`rows` empty) and "the password doesn't match" (`Guard.Verify` returns `False`, see `guard.md`). Both cases respond with exactly the same `401 Unauthorized` and the same generic message ("Incorrect email or password"), on purpose: if the message differed depending on which of the two failed, anyone could use the endpoint to find out which emails are registered in the system by trying them one by one (a user-enumeration attack). Note the use of `not rows or not Guard.Verify(...)`: thanks to Python's `or` short-circuiting, if `rows` is empty, `Guard.Verify` never even gets called — avoiding an `IndexError` from trying to access `rows[0]` when there's no row.
-3. If everything matches, `Token.Create(rows[0]["id"])` (see `token.md`) signs a JWT with that user's `id`, and it's returned along with `token_type: "bearer"` — the standard name for the scheme the client must prepend when sending the token back (`Authorization: Bearer <token>`, see `dependencies.md`).
+    return HTMLResponse(Pages.Render("app_redirect", {"deep_link": _APP_DEEP_LINK}))
+```
 
-This endpoint doesn't require `Depends(current_user)`, for obvious reasons: it's the entry point that produces the token, it can't require one to work.
+The other end of `POST /register`'s email. Whoever hits this endpoint is a person who just clicked a link in their inbox, not an API client, so it responds with rendered HTML (`modules/pages.py`, see `pages.md`) instead of JSON — same reasoning as `GET /contacts/confirm/{token}` below. `Token.ValidateUserConfirmation` (see `token.md`) rejects anything that isn't a correctly signed, unexpired, `"type": "user_confirmation"` token. `cursor.rowcount == 0` after the `UPDATE` covers the case where the token is valid but the account it points to is already gone (deleted by `scripts/purge_unconfirmed_users.py`, see `scripts.md`, if the 24-hour window ran out before the link was clicked).
+
+On success, this endpoint deliberately doesn't log the user in — it redirects into the app instead, via `Pages.Render("app_redirect", ...)` (see `pages.md`), which sends the browser to `_APP_DEEP_LINK` (a `panicswitch://` URL, see `credentials.md`). Confirming an email proves the person owns that inbox; it doesn't prove they're holding the phone that's about to open the link, so minting a session token here and handing it over inside a URL would be handing out a live credential over a channel (email) that's inherently less trustworthy than the login form itself. The person still has to log in with their password afterward — this endpoint's only job is flipping `confirmed` to `TRUE` and getting them back into the app to do that.
 
 ## `users.py`
 
 ```python
-from fastapi import APIRouter, Depends, HTTPException
-
-from modules.cursor       import Queries, DuplicateRecordError
-from modules.db           import cursor
-from modules.dependencies import current_user
-from modules.guard        import Guard
-from modules.types        import UserUpdate
-
 router = APIRouter(prefix="/users", tags=["users"])
 
 _COLUMN_BY_FIELD: dict[str, str] = {
@@ -93,193 +111,96 @@ _COLUMN_BY_FIELD: dict[str, str] = {
     "email":    "email",
     "password": "password_hash",
 }
-
-
-@router.get("/me")
-def get_current_user(user_id: int = Depends(current_user)):
-    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
-    if not rows:
-        raise HTTPException(status_code=404, detail="User not found")
-    return rows[0]
-
-
-@router.put("/me")
-def update_current_user(data: UserUpdate, user_id: int = Depends(current_user)):
-    fields: dict = data.model_dump(exclude_none=True)
-    if not fields:
-        raise HTTPException(status_code=400, detail="No fields were provided to update")
-
-    if "password" in fields:
-        fields["password"] = Guard.Hash(fields["password"])
-
-    set_clause: str = ", ".join(f"{_COLUMN_BY_FIELD[field]} = %s" for field in fields)
-    values: tuple = tuple(fields.values()) + (user_id,)
-
-    try:
-        cursor.execute(f"UPDATE users SET {set_clause} WHERE id = %s;", values)
-    except DuplicateRecordError:
-        raise HTTPException(status_code=409, detail="Phone or email already registered")
-    cursor.commit()
-
-    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
-    return rows[0]
 ```
 
-Groups operations on the authenticated user. Note that neither route takes an `id` as a URL parameter (there's no `/users/{id}`): both use `/me`, a deliberate pattern where "whose data is this" is never decided by the client typing a number into the URL, but by the token (`Depends(current_user)`, see `dependencies.md`). This makes it structurally impossible for a user to request or edit someone else's data just by changing a number — there's no number to change.
+Groups operations on the authenticated user. Neither route takes an `id` as a URL parameter (there's no `/users/{id}`): both use `/me`, a deliberate pattern where "whose data is this" is never decided by the client typing a number into the URL, but by the token (`Depends(current_user)`, see `dependencies.md`). This makes it structurally impossible for a user to request or edit someone else's data just by changing a number — there's no number to change.
 
 ### `GET /users/me`
 
-The simpler of the two: fetches the authenticated user's row with `Queries.SELECT_USER_BY_ID` (see `cursor.md`), which deliberately doesn't include `password_hash` among the columns it selects — there's no risk of accidentally returning the hash because it's never even requested from the database.
+Fetches the authenticated user's row with `Queries.SELECT_USER_BY_ID` (see `cursor.md`), which deliberately doesn't include `password_hash` among the columns it selects — there's no risk of accidentally returning the hash because it's never even requested from the database.
 
-### `PUT /users/me` and the dynamic `UPDATE` construction
+### `PUT /users/me` — the dynamic `UPDATE` construction
 
-This is the most elaborate of the seven endpoints, because it solves the **partial edits** problem: the client can send any subset of `name`, `phone`, `email`, `password` (see `types.md`, `UserUpdate`), and the generated `UPDATE` should only touch those columns, leaving the rest untouched. Step by step:
+Solves the **partial edits** problem: the client can send any subset of `name`, `phone`, `email`, `password` (see `types.md`, `UserUpdate`), and the generated `UPDATE` should only touch those columns, leaving the rest untouched.
 
-1. `data.model_dump(exclude_none=True)` converts the Pydantic model into a `dict`, dropping any field left as `None` (that is, that the client didn't send). If the result is an empty dictionary, there's nothing to update and it responds `400 Bad Request` — it wouldn't make sense to run an `UPDATE ... SET` with no columns.
-2. If the client decided to change their `password`, it's replaced with its hash via `Guard.Hash` (see `guard.md`) **before** building the query, exactly like at registration: the plain text never becomes part of the SQL.
-3. `_COLUMN_BY_FIELD` translates the Pydantic model's field name (`password`) to the table's actual column name (`password_hash`, see `sql.md`) — they're deliberately different, so the model speaks the same terms as the rest of the API (`password`) without leaking the detail that, in the database, that value is a hash.
-4. `set_clause` builds the `column = %s, column = %s, ...` portion of the query, only for the fields present in `fields`. **This is safe** even though text is being concatenated directly into the SQL string: what gets concatenated are *column names*, which can only come from `_COLUMN_BY_FIELD`'s fixed keys (in turn derived from the fields declared on `UserUpdate`, see `types.md`) — never from an arbitrary value written by whoever calls the API. The actual *values*, which do come from the client and could be malicious, still travel parameterized as `%s` inside `values`, same as in every other query in this project.
-5. If the `UPDATE` violates the `UNIQUE` constraint on `phone` or `email` (for example, the user tries to change their email to one already used by another account), `Cursor.execute` translates it to `DuplicateRecordError` (see `cursor.md`) and the endpoint responds `409`, on the same rationale as registration.
-6. After the `commit`, the updated row is read back with `SELECT_USER_BY_ID` and returned in full, so the client doesn't have to guess the final state by combining what it sent with what it already had.
+1. `data.model_dump(exclude_none=True)` converts the Pydantic model into a `dict`, dropping any field left as `None` (that is, that the client didn't send). An empty result means there's nothing to update, and the endpoint responds `400 Bad Request`.
+2. A changed `password` is replaced with its hash via `Guard.Hash` (see `guard.md`) **before** building the query — the plain text never becomes part of the SQL.
+3. `_COLUMN_BY_FIELD` translates the Pydantic model's field name (`password`) to the table's actual column name (`password_hash`, see `sql.md`) — deliberately different, so the model speaks the same terms as the rest of the API without leaking the detail that, in the database, that value is a hash.
+4. `set_clause` builds the `column = %s, column = %s, ...` portion of the query, only for the fields present. This is safe even though text is concatenated directly into the SQL string: what gets concatenated are *column names*, which can only come from `_COLUMN_BY_FIELD`'s fixed keys — never from an arbitrary value written by whoever calls the API. The actual *values* still travel parameterized as `%s`.
+5. A `UNIQUE` violation on `phone`/`email` is caught as `DuplicateRecordError` (see `cursor.md`) and turned into `409`, same as registration.
+6. After committing, the updated row is read back with `SELECT_USER_BY_ID` and returned in full, so the client doesn't have to guess the final state.
 
 ## `contacts.py`
 
 ```python
-from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi.responses import HTMLResponse
-
-from modules.mail         import Mail
-from modules.credentials  import get_credentials
-from modules.cursor       import Queries
-from modules.db           import cursor
-from modules.dependencies import current_user
-from modules.pages        import Pages
-from modules.token        import Token
-from modules.types        import Contact, ContactUpdate
-
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
 _URL_BASE: str = get_credentials()['api_base_url']
+```
 
+The emergency-contacts CRUD, plus the confirmation endpoint. The three authenticated endpoints (`POST`, `GET ""`, `PUT`, `DELETE`) all share `Depends(current_user)`, which is enough to keep any of them from operating on someone else's contacts — `user_id` is never sent by the client, it always comes from the token. `GET /confirm/{token}` is the deliberate exception, same reasoning as `GET /auth/confirm/{token}` above.
 
-@router.post("", status_code=201)
-def create_contact(data: Contact, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
-    cursor.execute(Queries.INSERT_CONTACT, (user_id, data.name, data.phone, data.email))
-    cursor.commit()
-    contact_id: int = cursor.lastrowid
+`ContactUpdate`'s fields (`name`, `phone`, `email`, see `types.md`) are already named the same as their columns on `contacts` (see `sql.md`), so `PUT /{contact_id}`'s `set_clause` uses the field name directly — no `_COLUMN_BY_FIELD`-style translation needed here.
 
-    if data.email:
-        rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
-        token: str = Token.CreateContactConfirmation(contact_id)
-        background_tasks.add_task(
-            Mail.Send,
-            data.email,
-            "Confirm that you are an emergency contact",
-            "contact_confirmation",
-            {
-                "contact_name":     data.name,
-                "user_name":        rows[0]["name"],
-                "confirmation_url": f"{_URL_BASE}/contacts/confirm/{token}",
-            },
-        )
+### `POST /contacts` and `GET /contacts`
 
-    return {"Skellent": "Success!"}
+No surprises in the `INSERT`/`SELECT`: they follow the same parameterized pattern as the rest of the project. Routes are declared as `""` (empty string), not `"/"` — with the router's `prefix="/contacts"`, `""` resolves to exactly `/contacts`, while `"/"` would produce `/contacts/`, a different URL as far as HTTP is concerned.
 
+If the contact is created with an `email`, `POST /contacts` queues a confirmation email in the background (see `mail.md` for why it's a background task). `cursor.lastrowid` gives the just-inserted contact's `id`, needed to build the confirmation token with `Token.CreateContactConfirmation` (see `token.md`). A `SELECT_USER_BY_ID` also runs to get the name of whoever is adding the contact, used in the email's body — there's no way to avoid it without changing what `current_user` returns (see `dependencies.md`), which deliberately only exposes the `id`. If `data.email` is `None` (the only optional field on `Contact`, see `types.md`), nothing is sent, and that contact stays `confirmed = FALSE` indefinitely — there's no other channel today to confirm a contact without an email.
 
-@router.get("")
-def list_contacts(user_id: int = Depends(current_user)):
-    return cursor.execute(Queries.SELECT_CONTACTS_BY_USER, (user_id,))
+### `GET /contacts/confirm/{token}`
 
-
+```python
 @router.get("/confirm/{token}", response_class=HTMLResponse)
 def confirm_contact(token: str):
     contact_id: int | None = Token.ValidateContactConfirmation(token)
     if contact_id is None:
-        return HTMLResponse(
-            Pages.Render("confirmation_result", {
-                "success": False,
-                "message": "This confirmation link is invalid or has expired. Ask to be added as an emergency contact again to get a new one.",
-            }),
-            status_code=401,
-        )
+        return HTMLResponse(Pages.Render("confirmation_result", {
+            "success": False,
+            "message": "This confirmation link is invalid or has expired. Ask to be added as an emergency contact again to get a new one.",
+        }), status_code=401)
 
     cursor.execute(Queries.CONFIRM_CONTACT, (contact_id,))
     if cursor.rowcount == 0:
-        return HTMLResponse(
-            Pages.Render("confirmation_result", {
-                "success": False,
-                "message": "This contact no longer exists, so there's nothing left to confirm.",
-            }),
-            status_code=404,
-        )
+        return HTMLResponse(Pages.Render("confirmation_result", {
+            "success": False,
+            "message": "This contact no longer exists, so there's nothing left to confirm.",
+        }), status_code=404)
     cursor.commit()
 
-    return HTMLResponse(
-        Pages.Render("confirmation_result", {
-            "success": True,
-            "message": "You'll now be notified by email if this person triggers a panic alert.",
-        })
-    )
+    return HTMLResponse(Pages.Render("confirmation_result", {
+        "success": True,
+        "message": "You'll now be notified by email if this person triggers a panic alert.",
+    }))
+```
 
+Reached by clicking a link inside an email, not by navigating the app while logged in — whoever makes this request doesn't have, and can't have, a session JWT. Its authentication isn't "who are you," but "do you have the correct confirmation token, generated specifically for this contact?" — hence `Token.ValidateContactConfirmation` (see `token.md`) instead of `Depends(current_user)`.
 
-@router.put("/{contact_id}")
-def update_contact(contact_id: int, data: ContactUpdate, user_id: int = Depends(current_user)):
-    fields: dict = data.model_dump(exclude_none=True)
-    if not fields:
-        raise HTTPException(status_code=400, detail="No fields were provided to update")
+`Token.ValidateContactConfirmation(token)` returns the `contact_id` if the token is valid and of the correct type, or `None` otherwise. With a valid `contact_id`, `Queries.CONFIRM_CONTACT` (see `cursor.md`) updates that row; `cursor.rowcount == 0` covers the token being valid but that contact no longer existing.
 
-    set_clause: str = ", ".join(f"{field} = %s" for field in fields)
-    values: tuple = tuple(fields.values()) + (contact_id, user_id)
+Unlike every JSON endpoint in the project, this responds with a rendered HTML page (`response_class=HTMLResponse` plus `Pages.Render`, see `pages.md`), because the caller is a person reading a browser tab, not an API client. All three outcomes (success, invalid/expired token, contact gone) render the same template with a different `success`/`message` pair, so the visitor always lands on a styled result page instead of raw `{"detail": "..."}`.
 
-    cursor.execute(f"UPDATE contacts SET {set_clause} WHERE id = %s AND user_id = %s;", values)
+### `PUT /contacts/{contact_id}` — `rowcount` instead of a prior `SELECT`
+
+Runs the `UPDATE` directly with `WHERE id = %s AND user_id = %s` and checks `cursor.rowcount` (see `cursor.md`) instead of first `SELECT`-ing to check "does this exist and is it mine?". If the `contact_id` doesn't exist, or exists but belongs to another user, the `WHERE` clause matches nothing and `rowcount` comes back `0` — both cases return the same `404`, without distinguishing them, for the same no-hints rationale as login: confirming that "contact 7 exists but isn't yours" reveals more than necessary. A single query also avoids a race condition (the contact being deleted or reassigned between a verification `SELECT` and a later `UPDATE`) that a two-step approach would leave open.
+
+### `DELETE /contacts/{contact_id}`
+
+```python
+@router.delete("/{contact_id}", status_code=204)
+def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.DELETE_CONTACT, (contact_id, user_id))
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
-
-    rows: list[dict] = cursor.execute(
-        "SELECT id, name, phone, email, confirmed FROM contacts WHERE id = %s;",
-        (contact_id,)
-    )
-    return rows[0]
 ```
 
-This is the emergency-contacts CRUD, plus the confirmation endpoint added alongside `modules/mail.py` (see `mail.md` for the complete flow). The three protected endpoints (`POST`, `GET ""`, `PUT`) share `Depends(current_user)`, and that's enough to keep any of them from operating on someone else's contacts — `user_id` is never sent by the client, it always comes from the token. `GET /confirm/{token}` is the deliberate exception, see its own section below.
-
-Unlike `users.py`, `_COLUMN_BY_FIELD` wasn't needed here: `ContactUpdate`'s three fields (`name`, `phone`, `email`, see `types.md`) are already named the same as their columns on the `contacts` table (see `sql.md`), so `set_clause` uses the field name directly.
-
-### `POST /contacts` and `GET /contacts`
-
-No surprises in the `INSERT`/`SELECT`: they follow the same parameterized pattern as the rest of the project. Note the routes are declared as `""` (empty string), not `"/"` — with the router's `prefix="/contacts"`, `""` resolves to exactly `/contacts`, while `"/"` would have produced `/contacts/` with a trailing slash, a different URL as far as HTTP is concerned, which would have forced clients to get the slash right or deal with a redirect.
-
-What is new in `POST /contacts`: if the contact was created with an `email`, sending a confirmation email in the background is triggered (`background_tasks.add_task(Mail.Send, ...)`, see `mail.md` for why it's in the background instead of a direct `await`). `cursor.lastrowid` (see `cursor.md`) gives the `id` of the just-inserted contact, needed to generate the confirmation token with `Token.CreateContactConfirmation` (see `token.md`) before the link can be built. An extra `SELECT_USER_BY_ID` is also run to get the `name` of whoever is adding the contact — it's used in the email's body ("So-and-so added you as an emergency contact"), and there was no way to avoid it without changing `current_user`'s signature (see `dependencies.md`), which deliberately only returns the `id`, not the full row. If `data.email` is `None` (remember it's `Contact`'s only optional field, see `types.md`), nothing is sent — there's no way to confirm a contact by email without an email, and that contact simply stays at `confirmed = FALSE` indefinitely until the project adds another confirmation channel (SMS, for example, once the pending Twilio integration lands).
-
-### `GET /contacts/confirm/{token}`
-
-Along with `auth.py`'s two routes, this is one of the few backend endpoints that does **not** require `Depends(current_user)` — for the same reason as those: this endpoint is reached by clicking a link inside an email, not by navigating the app while already logged in, so whoever makes the request doesn't have (and can't have) a session JWT. This endpoint's authentication isn't "who are you," but "do you have the correct confirmation token, generated specifically for this contact?" — hence it uses `Token.ValidateContactConfirmation` (see `token.md`) instead of the standard dependency.
-
-The flow is deliberately just as simple as the rest of the CRUD: `Token.ValidateContactConfirmation(token)` returns the `contact_id` if the token is valid and of the correct type, or `None` if not (corrupt token, expired, or of another type — a session JWT, for example). With the `contact_id` in hand, `Queries.CONFIRM_CONTACT` (see `cursor.md`) updates that row, and `cursor.rowcount == 0` covers the case "the token was valid but that `contact_id` no longer exists" (for example, if the contact was deleted — though there's no `DELETE /contacts/{id}` today, the check is kept in case one is added later, the same defensive rationale `PUT /{contact_id}` already uses).
-
-Unlike every other endpoint in the project, this one doesn't respond with JSON: `response_class=HTMLResponse` plus `Pages.Render` (see `pages.md`) return a full HTML page instead, because the caller here is a person reading a browser tab after clicking a link in an email, not an API client. `HTTPException` (which the rest of the project uses for error responses) isn't used in this endpoint precisely for that reason — it would still produce a JSON body, which is exactly what this change moves away from. Both the success and the two failure cases (invalid/expired token, contact no longer exists) render the same template with a different `success`/`message` context, so the visitor always lands on a styled result page instead of raw `{"detail": "..."}`.
-
-### `PUT /contacts/{contact_id}` and why it uses `rowcount` instead of a prior `SELECT`
-
-This is the only endpoint in the project that needs to respond `404 Not Found`, and it does so in a particular way: instead of first running a `SELECT` to check "does this contact exist and is it mine?" and then the `UPDATE`, it runs the `UPDATE` directly with `WHERE id = %s AND user_id = %s` and checks how many rows it affected with `cursor.rowcount` (see `cursor.md`). If the `contact_id` doesn't exist, or exists but belongs to another user, the `WHERE` clause finds no row to update and `rowcount` comes back `0` — and both cases (doesn't exist / isn't yours) return the same `404`, without distinguishing them in the message, for the same no-hints rationale already explained for login: confirming to someone that "contact 7 exists but isn't yours" reveals more than necessary. Doing it in a single query also avoids a race condition (the contact being deleted or reassigned between the verification `SELECT` and the later `UPDATE`) that could happen with the two-step approach.
+Same ownership-scoping pattern as `PUT`: `Queries.DELETE_CONTACT` (see `cursor.md`) filters by `id` *and* `user_id` in one statement, so a contact that belongs to someone else looks identical, from the response, to one that doesn't exist — `404` either way. `status_code=204` (No Content) is the conventional response for a successful delete with nothing meaningful to return; the function has no `return` statement, and FastAPI sends an empty body to match.
 
 ## `alerts.py`
 
 ```python
-from datetime import datetime
-
-from fastapi import APIRouter, BackgroundTasks, Depends
-
-from modules.mail         import Mail
-from modules.cursor       import Queries
-from modules.db           import cursor
-from modules.dependencies import current_user
-from modules.types        import Alert
-
 router = APIRouter(prefix="/alerts", tags=["alerts"])
-
 
 @router.post("", status_code=201)
 def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
@@ -290,50 +211,42 @@ def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = 
     contacts: list[dict] = cursor.execute(Queries.SELECT_CONFIRMED_CONTACTS_BY_USER, (user_id,))
 
     recipients: list[tuple[str, dict]] = [
-        (
-            contact["email"],
-            {
-                "contact_name": contact["name"],
-                "user_name":    user_rows[0]["name"],
-                "user_phone":   user_rows[0]["phone"],
-                "timestamp":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "latitude":     data.latitude,
-                "longitude":    data.longitude,
-                "map_url":      f"https://www.google.com/maps?q={data.latitude},{data.longitude}",
-            },
-        )
+        (contact["email"], {
+            "contact_name": contact["name"],
+            "user_name":    user_rows[0]["name"],
+            "user_phone":   user_rows[0]["phone"],
+            "timestamp":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "latitude":     data.latitude,
+            "longitude":    data.longitude,
+            "map_url":      f"https://www.google.com/maps?q={data.latitude},{data.longitude}",
+        })
         for contact in contacts if contact["email"]
     ]
 
     if recipients:
-        background_tasks.add_task(
-            Mail.SendBulk,
-            f"Panic alert from {user_rows[0]['name']}",
-            "panic_alert",
-            recipients,
-        )
+        background_tasks.add_task(Mail.SendBulk, f"Panic alert from {user_rows[0]['name']}", "panic_alert", recipients)
 
     return {"Skellent": "Success!"}
 ```
 
-This is the endpoint that corresponds to hitting the panic button itself — the project's ultimate purpose (see `sql.md`, `alerts` section). A single endpoint, with no `GET`/`PUT` of its own yet: today no one needs to list or edit past alerts, only create them.
+The endpoint that corresponds to hitting the panic button itself — the project's ultimate purpose (see `sql.md`, `alerts` section). A single endpoint, with no `GET`/`PUT` of its own: today no one needs to list or edit past alerts, only create them.
 
 ### Why only **confirmed** contacts get notified
 
-`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER` (see `cursor.md`), not `SELECT_CONTACTS_BY_USER`, is the query that decides who to notify. This isn't a technical limitation but the whole reason the `confirmed` column exists (see `sql.md`, `guard.md`): adding someone as an emergency contact doesn't automatically grant their consent to receive alerts on their behalf, and that person already had the chance to confirm it by clicking the link they got by email when they were added (`POST /contacts`, see above). A contact who never confirmed simply doesn't show up in this query and receives nothing — it isn't even attempted.
+`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER` (see `cursor.md`), not `SELECT_CONTACTS_BY_USER`, decides who to notify. This isn't a technical limitation but the whole reason the `confirmed` column exists on `contacts` (see `sql.md`): adding someone as an emergency contact doesn't automatically grant their consent to receive alerts on their behalf. A contact who never confirmed simply doesn't show up in this query and receives nothing.
 
-### Why `Mail.SendBulk` and not `Mail.Send` in a loop
+### Why `Mail.SendBulk`, not `Mail.Send` in a loop
 
-Unlike `POST /contacts` (which always notifies **one** recipient, the just-created contact), `POST /alerts` may need to notify **several** confirmed contacts at once. Calling `Mail.Send` once per contact would open and close a separate SMTP connection for each one; `Mail.SendBulk` (see `mail.md`) opens a single connection and sends every email for that alert through it, while also guaranteeing that a contact with an invalid address doesn't stop the rest from receiving the notification. See `mail.md` for the complete detail of why this matters specifically here (and not before: up to this endpoint, every send in the project was one-to-one).
+An alert may need to notify several confirmed contacts at once. `Mail.SendBulk` (see `mail.md`) opens a single SMTP connection and sends every email for that alert through it, and guarantees that one contact with a delivery problem doesn't stop the rest from being notified — see `mail.md` for the complete detail.
 
-### Why in the background, same as contact confirmation
+### Why in the background
 
-The `INSERT` into `alerts` — the durable record that the alert happened — is committed with `cursor.commit()` **before** trying to notify anyone, and the `201` response arrives as soon as that finishes. Queuing `Mail.SendBulk` with `background_tasks.add_task` (instead of a direct `await`) means whoever triggered the panic button doesn't wait for N emails to be sent to know their alert was logged — something particularly important here, where the app should confirm to the user that the alert fired as fast as possible, without Gmail's latency (or a contact with delivery issues) getting in the way.
+The `INSERT` into `alerts` — the durable record that the alert happened — is committed **before** trying to notify anyone, and the `201` response arrives as soon as that finishes. Queuing `Mail.SendBulk` with `background_tasks.add_task` means whoever triggered the panic button doesn't wait for N emails to send to know their alert was logged — particularly important here, where confirming the alert fired as fast as possible matters more than anywhere else in the API.
 
 ### Why the email's `timestamp` doesn't come from a query against `alerts`
 
-The template's context uses `datetime.now()`, computed at the moment of responding, not a `SELECT` of the just-inserted row (whose `created_at` MariaDB fills in with `DEFAULT CURRENT_TIMESTAMP`, see `sql.md`). In practice they're the same instant — an extra query isn't worth it just to show a value that's already known with more than enough precision for a notification email.
+The template's context uses `datetime.now()`, computed at the moment of responding, not a `SELECT` of the just-inserted row (whose `created_at` MariaDB fills in with `DEFAULT CURRENT_TIMESTAMP`, see `sql.md`). In practice they're the same instant — an extra query isn't worth it just to show a value already known with more than enough precision for a notification email.
 
 ## Relationship with the rest of the backend
 
-`main.py` imports the four modules in this directory and mounts their routers with `include_router` (see `main.md`). All of them depend on `modules/db.py` (the shared `cursor`), `modules/cursor.py` (`Queries` and, except for `contacts.py`/`alerts.py`, `DuplicateRecordError`) and `modules/types.py` (the Pydantic models for each request); `users.py`, `contacts.py` and `alerts.py` additionally depend on `modules/dependencies.py` to require authentication. `modules/guard.py` is used by both `auth.py` (creating the hash at registration, verifying it at login) and `users.py` (creating the hash when a user changes their own password); `modules/token.py` is used by `auth.py` (issuing the session JWT) and `contacts.py` (issuing and validating the confirmation token, see `token.md`) — `alerts.py` doesn't need it, since it neither issues nor validates any token of its own. `modules/mail.py` (see `mail.md`) is used by `contacts.py` (`Mail.Send`, 1 to 1) and `alerts.py` (`Mail.SendBulk`, 1 to N). `modules/pages.py` (see `pages.md`) is used only by `contacts.py`, to render the HTML result page `GET /contacts/confirm/{token}` shows instead of JSON.
+`main.py` imports all four modules in this directory and mounts their routers with `include_router` (see `main.md`). All of them depend on `modules/db.py` (the shared `cursor`) and `modules/cursor.py` (`Queries`, and — except `alerts.py` — `DuplicateRecordError`); `users.py`, `contacts.py` and `alerts.py` additionally depend on `modules/dependencies.py` to require authentication. `modules/guard.py` is used by `auth.py` (hashing at registration, verifying at login) and `users.py` (hashing on password change). `modules/token.py` is used by `auth.py` (session and user-confirmation tokens) and `contacts.py` (contact-confirmation tokens) — `alerts.py` and `users.py` don't issue or validate any token of their own. `modules/mail.py` (see `mail.md`) is used by `auth.py` and `contacts.py` (`Mail.Send`, one recipient at a time) and `alerts.py` (`Mail.SendBulk`, one to many). `modules/pages.py` (see `pages.md`) is used by `auth.py` and `contacts.py`, to render the HTML pages their `confirm/{token}` endpoints show instead of JSON.

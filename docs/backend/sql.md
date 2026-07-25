@@ -1,6 +1,6 @@
 # `queries/` — SQL scripts
 
-This directory holds the SQL needed to set up and seed PanicSwitch's database. It isn't Python code that runs automatically: these are scripts an administrator runs manually against MariaDB, in the order described in the main README (section "1. Configure MariaDB").
+This directory holds the SQL needed to set up and seed PanicSwitch's database. It isn't Python code that runs automatically: these are scripts an administrator runs manually against MariaDB, in the order described in the main README (section "1. Configure MariaDB"). There's no migration framework — a schema change here has to be applied by hand (`ALTER TABLE ...`) against any database that already exists, in addition to updating this file for anyone setting up a fresh one.
 
 ## `creation.sql` — initial provisioning
 
@@ -31,7 +31,9 @@ CREATE TABLE users (
     phone         VARCHAR(20)  NOT NULL UNIQUE,
     email         VARCHAR(120) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+    confirmed     BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_users_unconfirmed (confirmed, created_at)
 );
 ```
 
@@ -39,7 +41,9 @@ This is the central table: each row is a person registered in the app. A few des
 
 - `phone` and `email` are `UNIQUE`: each phone number and each email can only belong to one account. This prevents duplicate registrations and is consistent with the fact that, in a panic-button app, the phone number is probably the identifier other systems (SMS, calls) will use to locate a user.
 - `password_hash VARCHAR(255)`: the generous size isn't accidental — bcrypt hashes (see `guard.md`) have a known, fixed-length format, but leaving margin avoids having to migrate the schema if the hashing algorithm ever changes (for example, to Argon2, whose hashes are longer).
-- `created_at DATETIME DEFAULT CURRENT_TIMESTAMP`: automatically records when the account was created, without the application having to send it explicitly on every `INSERT` (in fact, `Queries.INSERT_USER` in `cursor.py` doesn't include this column).
+- `confirmed BOOLEAN DEFAULT FALSE`: a newly registered account can't log in (see `routers.md`, `POST /auth/login`) until this flips to `TRUE`. `POST /auth/register` emails a confirmation link (see `mail.md`, `token.md`), and `GET /auth/confirm/{token}` is what sets this column. The `FALSE` default means an account that never confirms is, by construction, unable to log in and therefore unable to own any contact or alert — the invariant `scripts/purge_unconfirmed_users.py` (see `scripts.md`) relies on to delete abandoned signups without risking real data.
+- `created_at DATETIME DEFAULT CURRENT_TIMESTAMP`: automatically records when the account was created, without the application having to send it explicitly on every `INSERT` (`Queries.INSERT_USER` in `cursor.py` doesn't include this column).
+- `INDEX idx_users_unconfirmed (confirmed, created_at)`: the purge script's query (`Queries.PURGE_UNCONFIRMED_USERS`, see `cursor.md`) filters on exactly these two columns together (`WHERE confirmed = FALSE AND created_at < ...`). Without this index, that lookup degrades into a full table scan every time the job runs — cheap while the table is small, but a cost that grows with every user who ever signs up, confirmed or not. The index keeps the sweep proportional to how many *unconfirmed* rows exist, not to the table's total size.
 
 ### `contacts`
 
@@ -58,7 +62,8 @@ CREATE TABLE contacts (
 Represents each user's **emergency contacts**: the people who must be notified when an alert is triggered. It's a one-to-many relationship with `users` through the `user_id` foreign key.
 
 - `email` is nullable, unlike `users.email`: an emergency contact might only be reachable by phone (via SMS, for example), without that preventing them from being registered.
-- `confirmed BOOLEAN DEFAULT FALSE`: exists because adding someone as an emergency contact shouldn't rely solely on the word of the user registering them — that person should probably confirm (for example, by replying to a message or verification email) that they agree to receive alerts on their behalf. The `FALSE` default reflects that this consent isn't assumed, it's granted explicitly in a later step. That step is already implemented (see `mail.md`, `token.md` and `routers.md`): `POST /contacts` sends an email with a confirmation link when the contact has an `email`, and `GET /contacts/confirm/{token}` is what actually sets this column to `TRUE`. A contact created without an `email` (remember it's the only optional field on `Contact`, see `types.md`) stays at `FALSE` indefinitely, since there's currently no other channel (SMS, for example) to confirm it.
+- `confirmed BOOLEAN DEFAULT FALSE`: adding someone as an emergency contact shouldn't rely solely on the word of the user registering them — that person has to confirm, by clicking the link in a confirmation email, that they agree to receive alerts on their behalf. `POST /contacts` sends that email when the contact has an `email`, and `GET /contacts/confirm/{token}` is what actually sets this column to `TRUE` (see `mail.md`, `token.md`, `routers.md`). A contact created without an `email` (the only optional field on `Contact`, see `types.md`) stays at `FALSE` indefinitely, since there's currently no other channel (SMS, for example) to confirm it. `POST /alerts` only notifies contacts where this is `TRUE` (`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER`, see `cursor.md`) — a contact who never agreed to receive alerts shouldn't start receiving them right at the most critical moment.
+- The foreign key has no `ON DELETE` clause, so it defaults to `RESTRICT`: a `users` row can't be deleted while it still has `contacts` rows pointing to it. This is why `scripts/purge_unconfirmed_users.py` can delete straight from `users` without first cleaning up `contacts` — an unconfirmed user is guaranteed to have none, since creating a contact requires being logged in, and logging in requires being confirmed.
 
 ### `alerts`
 
@@ -73,11 +78,7 @@ CREATE TABLE alerts (
 );
 ```
 
-This is the historical record of every time a user hits the panic button: which user, when (`created_at`, with the same `DEFAULT CURRENT_TIMESTAMP` pattern as `users.created_at`) and where (`latitude`/`longitude` as `DOUBLE`, the standard precision for GPS coordinates). In a sense, this table is the whole reason the project exists: the other two tables exist so the app can respond correctly whenever a row gets inserted here.
-
-Since the contact CRUD was added (see `routers.md`), this table is now actively read and written to: `POST /contacts`, `GET /contacts`, `GET /contacts/confirm/{token}` and `PUT /contacts/{id}`. Unlike before, `confirmed` is no longer a field no endpoint touches: `GET /contacts/confirm/{token}` sets it to `TRUE` when the contact clicks the link they received by email (see `mail.md`).
-
-`alerts` also isn't just a schema prepared in advance anymore: `POST /alerts` (see `routers.md`) inserts a row here every time the panic button is triggered, and uses that exact row (`user_id`, `latitude`, `longitude`) to build the notification that reaches that user's **confirmed** emergency contacts (see `mail.md`). The link between `confirmed` and this table is, at bottom, that column's whole reason for existing: a contact who never agreed to receive alerts shouldn't start receiving them right at the most critical moment, so `POST /alerts` filters by `confirmed = TRUE` before notifying anyone (`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER`, see `cursor.md`). Notifying by SMS (in addition to or instead of email) is still pending the Twilio integration.
+The historical record of every time a user hits the panic button: which user, when (`created_at`, with the same `DEFAULT CURRENT_TIMESTAMP` pattern as `users.created_at`) and where (`latitude`/`longitude` as `DOUBLE`, the standard precision for GPS coordinates). In a sense, this table is the whole reason the project exists: the other two tables exist so the app can respond correctly whenever a row gets inserted here. `POST /alerts` (see `routers.md`) inserts a row and uses it to build the notification that reaches that user's confirmed emergency contacts (see `mail.md`).
 
 ## `insertions.sql` — sample data
 

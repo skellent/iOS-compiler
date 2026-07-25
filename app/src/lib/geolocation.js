@@ -8,6 +8,6 @@ export async function getCurrentCoordinates() {
     });
     return { latitude: position.coords.latitude, longitude: position.coords.longitude };
   } catch {
-    throw new Error("Couldn't get your location. Make sure location access is enabled for PanicSwitch.");
+    throw new Error("Couldn't get your location. Make sure location access is enabled for Panic Switch.");
   }
 }
