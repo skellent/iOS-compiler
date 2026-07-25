@@ -23,7 +23,7 @@ export async function renderHome(container, { getUser }) {
             <circle id="panic-ring-progress" class="panic-ring-progress" cx="60" cy="60" r="${RING_RADIUS}"
                     stroke-dasharray="${RING_CIRCUMFERENCE}" stroke-dashoffset="${RING_CIRCUMFERENCE}"></circle>
           </svg>
-          <span id="panic-icon" class="panic-icon">🆘</span>
+          <span id="panic-icon" class="panic-icon">SOS</span>
           <svg id="panic-check" class="panic-check" viewBox="0 0 24 24" hidden>
             <polyline points="4 12 9 18 20 6"></polyline>
           </svg>

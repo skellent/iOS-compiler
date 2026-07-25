@@ -1,9 +1,9 @@
 :root {
-  --red-900: #7f1d1d;
-  --red-800: #991b1b;
-  --red-700: #b91c1c;
-  --red-600: #dc2626;
-  --red-50: #fef2f2;
+  --primary-900: #8c1331;
+  --primary-800: #af183d;
+  --primary-700: #c71b46;
+  --primary-500: #ea2052;
+  --primary-50: #fce4ea;
   --gray-50: #fafafa;
   --gray-100: #f4f4f5;
   --gray-200: #e4e4e7;
@@ -45,10 +45,21 @@ button {
   font-family: inherit;
 }
 
+/* Icons */
+
+.icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 /* App bar */
 
 #app-bar {
-  background: var(--red-800);
+  background: var(--primary-500);
   color: #fff;
   padding: calc(16px + var(--safe-top)) 20px 16px 20px;
   font-size: 18px;
@@ -102,20 +113,18 @@ button {
 }
 
 .nav-tab-icon {
-  font-size: 20px;
-  filter: grayscale(1);
-  opacity: 0.6;
-  transition: filter 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  font-size: 22px;
+  opacity: 0.65;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .nav-tab-active {
-  color: var(--red-700);
+  color: var(--primary-700);
 }
 
 .nav-tab-active .nav-tab-icon {
-  filter: none;
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.12);
 }
 
 /* Forms */
@@ -147,8 +156,8 @@ button {
 
 .field input:focus {
   outline: none;
-  border-color: var(--red-600);
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(234, 32, 82, 0.15);
 }
 
 .field-hint {
@@ -189,15 +198,15 @@ button {
 }
 
 .btn-primary {
-  background: var(--red-600);
+  background: var(--primary-500);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+  box-shadow: 0 4px 14px rgba(234, 32, 82, 0.35);
 }
 
 .btn-outline {
   background: #fff;
-  color: var(--red-700);
-  border: 1.5px solid var(--red-600);
+  color: var(--primary-500);
+  border: 1.5px solid var(--primary-500);
 }
 
 .btn-spinner {
@@ -210,8 +219,8 @@ button {
 }
 
 .btn-outline .btn-spinner {
-  border: 2px solid rgba(220, 38, 38, 0.25);
-  border-top-color: var(--red-700);
+  border: 2px solid rgba(234, 32, 82, 0.25);
+  border-top-color: var(--primary-500);
 }
 
 @keyframes spin {
@@ -237,6 +246,17 @@ button {
   opacity: 1;
   transform: scale(1.4);
   transition: 0s;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Shake feedback */
@@ -276,8 +296,12 @@ button {
 }
 
 .brand-mark {
-  font-size: 44px;
-  margin-bottom: 8px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 24px rgba(140, 19, 49, 0.35);
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .auth-title {
@@ -305,7 +329,7 @@ button {
 }
 
 .auth-switch a {
-  color: var(--red-700);
+  color: var(--primary-700);
   font-weight: 700;
   text-decoration: none;
 }
@@ -345,12 +369,12 @@ button {
 }
 
 .toast-error {
-  background: var(--red-700);
+  background: var(--primary-500);
 }
 
 .toast-success {
   background: var(--gray-900);
-  border: 1.5px solid var(--red-600);
+  border: 1.5px solid var(--primary-500);
 }
 
 /* Sheet / modal */
@@ -432,24 +456,24 @@ button {
   height: 220px;
   border-radius: 50%;
   border: none;
-  background: radial-gradient(circle at 35% 30%, var(--red-600), var(--red-800));
+  background: radial-gradient(circle at 35% 30%, var(--primary-500), var(--primary-800));
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+  box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.5);
   animation: idle-pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes idle-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 22px rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 22px rgba(234, 32, 82, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0);
   }
 }
 
@@ -463,7 +487,7 @@ button {
 }
 
 .panic-btn-success {
-  background: radial-gradient(circle at 35% 30%, var(--red-600), var(--gray-900));
+  background: radial-gradient(circle at 35% 30%, var(--primary-500), var(--gray-900));
   animation: none;
 }
 
@@ -472,15 +496,26 @@ button {
 }
 
 .panic-icon {
-  font-size: 64px;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff;
   z-index: 1;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+
+.panic-icon[hidden] {
+  display: none;
 }
 
 .panic-check {
   width: 72px;
   height: 72px;
   z-index: 1;
+}
+
+.panic-check[hidden] {
+  display: none;
 }
 
 .panic-check polyline {
@@ -592,8 +627,8 @@ button {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--red-50);
-  color: var(--red-700);
+  background: var(--primary-50);
+  color: var(--primary-700);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -624,6 +659,9 @@ button {
 
 .badge {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   font-weight: 700;
   padding: 5px 10px;
@@ -631,8 +669,12 @@ button {
   white-space: nowrap;
 }
 
+.badge .icon {
+  font-size: 12px;
+}
+
 .badge-confirmed {
-  background: var(--red-600);
+  background: var(--primary-500);
   color: #fff;
 }
 
@@ -658,11 +700,11 @@ button {
   height: 56px;
   border-radius: 50%;
   border: none;
-  background: var(--red-600);
+  background: var(--primary-500);
   color: #fff;
   font-size: 28px;
   line-height: 1;
-  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+  box-shadow: 0 6px 18px rgba(234, 32, 82, 0.45);
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -685,7 +727,7 @@ button {
   width: 76px;
   height: 76px;
   border-radius: 50%;
-  background: var(--red-800);
+  background: var(--primary-500);
   color: #fff;
   font-size: 30px;
   font-weight: 800;
@@ -697,4 +739,116 @@ button {
 .profile-screen .form,
 .profile-screen .btn-outline {
   width: 100%;
+}
+
+/* Danger buttons */
+
+.btn-danger-outline {
+  background: #fff;
+  color: var(--primary-900);
+  border: 1.5px solid var(--primary-900);
+}
+
+/* Small circular icon buttons (used inline, e.g. in a contact row) */
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+.icon-btn-danger {
+  color: var(--primary-900);
+}
+
+.icon-btn-danger:active {
+  background: var(--primary-50);
+}
+
+/* Swipe-to-delete contact row */
+
+.swipe-row {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  animation: row-in 0.3s ease both;
+}
+
+.swipe-row-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 24px;
+  background: var(--primary-900);
+  color: #fff;
+}
+
+.swipe-row-action .icon {
+  font-size: 22px;
+}
+
+.swipe-row .contact-row {
+  position: relative;
+  box-shadow: none;
+  animation: none;
+  transition: transform 0.2s ease;
+}
+
+.swipe-row-open .contact-row {
+  transform: translateX(-76px);
+}
+
+/* Confirm-your-email screen (post-registration) */
+
+.confirm-mail-screen {
+  padding: 56px 28px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+}
+
+.confirm-mail-icon {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--primary-50);
+  color: var(--primary-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.confirm-mail-icon .icon {
+  font-size: 34px;
+}
+
+.confirm-mail-email {
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.confirm-mail-screen .btn-outline {
+  width: 100%;
+  margin-top: 8px;
 }

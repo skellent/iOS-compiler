@@ -53,6 +53,7 @@ export const Api = {
   listContacts: () => request("/contacts", { auth: true }),
   createContact: (data) => request("/contacts", { method: "POST", body: data, auth: true }),
   updateContact: (id, data) => request(`/contacts/${id}`, { method: "PUT", body: data, auth: true }),
+  deleteContact: (id) => request(`/contacts/${id}`, { method: "DELETE", auth: true }),
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
 };

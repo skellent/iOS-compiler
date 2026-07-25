@@ -3,8 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ "Contact confirmed" if success else "Confirmation failed" }} — PanicSwitch</title>
+    <title>{{ "Contact confirmed" if success else "Confirmation failed" }} — Panic Switch</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,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" />
     <style>
+      :root {
+        --primario: #EA2052;
+        --primario-oscuro: #690E25;
+      }
       * { box-sizing: border-box; }
       body {
         margin: 0;
@@ -14,7 +19,7 @@
         justify-content: center;
         padding: 24px;
         font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-        background: linear-gradient(160deg, #7f1d1d 0%, #b91c1c 45%, #dc2626 100%);
+        background: var(--primario);
       }
       .card {
         width: 100%;
@@ -24,6 +29,7 @@
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
         padding: 40px 36px;
         text-align: center;
+        animation: card-in 0.5s ease-out both;
       }
       .icon {
         width: 72px;
@@ -33,9 +39,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: {{ "#dc2626" if success else "#7f1d1d" }};
+        background: {{ "var(--primario)" if success else "var(--primario-oscuro)" }};
+        animation: pop-in 0.45s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
       }
       .icon svg { width: 36px; height: 36px; }
+      .icon svg polyline,
+      .icon svg line {
+        stroke-dasharray: 26;
+        stroke-dashoffset: 26;
+        animation: draw 0.35s 0.45s ease-out forwards;
+      }
       h1 {
         margin: 0 0 12px 0;
         font-size: 22px;
@@ -54,12 +67,23 @@
         font-size: 13px;
         font-weight: 700;
         letter-spacing: 0.5px;
-        color: #dc2626;
+        color: var(--primario);
       }
       .footnote {
         margin-top: 24px;
         font-size: 11px;
         color: #a1a1aa;
+      }
+      @keyframes card-in {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes pop-in {
+        from { opacity: 0; transform: scale(0); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+      @keyframes draw {
+        to { stroke-dashoffset: 0; }
       }
     </style>
   </head>
@@ -81,7 +105,7 @@
       <h1>{{ "You're confirmed!" if success else "This didn't work" }}</h1>
       <p class="message">{{ message }}</p>
 
-      <span class="brand">🆘 PANICSWITCH</span>
+      <span class="brand">PANIC SWITCH</span>
       <p class="footnote">Emergency alert system</p>
     </div>
   </body>

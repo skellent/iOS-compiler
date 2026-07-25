@@ -1,12 +1,12 @@
 import { Api, ApiError } from "../lib/api.js";
-import { setToken } from "../lib/session.js";
 import { showToast } from "../lib/toast.js";
-import { setLoading, shake } from "../lib/dom.js";
+import { setLoading, shake, escapeHtml } from "../lib/dom.js";
+import { Icon } from "../lib/icons.js";
 
-export async function renderRegister(container, { navigate, refreshUser }) {
+export async function renderRegister(container, { navigate }) {
   container.innerHTML = `
     <div class="auth-screen">
-      <div class="brand-mark">🆘</div>
+      <img class="brand-mark" src="assets/brand-mark.png" alt="" />
       <h1 class="auth-title">Create Account</h1>
       <p class="auth-subtitle">A few details, and you're ready to add your emergency contacts.</p>
 
@@ -57,16 +57,30 @@ export async function renderRegister(container, { navigate, refreshUser }) {
     setLoading(button, true);
     try {
       await Api.register(data);
-      const { access_token } = await Api.login({ email: data.email, password: data.password });
-      await setToken(access_token);
-      await refreshUser();
-      showToast("Account created — welcome to PanicSwitch.", "success");
-      navigate("home");
+      // Login is blocked until the account is confirmed, so there's nothing
+      // to log into yet — show the confirmation screen instead of trying
+      // (and failing) to start a session.
+      renderConfirmEmail(container, data.email, navigate);
     } catch (error) {
       shake(form);
       showToast(error instanceof ApiError ? error.message : "Something went wrong.", "error");
-    } finally {
       setLoading(button, false);
     }
   });
+}
+
+function renderConfirmEmail(container, email, navigate) {
+  container.innerHTML = `
+    <div class="confirm-mail-screen">
+      <div class="confirm-mail-icon">${Icon.mail()}</div>
+      <h1 class="auth-title">Check your email</h1>
+      <p class="auth-subtitle">
+        We sent a confirmation link to<br /><span class="confirm-mail-email">${escapeHtml(email)}</span>.
+        Open it on this device to activate your account, then come back and log in.
+      </p>
+      <button id="back-to-login" class="btn btn-outline" type="button">Back to Log In</button>
+    </div>
+  `;
+
+  container.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
 }

@@ -1,32 +1,57 @@
 import mariadb
 import sys
 
+from mariadb.constants import CLIENT
+
 class DuplicateRecordError(Exception):
     pass
 
 class Queries:
     SHOW_TABLES: str = "SHOW TABLES;"
     INSERT_USER: str = "INSERT INTO users (name, phone, email, password_hash) VALUES (%s, %s, %s, %s);"
-    SELECT_USER_BY_EMAIL: str = "SELECT id, name, phone, email, password_hash FROM users WHERE email = %s;"
+    SELECT_USER_BY_EMAIL: str = "SELECT id, name, phone, email, password_hash, confirmed FROM users WHERE email = %s;"
     SELECT_USER_BY_ID: str = "SELECT id, name, phone, email FROM users WHERE id = %s;"
 
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
     SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed FROM contacts WHERE user_id = %s;"
     SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email FROM contacts WHERE user_id = %s AND confirmed = TRUE;"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
+    DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
+
+    CONFIRM_USER: str = "UPDATE users SET confirmed = TRUE WHERE id = %s;"
+    PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"
 
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
 
 class Cursor:
 
     def __init__(self, username: str, password: str, host: str, port: int, database: str):
+        self._username = username
+        self._password = password
+        self._host     = host
+        self._port     = port
+        self._database = database
+        self._connect()
+
+
+    def _connect(self) -> None:
         try:
             self.conn = mariadb.connect(
-                user     = username,
-                password = password,
-                host     = host,
-                port     = port,
-                database = database
+                user        = self._username,
+                password    = self._password,
+                host        = self._host,
+                port        = self._port,
+                database    = self._database,
+                # Without this, UPDATEs that match a row but don't change its
+                # value report rowcount=0, indistinguishable from "no such
+                # row" — every existence/ownership check in this codebase
+                # relies on rowcount actually meaning "rows matched".
+                client_flag = CLIENT.FOUND_ROWS,
+                # Every write already calls commit() explicitly; this just
+                # guarantees a stray write on a code path that forgets to
+                # (or a plain SELECT, which still opens a transaction) can't
+                # leave a row locked indefinitely on this shared connection.
+                autocommit  = True,
             )
         except mariadb.Error as e:
             print(f"Error connecting to MariaDB: {e}")
@@ -39,6 +64,11 @@ class Cursor:
             self.cursor.execute(query, params)
         except mariadb.IntegrityError as e:
             raise DuplicateRecordError(str(e)) from e
+        except mariadb.InterfaceError:
+            # The idle connection was closed server-side (e.g. wait_timeout).
+            # Reconnect and retry the query once before giving up.
+            self._connect()
+            self.cursor.execute(query, params)
         try:
             return self.cursor.fetchall()
         except mariadb.ProgrammingError:

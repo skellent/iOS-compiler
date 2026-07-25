@@ -3,12 +3,13 @@ import { pickDeviceContact } from "../lib/contactsPicker.js";
 import { openSheet } from "../lib/sheet.js";
 import { showToast } from "../lib/toast.js";
 import { escapeHtml, setLoading, shake } from "../lib/dom.js";
+import { Icon } from "../lib/icons.js";
 
 export async function renderContacts(container) {
   container.innerHTML = `
     <div class="contacts-screen">
       <div id="contacts-list" class="contacts-list"></div>
-      <button id="add-contact-fab" class="fab" type="button" aria-label="Add emergency contact">+</button>
+      <button id="add-contact-fab" class="fab" type="button" aria-label="Add emergency contact">${Icon.add()}</button>
     </div>
   `;
 
@@ -58,7 +59,7 @@ function renderContactRows(list, contacts) {
           <span class="contact-phone">${escapeHtml(contact.phone)}</span>
         </span>
         <span class="badge ${contact.confirmed ? "badge-confirmed" : "badge-pending"}">
-          ${contact.confirmed ? "✓ Confirmed" : "Pending"}
+          ${contact.confirmed ? `${Icon.checkCircle()} Confirmed` : "Pending"}
         </span>
       </button>
     `
@@ -133,12 +134,21 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
         <span class="btn-label">${isEdit ? "Save Changes" : "Add Contact"}</span>
         <span class="btn-spinner" hidden></span>
       </button>
+      ${
+        isEdit
+          ? `<button type="button" class="btn btn-danger-outline btn-block" id="delete-contact">
+              ${Icon.delete()}
+              <span class="btn-label">Delete Contact</span>
+              <span class="btn-spinner" hidden></span>
+            </button>`
+          : ""
+      }
     </form>
   `;
 
   const { close } = openSheet(body);
   const form = body.querySelector("form");
-  const button = form.querySelector("button");
+  const button = form.querySelector('button[type="submit"]');
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -171,6 +181,25 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
       setLoading(button, false);
     }
   });
+
+  if (isEdit) {
+    const deleteButton = body.querySelector("#delete-contact");
+    deleteButton.addEventListener("click", async () => {
+      if (!confirm(`Remove ${contact.name} from your emergency contacts?`)) return;
+
+      setLoading(deleteButton, true);
+      try {
+        await Api.deleteContact(contact.id);
+        showToast("Contact removed.", "success");
+        close();
+        onSaved();
+      } catch (error) {
+        showToast(error instanceof ApiError ? error.message : "Couldn't remove contact.", "error");
+      } finally {
+        setLoading(deleteButton, false);
+      }
+    });
+  }
 }
 
 function diffFields(original, updated) {
