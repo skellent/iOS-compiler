@@ -1,6 +1,8 @@
 import mariadb
 import sys
 
+from mariadb.constants import CLIENT
+
 class DuplicateRecordError(Exception):
     pass
 
@@ -35,11 +37,21 @@ class Cursor:
     def _connect(self) -> None:
         try:
             self.conn = mariadb.connect(
-                user     = self._username,
-                password = self._password,
-                host     = self._host,
-                port     = self._port,
-                database = self._database
+                user        = self._username,
+                password    = self._password,
+                host        = self._host,
+                port        = self._port,
+                database    = self._database,
+                # Without this, UPDATEs that match a row but don't change its
+                # value report rowcount=0, indistinguishable from "no such
+                # row" — every existence/ownership check in this codebase
+                # relies on rowcount actually meaning "rows matched".
+                client_flag = CLIENT.FOUND_ROWS,
+                # Every write already calls commit() explicitly; this just
+                # guarantees a stray write on a code path that forgets to
+                # (or a plain SELECT, which still opens a transaction) can't
+                # leave a row locked indefinitely on this shared connection.
+                autocommit  = True,
             )
         except mariadb.Error as e:
             print(f"Error connecting to MariaDB: {e}")
