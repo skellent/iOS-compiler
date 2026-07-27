@@ -58,6 +58,8 @@ app/
       geolocation.js        — thin wrapper around @capacitor/geolocation for the panic button
       contactsPicker.js     — thin wrapper around @capacitor-community/contacts' native picker
       icons.js               — inline Material-style SVG icon set, see screens.md
+      i18n.js                — EN/ES string dictionary + t(key, vars); language persisted via @capacitor/preferences
+      theme.js                — derives the full --primary-* CSS scale from one chosen accent hex (HSL math), persisted the same way
       toast.js, sheet.js, dom.js — small shared UI helpers (toast notifications, bottom sheet, escaping/loading-state utilities)
     views/
       login.js, register.js, home.js, contacts.js, profile.js — one render(container, ctx) per screen

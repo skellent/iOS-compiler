@@ -197,6 +197,10 @@ def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
 
 Same ownership-scoping pattern as `PUT`: `Queries.DELETE_CONTACT` (see `cursor.md`) filters by `id` *and* `user_id` in one statement, so a contact that belongs to someone else looks identical, from the response, to one that doesn't exist — `404` either way. `status_code=204` (No Content) is the conventional response for a successful delete with nothing meaningful to return; the function has no `return` statement, and FastAPI sends an empty body to match.
 
+### `POST /contacts/{contact_id}/telegram/enable` and `DELETE /contacts/{contact_id}/telegram`
+
+Same ownership-scoping pattern as `PUT`/`DELETE` above (`WHERE id = %s AND user_id = %s`, `rowcount == 0` → `404`). `POST .../enable` generates a single-use, DB-backed token (`secrets.token_urlsafe(24)`, not a JWT — see `telegram.md` for why) and either emails a `t.me` deep link to the contact, or — if the contact has no `email` on file — hands the link straight back in the response so the app can offer it to share manually. `DELETE .../telegram` just clears `telegram_chat_id`/token via `Queries.CLEAR_CONTACT_TELEGRAM`. Full flow (including how `telegram_chat_id` actually gets set) is in `telegram.md`, not repeated here.
+
 ## `alerts.py`
 
 ```python
@@ -233,11 +237,15 @@ The endpoint that corresponds to hitting the panic button itself — the project
 
 ### Why only **confirmed** contacts get notified
 
-`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER` (see `cursor.md`), not `SELECT_CONTACTS_BY_USER`, decides who to notify. This isn't a technical limitation but the whole reason the `confirmed` column exists on `contacts` (see `sql.md`): adding someone as an emergency contact doesn't automatically grant their consent to receive alerts on their behalf. A contact who never confirmed simply doesn't show up in this query and receives nothing.
+`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER` (see `cursor.md`), not `SELECT_CONTACTS_BY_USER`, decides who to notify. This isn't a technical limitation but the whole reason the `confirmed`/`telegram_chat_id` columns exist on `contacts` (see `sql.md`): adding someone as an emergency contact doesn't automatically grant their consent to receive alerts on their behalf. A contact who never confirmed by either channel simply doesn't show up in this query and receives nothing.
+
+### Why Telegram and email are dispatched as two separate background tasks
+
+`create_alert` builds two recipient lists off the same `contacts` query result — one keyed by `email`, one by `telegram_chat_id` — and queues `Mail.SendBulk` and `Telegram.SendBulk` (see `telegram.md`) independently. A contact can be in either list, both, or neither; the two channels don't gate each other, so a Gmail outage doesn't stop Telegram notifications from going out, and vice versa.
 
 ### Why `Mail.SendBulk`, not `Mail.Send` in a loop
 
-An alert may need to notify several confirmed contacts at once. `Mail.SendBulk` (see `mail.md`) opens a single SMTP connection and sends every email for that alert through it, and guarantees that one contact with a delivery problem doesn't stop the rest from being notified — see `mail.md` for the complete detail.
+An alert may need to notify several confirmed contacts at once. `Mail.SendBulk` (see `mail.md`) opens a single SMTP connection and sends every email for that alert through it, and guarantees that one contact with a delivery problem doesn't stop the rest from being notified — see `mail.md` for the complete detail. `Telegram.SendBulk` follows the exact same shape, one `httpx.AsyncClient` reused across every chat id in the batch.
 
 ### Why in the background
 
@@ -247,6 +255,24 @@ The `INSERT` into `alerts` — the durable record that the alert happened — is
 
 The template's context uses `datetime.now()`, computed at the moment of responding, not a `SELECT` of the just-inserted row (whose `created_at` MariaDB fills in with `DEFAULT CURRENT_TIMESTAMP`, see `sql.md`). In practice they're the same instant — an extra query isn't worth it just to show a value already known with more than enough precision for a notification email.
 
+## `telegram.py`
+
+```python
+router = APIRouter(prefix="/telegram", tags=["telegram"])
+
+@router.post("/webhook")
+async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: str | None = Header(default=None)):
+    if _WEBHOOK_SECRET and x_telegram_bot_api_secret_token != _WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+    try:
+        await _handle_update(await request.json())
+    except Exception as e:
+        print(f"Error handling Telegram webhook: {e}")
+    return {"ok": True}
+```
+
+The one endpoint in this file that isn't reached by the app at all — Telegram's own servers call it, every time someone messages the bot. It has no `Depends(current_user)`: there's no session token to check, because the caller isn't a logged-in user, it's Telegram relaying an `Update`. See `telegram.md` for the full flow, the webhook secret, and why it always answers `200` even when something inside failed.
+
 ## Relationship with the rest of the backend
 
-`main.py` imports all four modules in this directory and mounts their routers with `include_router` (see `main.md`). All of them depend on `modules/db.py` (the shared `cursor`) and `modules/cursor.py` (`Queries`, and — except `alerts.py` — `DuplicateRecordError`); `users.py`, `contacts.py` and `alerts.py` additionally depend on `modules/dependencies.py` to require authentication. `modules/guard.py` is used by `auth.py` (hashing at registration, verifying at login) and `users.py` (hashing on password change). `modules/token.py` is used by `auth.py` (session and user-confirmation tokens) and `contacts.py` (contact-confirmation tokens) — `alerts.py` and `users.py` don't issue or validate any token of their own. `modules/mail.py` (see `mail.md`) is used by `auth.py` and `contacts.py` (`Mail.Send`, one recipient at a time) and `alerts.py` (`Mail.SendBulk`, one to many). `modules/pages.py` (see `pages.md`) is used by `auth.py` and `contacts.py`, to render the HTML pages their `confirm/{token}` endpoints show instead of JSON.
+`main.py` imports all five modules in this directory and mounts their routers with `include_router` (see `main.md`). All of them depend on `modules/db.py` (the shared `cursor`) and `modules/cursor.py` (`Queries`, and — except `alerts.py` — `DuplicateRecordError`); `users.py`, `contacts.py` and `alerts.py` additionally depend on `modules/dependencies.py` to require authentication. `modules/guard.py` is used by `auth.py` (hashing at registration, verifying at login) and `users.py` (hashing on password change). `modules/token.py` is used by `auth.py` (session and user-confirmation tokens) and `contacts.py` (contact-confirmation tokens) — `alerts.py` and `users.py` don't issue or validate any token of their own. `modules/mail.py` (see `mail.md`) is used by `auth.py` and `contacts.py` (`Mail.Send`, one recipient at a time) and `alerts.py` (`Mail.SendBulk`, one to many). `modules/pages.py` (see `pages.md`) is used by `auth.py` and `contacts.py`, to render the HTML pages their `confirm/{token}` endpoints show instead of JSON. `modules/telegram.py` (see `telegram.md`) is used by `contacts.py` (linking/unlinking), `alerts.py` (`Telegram.SendBulk`), and its own `telegram.py` router (`Telegram.Send` for the bot's chat replies) — `telegram.py` (the router) is also the only file in this directory `contacts.py` doesn't import from, and vice versa; the two share the database, not each other's code.

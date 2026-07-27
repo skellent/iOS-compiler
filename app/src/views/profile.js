@@ -3,10 +3,15 @@ import { showToast } from "../lib/toast.js";
 import { escapeHtml, setLoading, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t } from "../lib/i18n.js";
+import { DEFAULT_ACCENT } from "../lib/theme.js";
 
-export async function renderProfile(container, { getUser, refreshUser, logout, getLanguage, changeLanguage }) {
+const COLOR_PRESETS = [DEFAULT_ACCENT, "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
+
+export async function renderProfile(container, { getUser, refreshUser, logout, getLanguage, changeLanguage, getAccentColor, setAccentColor }) {
   const user = getUser();
   const lang = getLanguage();
+  const accentColor = getAccentColor();
+  const isPreset = COLOR_PRESETS.includes(accentColor);
 
   container.innerHTML = `
     <div class="profile-screen">
@@ -43,6 +48,23 @@ export async function renderProfile(container, { getUser, refreshUser, logout, g
         </div>
       </div>
 
+      <div class="color-switcher">
+        <span class="lang-switcher-label">${Icon.palette()} ${t("profile.color")}</span>
+        <div class="color-swatches">
+          ${COLOR_PRESETS.map(
+            (hex) => `
+            <button type="button" class="color-swatch ${!isPreset ? "" : hex === accentColor ? "color-swatch-active" : ""}"
+                    data-color="${hex}" style="background:${hex}" aria-label="${hex}"></button>
+          `
+          ).join("")}
+          <label class="color-swatch color-swatch-custom ${!isPreset ? "color-swatch-active" : ""}"
+                 style="background:${!isPreset ? accentColor : "conic-gradient(from 0deg, red, orange, yellow, green, blue, violet, red)"}"
+                 title="${t("profile.colorCustom")}">
+            <input type="color" id="color-custom-input" value="${accentColor}" />
+          </label>
+        </div>
+      </div>
+
       <button id="logout-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.logout()}
         <span class="btn-label">${t("profile.logout")}</span>
@@ -56,6 +78,30 @@ export async function renderProfile(container, { getUser, refreshUser, logout, g
 
   container.querySelectorAll(".lang-option").forEach((option) => {
     option.addEventListener("click", () => changeLanguage(option.dataset.lang));
+  });
+
+  const customSwatch = container.querySelector(".color-swatch-custom");
+  const customInput = container.querySelector("#color-custom-input");
+
+  function markActiveSwatch(hex) {
+    container.querySelectorAll(".color-swatch[data-color]").forEach((swatch) => {
+      swatch.classList.toggle("color-swatch-active", swatch.dataset.color === hex);
+    });
+    const isCustom = !COLOR_PRESETS.includes(hex);
+    customSwatch.classList.toggle("color-swatch-active", isCustom);
+    if (isCustom) customSwatch.style.background = hex;
+  }
+
+  container.querySelectorAll(".color-swatch[data-color]").forEach((swatch) => {
+    swatch.addEventListener("click", () => {
+      setAccentColor(swatch.dataset.color);
+      markActiveSwatch(swatch.dataset.color);
+    });
+  });
+
+  customInput.addEventListener("input", () => {
+    setAccentColor(customInput.value);
+    markActiveSwatch(customInput.value);
   });
 
   form.addEventListener("submit", async (event) => {

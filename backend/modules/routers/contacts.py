@@ -1,3 +1,6 @@
+import secrets
+from datetime import datetime
+
 from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 
@@ -7,12 +10,14 @@ from modules.cursor       import Queries
 from modules.db           import cursor
 from modules.dependencies import current_user
 from modules.pages        import Pages
+from modules.telegram     import LINK_EXPIRATION
 from modules.token        import Token
 from modules.types        import Contact, ContactUpdate
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
 _URL_BASE: str = get_credentials()['api_base_url']
+_TELEGRAM_BOT_USERNAME: str = get_credentials()['telegram']['bot_username']
 
 
 @router.post("", status_code=201)
@@ -99,6 +104,54 @@ def update_contact(contact_id: int, data: ContactUpdate, user_id: int = Depends(
 @router.delete("/{contact_id}", status_code=204)
 def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
     cursor.execute(Queries.DELETE_CONTACT, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
+
+
+@router.post("/{contact_id}/telegram/enable")
+def enable_contact_telegram(contact_id: int, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
+    # Not a JWT like Token.CreateContactConfirmation: Telegram's deep-link
+    # `start` parameter only allows [A-Za-z0-9_-], which a dot-separated JWT
+    # can't satisfy. An opaque, DB-backed token also means it can be (and is)
+    # invalidated after first use — unlike the still-stateless email token.
+    link_token: str = secrets.token_urlsafe(24)
+    expires_at: datetime = datetime.now() + LINK_EXPIRATION
+
+    cursor.execute(Queries.SET_CONTACT_TELEGRAM_LINK_TOKEN, (link_token, expires_at, contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
+
+    rows: list[dict] = cursor.execute("SELECT name, email FROM contacts WHERE id = %s;", (contact_id,))
+    contact: dict = rows[0]
+    telegram_link_url: str = f"https://t.me/{_TELEGRAM_BOT_USERNAME}?start={link_token}"
+
+    if contact["email"]:
+        user_rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
+        background_tasks.add_task(
+            Mail.Send,
+            contact["email"],
+            "Link Telegram to receive panic alerts",
+            "telegram_link",
+            {
+                "contact_name":      contact["name"],
+                "user_name":         user_rows[0]["name"],
+                "telegram_link_url": telegram_link_url,
+            },
+        )
+        # The contact has an email on file: they get the link there, same as
+        # the existing confirmation flow, so the app doesn't need to show it.
+        return {"telegram_link_url": None}
+
+    # No email to send it to — hand the link back so the app can offer it to
+    # share manually (copy/share sheet) instead of silently doing nothing.
+    return {"telegram_link_url": telegram_link_url}
+
+
+@router.delete("/{contact_id}/telegram", status_code=204)
+def disable_contact_telegram(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.CLEAR_CONTACT_TELEGRAM, (contact_id, user_id))
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()

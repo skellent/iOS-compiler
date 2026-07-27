@@ -156,65 +156,6 @@ button {
   flex-shrink: 0;
 }
 
-/* App bar */
-
-#app-bar {
-  position: relative;
-  background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  color: var(--text-000);
-  padding: calc(16px + var(--safe-top)) 20px 16px 20px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 0 rgba(234, 32, 82, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-#app-bar-title {
-  flex: 1;
-}
-
-.app-bar-clock {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: none;
-  color: var(--text-500);
-}
-
-#app-bar-title::before {
-  content: "";
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 10px;
-  border-radius: 50%;
-  background: var(--primary-500);
-  box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.6);
-  animation: dot-pulse 2s ease-in-out infinite;
-  vertical-align: middle;
-}
-
-@keyframes dot-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.55);
-  }
-  70% {
-    box-shadow: 0 0 0 7px rgba(234, 32, 82, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0);
-  }
-}
-
 /* View container */
 
 .view {
@@ -231,16 +172,23 @@ button {
   transform: translateY(0);
 }
 
-/* Bottom nav */
+/* Bottom nav — a floating pill; whichever tab is selected gets its icon
+   raised into a glowing circular badge that pokes above the bar (reference:
+   app/assets/navbar referencia.jpg), not just a fixed tab. */
 
 #bottom-nav {
+  position: relative;
   display: flex;
+  align-items: flex-end;
+  margin: 0 16px calc(14px + var(--safe-bottom)) 16px;
+  padding: 10px 6px 10px 6px;
+  border-radius: 26px;
+  overflow: visible;
   background: var(--glass-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-top: 1px solid var(--line);
-  box-shadow: 0 -1px 0 rgba(234, 32, 82, 0.3);
-  padding-bottom: var(--safe-bottom);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(234, 32, 82, 0.12);
   flex-shrink: 0;
 }
 
@@ -249,14 +197,15 @@ button {
 }
 
 .nav-tab {
+  position: relative;
   flex: 1;
   border: none;
   background: none;
-  padding: 10px 0 8px 0;
+  padding: 8px 0 2px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
   color: var(--text-500);
   font-size: 10px;
   font-weight: 700;
@@ -266,19 +215,52 @@ button {
 }
 
 .nav-tab-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   font-size: 22px;
+  color: inherit;
   opacity: 0.6;
-  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), color 0.28s ease;
 }
 
 .nav-tab-active {
   color: var(--primary-400);
 }
 
+/* The selected tab's icon lifts into a filled circular badge that pokes
+   above the bar — whichever of the three tabs is active, not just Home.
+   Kept in normal flow the whole time (never position: absolute) and driven
+   purely by transform/opacity, so it fades and rises in place instead of
+   snapping between a static and an absolute layout. The badge itself is a
+   ::before so its fade-in doesn't fight the icon glyph's own transform. */
+
+.nav-tab-icon::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--primary-500), var(--primary-900));
+  box-shadow: 0 10px 22px rgba(234, 32, 82, 0.55), 0 0 0 6px var(--bg-900);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .nav-tab-active .nav-tab-icon {
   opacity: 1;
-  transform: scale(1.12);
-  filter: drop-shadow(0 0 8px var(--glow));
+  color: #fff;
+  transform: translateY(-26px) scale(1.15);
+}
+
+.nav-tab-active .nav-tab-icon::before {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* Forms */
@@ -332,6 +314,60 @@ button {
   text-transform: none;
   color: var(--text-500);
   line-height: 1.5;
+}
+
+/* Phone country code + number, and email domain quick-picks (contact form) */
+
+.phone-field {
+  display: flex;
+  gap: 8px;
+}
+
+.phone-field select.phone-country {
+  flex: 0 0 auto;
+  width: 112px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 13px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-100);
+  background: var(--surface);
+}
+
+.phone-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.email-domain-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.email-domain-chip {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-500);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.email-domain-chip:hover,
+.email-domain-chip:active {
+  background: var(--primary-50);
+  border-color: var(--primary-700);
+  color: var(--primary-400);
 }
 
 /* Buttons */
@@ -470,7 +506,7 @@ button {
 /* Auth screens */
 
 .auth-screen {
-  padding: 48px 28px 32px 28px;
+  padding: calc(48px + var(--safe-top)) 28px 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -633,7 +669,7 @@ button {
 
 .home-hud {
   position: absolute;
-  top: calc(64px + var(--safe-top));
+  top: calc(28px + var(--safe-top));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -725,21 +761,62 @@ button {
   }
 }
 
+/* Two staggered rings within one cycle (the second starts as the first is
+   already fading) plus a very slight breathing scale, for a livelier "sonar
+   ping" than a single expanding ring. */
 @keyframes idle-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.45), 0 20px 60px rgba(234, 32, 82, 0.25);
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.5), 0 0 0 0 rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+  }
+  35% {
+    transform: scale(1.018);
+    box-shadow: 0 0 0 14px rgba(234, 32, 82, 0.16), 0 0 0 0 rgba(234, 32, 82, 0.4), 0 20px 60px rgba(234, 32, 82, 0.25);
   }
   70% {
-    box-shadow: 0 0 0 26px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+    transform: scale(1);
+    box-shadow: 0 0 0 26px rgba(234, 32, 82, 0), 0 0 0 14px rgba(234, 32, 82, 0.14), 0 20px 60px rgba(234, 32, 82, 0.25);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+    transform: scale(1);
+    box-shadow: 0 0 0 26px rgba(234, 32, 82, 0), 0 0 0 26px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
   }
+}
+
+/* Breathing glow on the wordmark itself, offset from the ring pulse above
+   so the whole button never looks static even before it's touched. */
+@keyframes icon-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    text-shadow: 0 0 16px rgba(255, 255, 255, 0.75);
+  }
+}
+
+.panic-icon {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #fff;
+  z-index: 1;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.35));
+  animation: icon-glow 2.4s ease-in-out infinite;
 }
 
 .panic-btn-holding {
   animation: none;
   transform: scale(0.98);
+  /* --hold (0 → 1) is written from home.js on every animation frame of the
+     hold, so the glow visibly builds as the ring fills instead of just
+     jumping between fixed idle/busy states. */
+  box-shadow: 0 0 calc(20px + var(--hold, 0) * 50px) calc(2px + var(--hold, 0) * 10px) rgba(234, 32, 82, calc(0.35 + var(--hold, 0) * 0.4)),
+    0 20px 60px rgba(234, 32, 82, 0.25);
+}
+
+.panic-btn-holding .panic-icon {
+  animation: none;
 }
 
 .panic-btn-holding::before,
@@ -751,22 +828,49 @@ button {
   animation: idle-pulse 0.9s ease-in-out infinite;
 }
 
+.panic-btn-busy::before,
+.panic-btn-busy::after {
+  animation-duration: 0.8s;
+}
+
+@keyframes success-burst {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.6), 0 20px 60px rgba(234, 32, 82, 0.25);
+  }
+  45% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 44px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+  }
+}
+
 .panic-btn-success {
   background: radial-gradient(circle at 35% 30%, var(--primary-500), var(--bg-900));
-  animation: none;
+  animation: success-burst 0.6s ease-out;
 }
 
 .panic-btn-error {
   animation: none;
 }
 
-.panic-icon {
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: 3px;
-  color: #fff;
-  z-index: 1;
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.35));
+@keyframes error-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.6), 0 20px 60px rgba(234, 32, 82, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.45);
+  }
+}
+
+/* Combined with .shake (already applied to the button on failure) so the
+   positional wiggle and the red glow pulse run together instead of one
+   `animation` shorthand silently overriding the other. */
+.panic-btn-error.shake {
+  animation: error-flash 0.5s ease-in-out 3, shake 0.4s ease;
 }
 
 .panic-icon[hidden] {
@@ -829,9 +933,16 @@ button {
   font-weight: 600;
   font-family: var(--font-mono);
   letter-spacing: 0.4px;
+  line-height: 1.4;
   color: var(--text-500);
   text-align: center;
-  min-height: 20px;
+  /* Reserved for two lines at this size, so switching between a short
+     status ("Sending alert...") and a longer one that wraps doesn't change
+     .panic-wrap's height and nudge the button above it. */
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 32px;
 }
 
@@ -840,7 +951,7 @@ button {
 .contacts-screen {
   position: relative;
   height: 100%;
-  padding: 20px 20px 90px 20px;
+  padding: calc(20px + var(--safe-top)) 20px 90px 20px;
 }
 
 .contacts-list {
@@ -987,6 +1098,16 @@ button {
   }
 }
 
+.badge-telegram {
+  background: rgba(34, 158, 217, 0.14);
+  color: #229ed9;
+  padding: 5px 8px;
+}
+
+.badge-telegram .icon {
+  font-size: 13px;
+}
+
 .contacts-empty {
   text-align: center;
   color: var(--text-500);
@@ -1023,7 +1144,7 @@ button {
 /* Profile screen */
 
 .profile-screen {
-  padding: 32px 24px 40px 24px;
+  padding: calc(32px + var(--safe-top)) 24px 40px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1104,6 +1225,61 @@ button {
   background: linear-gradient(120deg, var(--primary-600), var(--primary-900));
   color: #fff;
   box-shadow: 0 2px 10px rgba(234, 32, 82, 0.4);
+}
+
+/* Accent color picker */
+
+.color-switcher {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.color-swatches {
+  display: flex;
+  gap: 8px;
+}
+
+.color-swatch {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--line-strong);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.color-swatch:active {
+  transform: scale(0.9);
+}
+
+.color-swatch-active {
+  border-color: var(--bg-800);
+  box-shadow: 0 0 0 2px var(--text-100);
+}
+
+.color-swatch-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.color-swatch-custom input[type="color"] {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  cursor: pointer;
 }
 
 /* Danger buttons */
@@ -1188,7 +1364,7 @@ button {
 /* Confirm-your-email screen (post-registration) */
 
 .confirm-mail-screen {
-  padding: 56px 28px 32px 28px;
+  padding: calc(56px + var(--safe-top)) 28px 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1231,8 +1407,7 @@ button {
   .panic-btn,
   .panic-btn::before,
   .panic-btn::after,
-  .badge-pending,
-  #app-bar-title::before {
+  .badge-pending {
     animation: none !important;
   }
 }

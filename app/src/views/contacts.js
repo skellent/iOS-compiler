@@ -5,6 +5,17 @@ import { showToast } from "../lib/toast.js";
 import { escapeHtml, setLoading, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t } from "../lib/i18n.js";
+import { attachPhoneSanitizer, buildCountryCodeOptions, combinePhone, splitPhone } from "../lib/phone.js";
+
+const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
+
+function insertEmailDomain(input, domain) {
+  const at = input.value.indexOf("@");
+  const local = at >= 0 ? input.value.slice(0, at) : input.value;
+  input.value = `${local}@${domain}`;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
 
 export async function renderContacts(container) {
   container.innerHTML = `
@@ -57,6 +68,7 @@ function renderContactRows(list, contacts) {
         <span class="badge ${contact.confirmed ? "badge-confirmed" : "badge-pending"}">
           ${contact.confirmed ? `${Icon.checkCircle()} ${t("contacts.confirmed")}` : `${Icon.schedule()} ${t("contacts.pending")}`}
         </span>
+        ${contact.telegram_linked ? `<span class="badge badge-telegram" title="${t("contacts.telegramLinked")}">${Icon.telegram()}</span>` : ""}
       </button>
     `
     )
@@ -107,6 +119,7 @@ function openAddOptionsSheet(onSaved) {
 function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
   const isEdit = Boolean(contact);
   const initial = contact ?? prefill ?? { name: "", phone: "", email: "" };
+  const { countryCode, number } = splitPhone(initial.phone);
 
   const body = document.createElement("div");
   body.innerHTML = `
@@ -118,17 +131,32 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
       </label>
       <label class="field">
         <span>${t("contacts.phone")}</span>
-        <input type="tel" name="phone" required value="${escapeHtml(initial.phone ?? "")}" />
+        <div class="phone-field">
+          <select name="phone_country" class="phone-country">${buildCountryCodeOptions(countryCode)}</select>
+          <input type="tel" name="phone_number" inputmode="numeric" required value="${escapeHtml(number)}" />
+        </div>
       </label>
       <label class="field">
         <span>${t("contacts.emailOptional")}</span>
         <input type="email" name="email" value="${escapeHtml(initial.email ?? "")}" />
+        <div class="email-domain-chips">
+          ${EMAIL_DOMAINS.map((domain) => `<button type="button" class="email-domain-chip" data-domain="${domain}">@${domain}</button>`).join("")}
+        </div>
       </label>
       ${!isEdit ? `<p class="field-hint">${t("contacts.emailHint")}</p>` : ""}
       <button type="submit" class="btn btn-primary btn-block">
         <span class="btn-label">${isEdit ? t("contacts.save") : t("contacts.add")}</span>
         <span class="btn-spinner" hidden></span>
       </button>
+      ${
+        isEdit
+          ? `<button type="button" class="btn btn-outline btn-block" id="telegram-toggle">
+              ${Icon.telegram()}
+              <span class="btn-label">${contact.telegram_linked ? t("contacts.telegramDisconnect") : t("contacts.telegramConnect")}</span>
+              <span class="btn-spinner" hidden></span>
+            </button>`
+          : ""
+      }
       ${
         isEdit
           ? `<button type="button" class="btn btn-danger-outline btn-block" id="delete-contact">
@@ -145,9 +173,20 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
   const form = body.querySelector("form");
   const button = form.querySelector('button[type="submit"]');
 
+  attachPhoneSanitizer(form.querySelector('input[name="phone_number"]'));
+  const emailInput = form.querySelector('input[name="email"]');
+  form.querySelectorAll(".email-domain-chip").forEach((chip) => {
+    chip.addEventListener("click", () => insertEmailDomain(emailInput, chip.dataset.domain));
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
+    const formData = Object.fromEntries(new FormData(form));
+    const data = {
+      name: formData.name,
+      phone: combinePhone(formData.phone_country, formData.phone_number),
+      email: formData.email,
+    };
     data.email = data.email.trim() || null;
 
     setLoading(button, true);
@@ -175,6 +214,37 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
   });
 
   if (isEdit) {
+    const telegramButton = body.querySelector("#telegram-toggle");
+    telegramButton.addEventListener("click", async () => {
+      setLoading(telegramButton, true);
+      try {
+        if (contact.telegram_linked) {
+          await Api.disableContactTelegram(contact.id);
+          showToast(t("contacts.telegramDisconnected"), "success");
+        } else {
+          const result = await Api.enableContactTelegram(contact.id);
+          if (result.telegram_link_url) {
+            try {
+              await navigator.clipboard.writeText(result.telegram_link_url);
+            } catch {
+              // Clipboard access can be denied/unavailable; the toast below
+              // still tells the user a link exists even if the copy failed.
+            }
+            showToast(t("contacts.telegramLinkReady"), "success");
+          } else {
+            showToast(t("contacts.telegramEmailSent"), "success");
+          }
+        }
+        close();
+        onSaved();
+      } catch (error) {
+        const fallbackKey = contact.telegram_linked ? "contacts.telegramDisableError" : "contacts.telegramEnableError";
+        showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
+      } finally {
+        setLoading(telegramButton, false);
+      }
+    });
+
     const deleteButton = body.querySelector("#delete-contact");
     deleteButton.addEventListener("click", async () => {
       if (!confirm(t("contacts.removeConfirm", { name: contact.name }))) return;

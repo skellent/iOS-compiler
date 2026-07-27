@@ -54,6 +54,7 @@ export async function renderHome(container, { getUser }) {
 
   function setRingProgress(progress) {
     ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - progress));
+    btn.style.setProperty("--hold", String(progress));
   }
 
   function tick() {

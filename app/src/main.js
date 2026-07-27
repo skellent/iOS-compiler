@@ -1,6 +1,7 @@
 import { getToken, clearToken, getUser, setUser } from "./lib/session.js";
 import { Api } from "./lib/api.js";
 import { loadLanguage, setLanguage, getLanguage, t } from "./lib/i18n.js";
+import { loadAccentColor, setAccentColor, getAccentColor } from "./lib/theme.js";
 
 import { renderLogin } from "./views/login.js";
 import { renderRegister } from "./views/register.js";
@@ -10,15 +11,7 @@ import { renderProfile } from "./views/profile.js";
 
 const viewEl = document.getElementById("view");
 const bottomNav = document.getElementById("bottom-nav");
-const appBarTitle = document.getElementById("app-bar-title");
-const appBarClock = document.getElementById("app-bar-clock");
 const navTabs = [...document.querySelectorAll("#bottom-nav .nav-tab")];
-
-function tickClock() {
-  appBarClock.textContent = new Date().toLocaleTimeString("en-GB");
-}
-tickClock();
-setInterval(tickClock, 1000);
 
 const ROUTES = {
   login: { render: renderLogin, titleKey: "route.login.title", public: true },
@@ -34,7 +27,7 @@ function applyStaticLabels() {
   });
   const activeRoute = ROUTES[currentRouteName()];
   if (activeRoute) {
-    appBarTitle.textContent = activeRoute.title ?? t(activeRoute.titleKey);
+    document.title = activeRoute.title ?? t(activeRoute.titleKey);
   }
 }
 
@@ -88,7 +81,7 @@ async function renderCurrentRoute() {
     return;
   }
 
-  appBarTitle.textContent = route.title ?? t(route.titleKey);
+  document.title = route.title ?? t(route.titleKey);
   bottomNav.classList.toggle("hidden", route.public);
   navTabs.forEach((tab) => tab.classList.toggle("nav-tab-active", tab.dataset.route === name));
 
@@ -96,7 +89,16 @@ async function renderCurrentRoute() {
   await wait(140);
   viewEl.innerHTML = "";
 
-  await route.render(viewEl, { navigate, logout, getUser, refreshUser, getLanguage, changeLanguage });
+  await route.render(viewEl, {
+    navigate,
+    logout,
+    getUser,
+    refreshUser,
+    getLanguage,
+    changeLanguage,
+    getAccentColor,
+    setAccentColor,
+  });
 
   requestAnimationFrame(() => viewEl.classList.add("view-visible"));
 }
@@ -106,6 +108,7 @@ navTabs.forEach((tab) => tab.addEventListener("click", () => navigate(tab.datase
 
 async function boot() {
   await loadLanguage();
+  await loadAccentColor();
   applyStaticLabels();
 
   const token = await getToken();

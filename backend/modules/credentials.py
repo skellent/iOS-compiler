@@ -26,6 +26,11 @@ def get_credentials() -> dict:
             'host':     os.getenv("SMTP_HOST", "smtp.gmail.com"),
             'port':     int(os.getenv("SMTP_PORT", 587)),
         },
+        "telegram": {
+            'bot_token':      os.getenv("TELEGRAM_BOT_TOKEN"),
+            'bot_username':   os.getenv("TELEGRAM_BOT_USERNAME"),
+            'webhook_secret': os.getenv("TELEGRAM_WEBHOOK_SECRET"),
+        },
         "api_base_url": os.getenv("API_BASE_URL", "http://127.0.0.1:8000"),
         "app_mode": os.getenv("APP_MODE", "Debug"),
         "app_deep_link": os.getenv("APP_DEEP_LINK", "panicswitch://confirmed"),

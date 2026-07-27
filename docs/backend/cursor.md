@@ -22,10 +22,15 @@ class Queries:
     SELECT_USER_BY_ID: str = "SELECT id, name, phone, email FROM users WHERE id = %s;"
 
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
-    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed FROM contacts WHERE user_id = %s;"
-    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email FROM contacts WHERE user_id = %s AND confirmed = TRUE;"
+    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked FROM contacts WHERE user_id = %s;"
+    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
     DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
+
+    SET_CONTACT_TELEGRAM_LINK_TOKEN: str = "UPDATE contacts SET telegram_link_token = %s, telegram_link_expires_at = %s WHERE id = %s AND user_id = %s;"
+    SELECT_CONTACT_BY_TELEGRAM_TOKEN: str = "SELECT contacts.id, contacts.name AS contact_name, users.name AS user_name FROM contacts JOIN users ON users.id = contacts.user_id WHERE contacts.telegram_link_token = %s AND contacts.telegram_link_expires_at > NOW();"
+    CONFIRM_CONTACT_TELEGRAM: str = "UPDATE contacts SET telegram_chat_id = %s, telegram_link_token = NULL, telegram_link_expires_at = NULL WHERE id = %s;"
+    CLEAR_CONTACT_TELEGRAM: str = "UPDATE contacts SET telegram_chat_id = NULL, telegram_link_token = NULL, telegram_link_expires_at = NULL WHERE id = %s AND user_id = %s;"
 
     CONFIRM_USER: str = "UPDATE users SET confirmed = TRUE WHERE id = %s;"
     PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"
@@ -37,7 +42,8 @@ class Queries:
 - `CONFIRM_CONTACT` and `CONFIRM_USER` are fixed constants, unlike the partial edits in `users.py`/`contacts.py` (see below): each always touches the same column with the same fixed value (`TRUE`), never a variable subset of fields depending on what the client sent. `GET /contacts/confirm/{token}` and `GET /auth/confirm/{token}` (see `routers.md`, `mail.md`) use them respectively.
 - `DELETE_CONTACT` filters by both `id` and `user_id` in the same statement, the same ownership-scoping pattern `PUT /{contact_id}` already uses (see `routers.md`) — a contact that exists but belongs to someone else is indistinguishable, from the caller's point of view, from one that doesn't exist at all.
 - `PURGE_UNCONFIRMED_USERS` is the only query in this class not called from a router — it backs `scripts/purge_unconfirmed_users.py` (see `scripts.md`), a standalone maintenance job, not an HTTP endpoint.
-- `SELECT_CONFIRMED_CONTACTS_BY_USER` is a variant of `SELECT_CONTACTS_BY_USER` with a stricter `WHERE` and fewer columns: it doesn't fetch `id` (no one needs to edit these contacts, just email them) and filters by `confirmed = TRUE`. `POST /alerts` uses it to decide who to notify when an alert fires — a different question than `SELECT_CONTACTS_BY_USER` (which returns every contact, confirmed or not, for `GET /contacts`).
+- `SELECT_CONFIRMED_CONTACTS_BY_USER` is a variant of `SELECT_CONTACTS_BY_USER` with a stricter `WHERE` and fewer columns: it doesn't fetch `id` (no one needs to edit these contacts, just notify them) and filters by `confirmed = TRUE OR telegram_chat_id IS NOT NULL` — either channel alone is enough to be notified, they aren't sequential steps. `POST /alerts` uses it to decide who to notify when an alert fires — a different question than `SELECT_CONTACTS_BY_USER` (which returns every contact, confirmed or not, for `GET /contacts`, alongside a computed `telegram_linked` boolean so the app can show connection status without exposing the raw `chat_id`).
+- `SET_CONTACT_TELEGRAM_LINK_TOKEN`, `SELECT_CONTACT_BY_TELEGRAM_TOKEN`, `CONFIRM_CONTACT_TELEGRAM` and `CLEAR_CONTACT_TELEGRAM` back the Telegram-linking flow end to end — see `telegram.md` for the full sequence. Like `DELETE_CONTACT`, the ones that mutate on the app-user's behalf (`SET_CONTACT_TELEGRAM_LINK_TOKEN`, `CLEAR_CONTACT_TELEGRAM`) scope by `id AND user_id`; `SELECT_CONTACT_BY_TELEGRAM_TOKEN` and `CONFIRM_CONTACT_TELEGRAM` don't, because by that point in the flow the caller is Telegram itself (via the webhook), not an authenticated app user — the token, not `user_id`, is what proves which contact this request is about.
 - There's no fixed `UPDATE_USER` or `UPDATE_CONTACT` constant: a partial edit (`PUT /users/me`, `PUT /contacts/{id}`) should only touch the fields the client actually sent, so those queries are built dynamically inside their respective routers instead (see `routers.md`), concatenating only the column names that correspond to the fields present. This stays safe even though column names are concatenated directly into the SQL string: what gets concatenated are *column names*, which can only come from a fixed, known-in-advance list (the Pydantic model's fields, see `types.md`), never from arbitrary text written by whoever calls the API — the only thing that travels parameterized with `%s` are the values, same as in every other query.
 
 ## Why wrap the connection in a `Cursor` class

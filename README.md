@@ -40,6 +40,9 @@ SMTP_USER=''
 SMTP_PASSWORD=''
 SMTP_HOST='smtp.gmail.com'
 SMTP_PORT=587
+TELEGRAM_BOT_TOKEN=''
+TELEGRAM_BOT_USERNAME=''
+TELEGRAM_WEBHOOK_SECRET=''
 API_BASE_URL='http://127.0.0.1:8000'
 APP_MODE='Debug'
 ```
@@ -47,6 +50,8 @@ APP_MODE='Debug'
 `JWT_SECRET_KEY` is the key the backend uses to sign and verify the session tokens (JWT) issued by `POST /auth/login` — see `docs/backend/token.md` for the detail of how it's used. It isn't a MariaDB credential, so it doesn't come out of step 1's database setup: it has to be generated separately.
 
 `SMTP_USER`/`SMTP_PASSWORD` are the Google Workspace account (`soporte@keylogics.com`) emails confirming emergency contacts are sent from, and `SMTP_PASSWORD` is specifically a 16-character **app password** (`myaccount.google.com/apppasswords`), not the account's real password — Google hasn't accepted basic SMTP authentication on Workspace accounts since March 2025. It requires 2-Step Verification active on that account and the Workspace administrator allowing app passwords to be created. See `docs/backend/mail.md` for the complete detail (including the OAuth2 alternative, on the `feature/correo-oauth2` branch, if the client prefers not to rely on app passwords). `API_BASE_URL` is the public URL the API uses to build the confirmation link that travels in those emails — in production, the real domain behind nginx (see `NGINX.md`).
+
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME` come from a bot registered with Telegram's own **@BotFather** (see the step-by-step below); `TELEGRAM_WEBHOOK_SECRET`, like `JWT_SECRET_KEY`, isn't issued by anyone — it's a random string this deployment makes up and registers with Telegram, used to verify that a call to `POST /telegram/webhook` genuinely came from Telegram and not from anyone who found the URL. All three are optional: without a `TELEGRAM_BOT_TOKEN`, the backend boots normally and simply never registers a webhook or sends Telegram messages — see `docs/backend/telegram.md` for the full flow.
 
 #### `APP_MODE`: toggling FastAPI's automatic docs
 
@@ -78,9 +83,31 @@ This branch (`feature/correo-app-password`) authenticates outgoing email with an
 
 This password can be revoked at any time from the same `apppasswords` page without affecting the account's real password — it's worth generating a different one per environment (development, production) so one can be revoked without affecting the other, same as with `JWT_SECRET_KEY`.
 
+#### Get the Telegram bot credentials (BotFather)
+
+Panic alerts can also reach a contact over Telegram, in parallel to email (see `docs/backend/telegram.md` for the full flow). This requires a bot, created through Telegram's own **@BotFather** — there's no dashboard or web console for this, it's all done by chatting with BotFather itself:
+
+1. **Open a chat with BotFather.** In Telegram (any device), search for `@BotFather` and start a chat — it's the official bot Telegram itself provides for managing other bots, verified with a blue checkmark.
+2. **Create the bot.** Send `/newbot`. BotFather will ask for:
+   - A **display name** (e.g. "Panic Switch"), shown to contacts in their chat list — can be changed later, doesn't need to be unique.
+   - A **username**, which does have to be unique across all of Telegram and must end in `bot` (e.g. `PanicSwitchBot` or `panic_switch_bot`). This is what goes into `TELEGRAM_BOT_USERNAME` — **without** the leading `@`.
+3. **Copy the token.** Once created, BotFather replies with a message containing a line like:
+   ```
+   Use this token to access the HTTP API:
+   123456789:AAHk3jz9X7q_examplecharactersgoeshereXYZ
+   ```
+   That whole string (digits, colon, and the rest) is `TELEGRAM_BOT_TOKEN`. Treat it exactly like a password — anyone who has it can send messages as the bot and read its incoming updates. If it ever leaks, message BotFather with `/revoke` (or `/token` to reissue) to invalidate it and get a new one.
+4. **Generate `TELEGRAM_WEBHOOK_SECRET` yourself.** This one doesn't come from BotFather — it's an arbitrary string this deployment invents and registers with Telegram (`Telegram.SetWebhook`, called automatically at startup, see `docs/backend/telegram.md`), the same idea and the same command as generating `JWT_SECRET_KEY` above:
+   ```bash
+   uv run python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+5. **Fill in the `.env`.** `TELEGRAM_BOT_TOKEN` from step 3, `TELEGRAM_BOT_USERNAME` from step 2 (no `@`), `TELEGRAM_WEBHOOK_SECRET` from step 4.
+
+No further configuration is needed on Telegram's side — the backend registers itself as the bot's webhook the moment it starts up (as long as `API_BASE_URL` is a real, publicly reachable HTTPS URL; Telegram can't call back to `http://127.0.0.1:8000`, so this step is effectively a no-op in local development and only takes effect once deployed behind nginx, see `NGINX.md`). Optional but recommended: message BotFather with `/setdescription` and `/setuserpic` to give the bot a recognizable description and avatar, since that's what a contact sees the moment they open the deep-linked chat for the first time.
+
 # Using the API
 
-With the server running, the API exposes registration and login routes (`/auth`), management of the authenticated user (`/users/me`), emergency contacts (`/contacts`), and triggering panic alerts (`/alerts`, which notifies confirmed contacts by email). The complete guide to each endpoint, with usage examples in Python and JavaScript (built with the future Capacitor client in mind), is in [`backend/API.md`](backend/API.md). The design decisions behind each backend module (why JWT, why that route structure, etc.) are documented one by one in [`docs/backend/`](docs/backend/).
+With the server running, the API exposes registration and login routes (`/auth`), management of the authenticated user (`/users/me`), emergency contacts (`/contacts`, including linking a contact's Telegram account under `/contacts/{id}/telegram`), and triggering panic alerts (`/alerts`, which notifies confirmed contacts by email and/or Telegram — see `docs/backend/telegram.md`). The complete guide to each endpoint, with usage examples in Python and JavaScript (built with the future Capacitor client in mind), is in [`backend/API.md`](backend/API.md). The design decisions behind each backend module (why JWT, why that route structure, etc.) are documented one by one in [`docs/backend/`](docs/backend/).
 
 # App Preparation and Build
 

@@ -11,13 +11,17 @@ CREATE TABLE users (
 
 
 CREATE TABLE contacts (
-    id         INT          AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT          NOT NULL,
-    name       VARCHAR(100) NOT NULL,
-    phone      VARCHAR(20)  NOT NULL,
-    email      VARCHAR(120),
-    confirmed  BOOLEAN      NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    id                        INT          AUTO_INCREMENT PRIMARY KEY,
+    user_id                   INT          NOT NULL,
+    name                      VARCHAR(100) NOT NULL,
+    phone                     VARCHAR(20)  NOT NULL,
+    email                     VARCHAR(120),
+    confirmed                 BOOLEAN      NOT NULL DEFAULT FALSE,
+    telegram_chat_id          BIGINT,
+    telegram_link_token       VARCHAR(64),
+    telegram_link_expires_at  DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE INDEX idx_contacts_telegram_link_token (telegram_link_token)
 );
 
 

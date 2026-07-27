@@ -49,13 +49,17 @@ This is the central table: each row is a person registered in the app. A few des
 
 ```sql
 CREATE TABLE contacts (
-    id         INT          AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT          NOT NULL,
-    name       VARCHAR(100) NOT NULL,
-    phone      VARCHAR(20)  NOT NULL,
-    email      VARCHAR(120),
-    confirmed  BOOLEAN      NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    id                        INT          AUTO_INCREMENT PRIMARY KEY,
+    user_id                   INT          NOT NULL,
+    name                      VARCHAR(100) NOT NULL,
+    phone                     VARCHAR(20)  NOT NULL,
+    email                     VARCHAR(120),
+    confirmed                 BOOLEAN      NOT NULL DEFAULT FALSE,
+    telegram_chat_id          BIGINT,
+    telegram_link_token       VARCHAR(64),
+    telegram_link_expires_at  DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE INDEX idx_contacts_telegram_link_token (telegram_link_token)
 );
 ```
 
@@ -64,6 +68,20 @@ Represents each user's **emergency contacts**: the people who must be notified w
 - `email` is nullable, unlike `users.email`: an emergency contact might only be reachable by phone (via SMS, for example), without that preventing them from being registered.
 - `confirmed BOOLEAN DEFAULT FALSE`: adding someone as an emergency contact shouldn't rely solely on the word of the user registering them — that person has to confirm, by clicking the link in a confirmation email, that they agree to receive alerts on their behalf. `POST /contacts` sends that email when the contact has an `email`, and `GET /contacts/confirm/{token}` is what actually sets this column to `TRUE` (see `mail.md`, `token.md`, `routers.md`). A contact created without an `email` (the only optional field on `Contact`, see `types.md`) stays at `FALSE` indefinitely, since there's currently no other channel (SMS, for example) to confirm it. `POST /alerts` only notifies contacts where this is `TRUE` (`Queries.SELECT_CONFIRMED_CONTACTS_BY_USER`, see `cursor.md`) — a contact who never agreed to receive alerts shouldn't start receiving them right at the most critical moment.
 - The foreign key has no `ON DELETE` clause, so it defaults to `RESTRICT`: a `users` row can't be deleted while it still has `contacts` rows pointing to it. This is why `scripts/purge_unconfirmed_users.py` can delete straight from `users` without first cleaning up `contacts` — an unconfirmed user is guaranteed to have none, since creating a contact requires being logged in, and logging in requires being confirmed.
+- `telegram_chat_id BIGINT`: the Telegram chat id used to DM this contact, once they've linked their account. Unlike `confirmed`, there's no separate boolean for this channel — `telegram_chat_id IS NOT NULL` **is** the "confirmed via Telegram" state, since it can only ever be set by the contact themselves opening the bot deep link and pressing Start (see `telegram.md`). `POST /alerts` notifies a contact over Telegram whenever this is non-`NULL`, independently of the email `confirmed` flag — the two channels are parallel, not sequential; a contact can be confirmed by email, linked via Telegram, or both.
+- `telegram_link_token VARCHAR(64)` / `telegram_link_expires_at DATETIME`: together they hold a single-use, time-limited invitation to link Telegram. `POST /contacts/{id}/telegram/enable` generates an opaque URL-safe token (not a JWT — Telegram's deep-link `start` parameter only allows `[A-Za-z0-9_-]`, which a dot-separated JWT can't satisfy) and stores it here instead of embedding it statelessly. The webhook handler clears both columns the moment the token is redeemed, so — unlike the still-open TODO for the email confirmation JWT (see `TASK.md`) — this token genuinely can't be replayed after first use. The `UNIQUE` index on `telegram_link_token` is what lets the webhook look up "which contact does this token belong to" in one indexed query; MariaDB allows any number of `NULL`s in a unique index, so contacts that never requested a Telegram link don't collide with each other.
+
+#### Applying this to an existing database
+
+Since there's no migration framework (see the note at the top of this document), a database created before this feature existed needs the equivalent `ALTER TABLE` run by hand:
+
+```sql
+ALTER TABLE contacts
+    ADD COLUMN telegram_chat_id         BIGINT      NULL,
+    ADD COLUMN telegram_link_token      VARCHAR(64) NULL,
+    ADD COLUMN telegram_link_expires_at DATETIME    NULL,
+    ADD UNIQUE INDEX idx_contacts_telegram_link_token (telegram_link_token);
+```
 
 ### `alerts`
 

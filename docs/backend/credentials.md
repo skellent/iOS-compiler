@@ -35,6 +35,11 @@ Credentials (user, password, host, etc.) are never written into the source code 
         "host":     ..., # defaults to "smtp.gmail.com" if not in the environment
         "port":     ..., # defaults to 587 if not in the environment, converted to int
     },
+    "telegram": {
+        "bot_token":      ..., # secret, from BotFather
+        "bot_username":   ..., # without the leading "@", used to build t.me deep links
+        "webhook_secret": ..., # arbitrary string Telegram echoes back on every webhook call
+    },
     "api_base_url":  ..., # defaults to "http://127.0.0.1:8000" if not in the environment
     "app_mode":      ..., # "Debug" or "Deploy", defaults to "Debug"
     "app_deep_link": ..., # defaults to "panicswitch://confirmed" if not in the environment
@@ -59,6 +64,18 @@ The `jwt` section's `secret_key` reads the `JWT_SECRET_KEY` environment variable
 ```
 
 Used by `modules/mail.py` (see `mail.md`) to authenticate against `smtp.gmail.com` (Google Workspace) using an *App Password* instead of the account's real password — see `mail.md` for the reasoning behind that choice and its client-side preconditions. `host` and `port` default to Gmail's own values directly in the `os.getenv` call, since those don't need to be repeated in every `.env` — only `user` and `password` are mandatorily account-specific.
+
+## The `telegram` section
+
+```python
+"telegram": {
+    'bot_token':      os.getenv("TELEGRAM_BOT_TOKEN"),
+    'bot_username':   os.getenv("TELEGRAM_BOT_USERNAME"),
+    'webhook_secret': os.getenv("TELEGRAM_WEBHOOK_SECRET"),
+},
+```
+
+Used by `modules/telegram.py` (see `telegram.md`) and `main.py`'s startup hook. `bot_token` authenticates every call to `https://api.telegram.org/bot{token}/...` — as sensitive as the JWT secret, since anyone holding it can send messages as the bot. `bot_username` (no `@` prefix) is what `POST /contacts/{id}/telegram/enable` uses to build a `https://t.me/{bot_username}?start={token}` deep link — it's not secret, but it's still environment-specific (a `Debug` bot and a `Deploy` bot would have different usernames), so it lives here rather than being hardcoded. `webhook_secret` is a value **this project makes up**, not something Telegram issues: it's registered via `setWebhook`'s `secret_token` parameter, and Telegram echoes it back on the `X-Telegram-Bot-Api-Secret-Token` header of every webhook call afterwards, which is how `POST /telegram/webhook` tells a genuine Telegram update apart from anyone else who discovers the endpoint's URL and tries to post a forged one.
 
 ## `api_base_url`
 

@@ -79,6 +79,15 @@ const STRINGS = {
     "contacts.removeConfirm": "Remove {name} from your emergency contacts?",
     "contacts.pickError": "Couldn't access your contacts.",
 
+    "contacts.telegramLinked": "Telegram linked",
+    "contacts.telegramConnect": "Connect Telegram",
+    "contacts.telegramDisconnect": "Disconnect Telegram",
+    "contacts.telegramEmailSent": "Telegram link sent to their email.",
+    "contacts.telegramLinkReady": "Telegram link ready — copied, share it with your contact.",
+    "contacts.telegramDisconnected": "Telegram disconnected.",
+    "contacts.telegramEnableError": "Couldn't start the Telegram link.",
+    "contacts.telegramDisableError": "Couldn't disconnect Telegram.",
+
     "profile.name": "Name",
     "profile.phone": "Phone",
     "profile.email": "Email",
@@ -89,6 +98,8 @@ const STRINGS = {
     "profile.noChanges": "No changes to save.",
     "profile.updated": "Profile updated.",
     "profile.language": "Language",
+    "profile.color": "App color",
+    "profile.colorCustom": "Custom",
   },
   es: {
     "nav.home": "Inicio",
@@ -165,6 +176,15 @@ const STRINGS = {
     "contacts.removeConfirm": "¿Quitar a {name} de tus contactos de emergencia?",
     "contacts.pickError": "No se pudo acceder a tus contactos.",
 
+    "contacts.telegramLinked": "Telegram vinculado",
+    "contacts.telegramConnect": "Conectar Telegram",
+    "contacts.telegramDisconnect": "Desconectar Telegram",
+    "contacts.telegramEmailSent": "Enlace de Telegram enviado a su correo.",
+    "contacts.telegramLinkReady": "Enlace de Telegram listo — copiado, compártelo con tu contacto.",
+    "contacts.telegramDisconnected": "Telegram desconectado.",
+    "contacts.telegramEnableError": "No se pudo iniciar la vinculación de Telegram.",
+    "contacts.telegramDisableError": "No se pudo desconectar Telegram.",
+
     "profile.name": "Nombre",
     "profile.phone": "Teléfono",
     "profile.email": "Correo electrónico",
@@ -175,6 +195,8 @@ const STRINGS = {
     "profile.noChanges": "No hay cambios que guardar.",
     "profile.updated": "Perfil actualizado.",
     "profile.language": "Idioma",
+    "profile.color": "Color de la app",
+    "profile.colorCustom": "Personalizado",
   },
 };
 

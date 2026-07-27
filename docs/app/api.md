@@ -17,11 +17,14 @@ export const Api = {
   updateContact: (id, data) => request(`/contacts/${id}`, { method: "PUT", body: data, auth: true }),
   deleteContact: (id) => request(`/contacts/${id}`, { method: "DELETE", auth: true }),
 
+  enableContactTelegram: (id) => request(`/contacts/${id}/telegram/enable`, { method: "POST", auth: true }),
+  disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
+
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
 };
 ```
 
-This mirrors `backend/API.md` one endpoint at a time — every route the backend exposes for a logged-in user to consume has exactly one matching `Api.*` function here, named after the same action rather than the raw HTTP verb+path, the same way `modules/routers/*.py` groups endpoints by resource on the backend side. `register` and `login` are the only two entries without `auth: true`, since neither can carry a session token yet — they're what produces one.
+This mirrors `backend/API.md` one endpoint at a time — every route the backend exposes for a logged-in user to consume has exactly one matching `Api.*` function here, named after the same action rather than the raw HTTP verb+path, the same way `modules/routers/*.py` groups endpoints by resource on the backend side. `register` and `login` are the only two entries without `auth: true`, since neither can carry a session token yet — they're what produces one. There's deliberately no `Api.*` wrapper for `POST /telegram/webhook` — that endpoint is never called from this app at all, only by Telegram's own servers (see `docs/backend/telegram.md`).
 
 ## Why a shared `request()` instead of one `fetch()` call per function
 
@@ -57,10 +60,10 @@ export class ApiError extends Error {
 }
 
 function extractMessage(body) {
-  if (!body) return "Something went wrong. Please try again.";
+  if (!body) return t("errors.generic");
   if (typeof body.detail === "string") return body.detail;
   if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
-  return "Something went wrong. Please try again.";
+  return t("errors.generic");
 }
 ```
 
@@ -68,8 +71,8 @@ FastAPI's error responses take two different shapes depending on what went wrong
 
 `ApiError` carries the HTTP `status` alongside the message, even though most call sites only read `.message` — it's there for the cases that do care which failure happened, not just that one did.
 
-A network failure (no connectivity, DNS failure, the backend simply not running) never reaches the "parse the response body" stage at all — `fetch()` itself rejects — so `request()` catches that separately and raises its own `ApiError("Can't reach the server. Check your connection.", 0)`, giving the UI a message to show even when there was no HTTP response to read a `detail` field from.
+A network failure (no connectivity, DNS failure, the backend simply not running) never reaches the "parse the response body" stage at all — `fetch()` itself rejects — so `request()` catches that separately and raises its own `ApiError(t("errors.network"), 0)`, giving the UI a message to show even when there was no HTTP response to read a `detail` field from. Both fallback strings come from `lib/i18n.js` (see `architecture.md`), not a hardcoded English literal — the only messages in this file that are ever translated, since every other message comes straight from the backend's own `detail` field, in whatever language the backend happens to respond in.
 
 ## Relationship with the rest of the app
 
-`src/lib/session.js` is `api.js`'s only dependency (`getToken()`, to attach the `Authorization` header). Every view module (`src/views/*.js`) and `src/main.js` depend on `api.js`, never on `fetch` directly — keeping the backend's actual URL shape (paths, JSON field names) known in exactly one file, the same boundary `modules/cursor.py` keeps around `mariadb` on the backend side (see `docs/backend/cursor.md`).
+`src/lib/session.js` is `api.js`'s dependency for `getToken()` (attaching the `Authorization` header); `src/lib/i18n.js` is its dependency for the two fallback error strings above. Every view module (`src/views/*.js`) and `src/main.js` depend on `api.js`, never on `fetch` directly — keeping the backend's actual URL shape (paths, JSON field names) known in exactly one file, the same boundary `modules/cursor.py` keeps around `mariadb` on the backend side (see `docs/backend/cursor.md`).

@@ -13,10 +13,22 @@ class Queries:
     SELECT_USER_BY_ID: str = "SELECT id, name, phone, email FROM users WHERE id = %s;"
 
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
-    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed FROM contacts WHERE user_id = %s;"
-    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email FROM contacts WHERE user_id = %s AND confirmed = TRUE;"
+    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked FROM contacts WHERE user_id = %s;"
+    # A contact is notified over email when `confirmed`, over Telegram when
+    # `telegram_chat_id` is set — the two channels are independent, not
+    # sequential, so either one alone is enough to appear here.
+    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
     DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
+
+    SET_CONTACT_TELEGRAM_LINK_TOKEN: str = "UPDATE contacts SET telegram_link_token = %s, telegram_link_expires_at = %s WHERE id = %s AND user_id = %s;"
+    SELECT_CONTACT_BY_TELEGRAM_TOKEN: str = (
+        "SELECT contacts.id, contacts.name AS contact_name, users.name AS user_name "
+        "FROM contacts JOIN users ON users.id = contacts.user_id "
+        "WHERE contacts.telegram_link_token = %s AND contacts.telegram_link_expires_at > NOW();"
+    )
+    CONFIRM_CONTACT_TELEGRAM: str = "UPDATE contacts SET telegram_chat_id = %s, telegram_link_token = NULL, telegram_link_expires_at = NULL WHERE id = %s;"
+    CLEAR_CONTACT_TELEGRAM: str = "UPDATE contacts SET telegram_chat_id = NULL, telegram_link_token = NULL, telegram_link_expires_at = NULL WHERE id = %s AND user_id = %s;"
 
     CONFIRM_USER: str = "UPDATE users SET confirmed = TRUE WHERE id = %s;"
     PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"

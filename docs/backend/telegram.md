@@ -1,0 +1,117 @@
+# `modules/telegram.py` and `modules/routers/telegram.py`
+
+## Purpose
+
+Lets a user's emergency contacts be notified over Telegram, in parallel to email, when a panic alert fires. Two files split the work:
+
+- **`modules/telegram.py`**: the `Telegram` static class, following the same "verb class" pattern as `Mail` (`mail.md`) — `Telegram.Send`/`Telegram.SendBulk` render a Jinja2 template from `templates/telegram/` and call the Bot API over `httpx`. Also `Telegram.SetWebhook`, used once at startup.
+- **`modules/routers/telegram.py`**: a single endpoint, `POST /telegram/webhook`, that receives updates pushed by Telegram itself (not by the app) whenever someone messages the bot.
+
+## Why a contact links Telegram at all, instead of the app just asking for a `chat_id`
+
+There's no way for the app (or the user adding the contact) to know a `chat_id` up front — it only exists once the contact themselves has started a conversation with the bot. Telegram's own mechanism for this is a **deep link**: a URL of the form `https://t.me/{bot_username}?start={payload}` that, when opened, launches Telegram, opens a chat with the bot, and — if the person presses **Start** — sends the bot an update containing `message.text = "/start {payload}"` and `message.chat.id` (the very `chat_id` this feature needs). The `payload` is how the bot tells *which* pending link just got redeemed.
+
+## Why the link token is an opaque, DB-stored string, not a JWT
+
+Every other confirmation flow in this project (`Token.CreateContactConfirmation`, `Token.CreateUserConfirmation`, see `token.md`) is a stateless JWT — no database row, just a signed, self-describing token with an expiry. That doesn't work here: Telegram restricts a deep link's `start` parameter to `^[A-Za-z0-9_-]{1,64}$`, and a JWT is `header.payload.signature` — the two `.` separators alone make it an invalid deep-link payload.
+
+So `POST /contacts/{id}/telegram/enable` (see `routers.md`) generates `secrets.token_urlsafe(24)` instead — a random, URL-safe string with no dots — and stores it on the contact row itself (`telegram_link_token`, `telegram_link_expires_at`; see `sql.md`), rather than encoding it statelessly. This turns out to be an improvement over the JWT approach, not just a workaround: because the token is a real row, `POST /telegram/webhook` can (and does) clear it the moment it's redeemed, so it genuinely can't be reused — unlike the contact-confirmation JWT, which is stateless by design and, per `TASK.md`, has no "already used" record at all.
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant API
+    participant BG as BackgroundTasks
+    participant Mail as smtp.gmail.com
+    participant Contact
+    participant TG as Telegram
+
+    App->>API: POST /contacts/{id}/telegram/enable
+    API->>API: generate token + 24h expiry, store on the row
+    alt contact has an email
+        API-->>App: 200 { telegram_link_url: null }
+        API->>BG: queues Mail.Send("telegram_link" template)
+        BG->>Mail: email with the t.me deep link
+        Mail-->>Contact: email
+    else contact has no email
+        API-->>App: 200 { telegram_link_url: "https://t.me/...?start=..." }
+        Note over App: app offers to copy/share the link manually
+    end
+
+    Contact->>TG: opens the link, presses Start
+    TG->>API: POST /telegram/webhook  { message: { text: "/start <token>", chat: { id } } }
+    API->>API: look up contact by token (must not be expired)
+    alt token valid
+        API->>API: SET telegram_chat_id, CLEAR token/expiry
+        API->>TG: Telegram.Send(chat_id, "telegram_linked")
+    else token invalid/expired
+        API->>TG: Telegram.Send(chat_id, "telegram_link_invalid")
+    end
+    TG-->>Contact: confirmation message in the chat
+```
+
+Later, `POST /alerts` (see `routers.md`) queues `Telegram.SendBulk` for every confirmed contact whose `telegram_chat_id` is set — independently of whether that same contact is also `confirmed` by email.
+
+## The webhook: `POST /telegram/webhook`
+
+```python
+@router.post("/webhook")
+async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: str | None = Header(default=None)):
+    if _WEBHOOK_SECRET and x_telegram_bot_api_secret_token != _WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+    try:
+        await _handle_update(await request.json())
+    except Exception as e:
+        print(f"Error handling Telegram webhook: {e}")
+    return {"ok": True}
+```
+
+Two things make this endpoint different from everything else in `modules/routers/`:
+
+- **No `Depends(current_user)`, but not unauthenticated either.** The caller is Telegram's servers, not an app user — there's no session JWT to check. Instead, `Telegram.SetWebhook` (called once at startup, see below) registers a `secret_token` with Telegram, which echoes it back on the `X-Telegram-Bot-Api-Secret-Token` header of every subsequent call. Anyone who discovers this URL and posts to it without knowing that secret gets `401`ed before their payload is even parsed. If `TELEGRAM_WEBHOOK_SECRET` isn't set at all (no Telegram bot configured), the check is skipped rather than locking the endpoint open with a `None != None` comparison — acceptable since without a registered webhook, Telegram never calls this URL in the first place.
+- **It always returns `200`**, even when `_handle_update` raises. Telegram retries a webhook call aggressively on anything but a 2xx response; since almost any failure here (a malformed update, a transient Telegram API error while replying) is either not the caller's fault or won't succeed on a bare retry, swallowing the exception (and just `print`-ing it, this project's only error-reporting mechanism today — see `TASK.md`) avoids a retry storm without hiding the failure completely.
+
+`_handle_update` itself only cares about one shape: a `message` whose `text` starts with `"/start "`. Anything else (the bot being added to a group, a `/start` with no payload, an unrelated message) is a silent no-op — this webhook doesn't implement a general-purpose bot, only the one interaction this feature needs.
+
+## Registering the webhook: `Telegram.SetWebhook` and `main.py`'s lifespan
+
+```python
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    if _credentials['telegram']['bot_token']:
+        try:
+            await Telegram.SetWebhook(f"{_credentials['api_base_url']}/telegram/webhook")
+        except Exception as e:
+            print(f"Could not register Telegram webhook: {e}")
+    yield
+```
+
+Telegram has to be told, once, where to send updates — that's what `setWebhook` (the Bot API method `Telegram.SetWebhook` wraps) does. Rather than requiring a manual `curl` step after every deploy, `main.py`'s lifespan calls it every time the process starts, using `api_base_url` (the same setting that builds every other absolute link this backend emails out, see `credentials.md`) to build the callback URL. Calling it repeatedly is harmless — Telegram's `setWebhook` is idempotent, it just re-registers the same URL/secret. If `TELEGRAM_BOT_TOKEN` isn't set (no bot configured yet, e.g. a fresh `Debug` environment), this is skipped entirely rather than failing startup; if the call itself fails (network issue, Telegram API down), the exception is caught and logged, not allowed to crash the whole application over one optional integration.
+
+## Why `Telegram.Send`/`SendBulk` mirror `Mail.Send`/`SendBulk` so closely
+
+```python
+class Telegram:
+    @staticmethod
+    async def Send(chat_id: int, template: str, context: dict) -> None: ...
+    @staticmethod
+    async def SendBulk(template: str, recipients: list[tuple[int, dict]]) -> None: ...
+```
+
+Same rationale as `Mail` (see `mail.md`): templates live as separate files (`templates/telegram/*.txt.j2`), rendered with the project's existing Jinja2 pattern, and `SendBulk` reuses a single `httpx.AsyncClient` across every recipient in a batch instead of opening a new connection per message. There's no HTML/plain-text pair here (unlike `Mail`) — Telegram messages are plain text, there's no separate "does the client render this" concern the way there is with an email client. `TelegramNotSentError` plays the same role as `MailNotSentError`: `modules/telegram.py` is, on purpose, the only file that imports `httpx` for talking to Telegram, so nothing else in the backend needs to know the transport is HTTP against `api.telegram.org`.
+
+## Environment variables introduced by this module
+
+```env
+TELEGRAM_BOT_TOKEN=123456:ABC-...        # from @BotFather, secret
+TELEGRAM_BOT_USERNAME=PanicSwitchBot     # no leading @, used to build t.me links
+TELEGRAM_WEBHOOK_SECRET=some-random-string  # made up by whoever deploys this, not issued by Telegram
+```
+
+See `credentials.md` for how these are read, and the root `README.md` ("Get the Telegram bot credentials (BotFather)") for the step-by-step on obtaining `TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME` and generating `TELEGRAM_WEBHOOK_SECRET`. None of the three have a default — a deployment without a `TELEGRAM_BOT_TOKEN` simply never registers a webhook and never sends Telegram messages; the rest of the API works exactly as before.
+
+## Relationship with the rest of the backend
+
+`modules/routers/contacts.py` calls `Queries.SET_CONTACT_TELEGRAM_LINK_TOKEN` directly and uses `Mail.Send` (not `Telegram`) to deliver the link — the *invitation* still travels by email. `modules/routers/telegram.py` (the webhook) and `modules/routers/alerts.py` are what actually call into `Telegram.Send`/`SendBulk`. `modules/cursor.py` owns every SQL string this feature needs (see `cursor.md`); `modules/telegram.py` never touches `mariadb` directly, same separation of concerns as `modules/mail.py` never touching it either.
