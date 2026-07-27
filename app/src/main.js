@@ -1,5 +1,6 @@
 import { getToken, clearToken, getUser, setUser } from "./lib/session.js";
 import { Api } from "./lib/api.js";
+import { loadLanguage, setLanguage, getLanguage, t } from "./lib/i18n.js";
 
 import { renderLogin } from "./views/login.js";
 import { renderRegister } from "./views/register.js";
@@ -10,15 +11,39 @@ import { renderProfile } from "./views/profile.js";
 const viewEl = document.getElementById("view");
 const bottomNav = document.getElementById("bottom-nav");
 const appBarTitle = document.getElementById("app-bar-title");
+const appBarClock = document.getElementById("app-bar-clock");
 const navTabs = [...document.querySelectorAll("#bottom-nav .nav-tab")];
 
+function tickClock() {
+  appBarClock.textContent = new Date().toLocaleTimeString("en-GB");
+}
+tickClock();
+setInterval(tickClock, 1000);
+
 const ROUTES = {
-  login: { render: renderLogin, title: "Log In", public: true },
-  register: { render: renderRegister, title: "Create Account", public: true },
+  login: { render: renderLogin, titleKey: "route.login.title", public: true },
+  register: { render: renderRegister, titleKey: "route.register.title", public: true },
   home: { render: renderHome, title: "Panic Switch", public: false },
-  contacts: { render: renderContacts, title: "Emergency Contacts", public: false },
-  profile: { render: renderProfile, title: "My Profile", public: false },
+  contacts: { render: renderContacts, titleKey: "route.contacts.title", public: false },
+  profile: { render: renderProfile, titleKey: "route.profile.title", public: false },
 };
+
+function applyStaticLabels() {
+  navTabs.forEach((tab) => {
+    tab.querySelector(".nav-tab-label").textContent = t(`nav.${tab.dataset.route}`);
+  });
+  const activeRoute = ROUTES[currentRouteName()];
+  if (activeRoute) {
+    appBarTitle.textContent = activeRoute.title ?? t(activeRoute.titleKey);
+  }
+}
+
+async function changeLanguage(lang) {
+  if (lang === getLanguage()) return;
+  await setLanguage(lang);
+  applyStaticLabels();
+  await renderCurrentRoute();
+}
 
 function navigate(route) {
   window.location.hash = `#/${route}`;
@@ -63,7 +88,7 @@ async function renderCurrentRoute() {
     return;
   }
 
-  appBarTitle.textContent = route.title;
+  appBarTitle.textContent = route.title ?? t(route.titleKey);
   bottomNav.classList.toggle("hidden", route.public);
   navTabs.forEach((tab) => tab.classList.toggle("nav-tab-active", tab.dataset.route === name));
 
@@ -71,7 +96,7 @@ async function renderCurrentRoute() {
   await wait(140);
   viewEl.innerHTML = "";
 
-  await route.render(viewEl, { navigate, logout, getUser, refreshUser });
+  await route.render(viewEl, { navigate, logout, getUser, refreshUser, getLanguage, changeLanguage });
 
   requestAnimationFrame(() => viewEl.classList.add("view-visible"));
 }
@@ -80,6 +105,9 @@ window.addEventListener("hashchange", renderCurrentRoute);
 navTabs.forEach((tab) => tab.addEventListener("click", () => navigate(tab.dataset.route)));
 
 async function boot() {
+  await loadLanguage();
+  applyStaticLabels();
+
   const token = await getToken();
   if (token) {
     try {

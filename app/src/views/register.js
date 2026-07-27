@@ -2,42 +2,43 @@ import { Api, ApiError } from "../lib/api.js";
 import { showToast } from "../lib/toast.js";
 import { setLoading, shake, escapeHtml } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
+import { t } from "../lib/i18n.js";
 
 export async function renderRegister(container, { navigate }) {
   container.innerHTML = `
     <div class="auth-screen">
       <img class="brand-mark" src="assets/brand-mark.png" alt="" />
-      <h1 class="auth-title">Create Account</h1>
-      <p class="auth-subtitle">A few details, and you're ready to add your emergency contacts.</p>
+      <h1 class="auth-title">${t("route.register.title")}</h1>
+      <p class="auth-subtitle">${t("register.subtitle")}</p>
 
       <form id="register-form" class="form" novalidate>
         <label class="field">
-          <span>Full name</span>
+          <span>${t("register.name")}</span>
           <input type="text" name="name" autocomplete="name" required />
         </label>
         <label class="field">
-          <span>Phone</span>
+          <span>${t("register.phone")}</span>
           <input type="tel" name="phone" autocomplete="tel" required />
         </label>
         <label class="field">
-          <span>Email</span>
+          <span>${t("register.email")}</span>
           <input type="email" name="email" autocomplete="email" required />
         </label>
         <label class="field">
-          <span>Password</span>
+          <span>${t("register.password")}</span>
           <input type="password" name="password" autocomplete="new-password" minlength="8" required />
         </label>
         <label class="field">
-          <span>Confirm password</span>
+          <span>${t("register.confirmPassword")}</span>
           <input type="password" name="confirm_password" autocomplete="new-password" required />
         </label>
         <button type="submit" class="btn btn-primary btn-block">
-          <span class="btn-label">Create Account</span>
+          <span class="btn-label">${t("register.submit")}</span>
           <span class="btn-spinner" hidden></span>
         </button>
       </form>
 
-      <p class="auth-switch">Already have an account? <a href="#/login">Log in</a></p>
+      <p class="auth-switch">${t("register.switch")} <a href="#/login">${t("register.switchLink")}</a></p>
     </div>
   `;
 
@@ -50,7 +51,7 @@ export async function renderRegister(container, { navigate }) {
 
     if (data.password !== confirm_password) {
       shake(form);
-      showToast("Passwords don't match.", "error");
+      showToast(t("register.passwordMismatch"), "error");
       return;
     }
 
@@ -63,7 +64,7 @@ export async function renderRegister(container, { navigate }) {
       renderConfirmEmail(container, data.email, navigate);
     } catch (error) {
       shake(form);
-      showToast(error instanceof ApiError ? error.message : "Something went wrong.", "error");
+      showToast(error instanceof ApiError ? error.message : t("errors.generic"), "error");
       setLoading(button, false);
     }
   });
@@ -73,12 +74,9 @@ function renderConfirmEmail(container, email, navigate) {
   container.innerHTML = `
     <div class="confirm-mail-screen">
       <div class="confirm-mail-icon">${Icon.mail()}</div>
-      <h1 class="auth-title">Check your email</h1>
-      <p class="auth-subtitle">
-        We sent a confirmation link to<br /><span class="confirm-mail-email">${escapeHtml(email)}</span>.
-        Open it on this device to activate your account, then come back and log in.
-      </p>
-      <button id="back-to-login" class="btn btn-outline" type="button">Back to Log In</button>
+      <h1 class="auth-title">${t("confirmMail.title")}</h1>
+      <p class="auth-subtitle">${t("confirmMail.subtitle", { email: escapeHtml(email) })}</p>
+      <button id="back-to-login" class="btn btn-outline" type="button">${t("confirmMail.back")}</button>
     </div>
   `;
 

@@ -4,12 +4,13 @@ import { openSheet } from "../lib/sheet.js";
 import { showToast } from "../lib/toast.js";
 import { escapeHtml, setLoading, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
+import { t } from "../lib/i18n.js";
 
 export async function renderContacts(container) {
   container.innerHTML = `
     <div class="contacts-screen">
       <div id="contacts-list" class="contacts-list"></div>
-      <button id="add-contact-fab" class="fab" type="button" aria-label="Add emergency contact">${Icon.add()}</button>
+      <button id="add-contact-fab" class="fab" type="button" aria-label="${t("contacts.addTitle")}">${Icon.add()}</button>
     </div>
   `;
 
@@ -33,19 +34,14 @@ async function loadContacts(list) {
     const contacts = await Api.listContacts();
     renderContactRows(list, contacts);
   } catch (error) {
-    list.innerHTML = `<p class="contacts-empty">Couldn't load your contacts. Pull down or reopen this tab to try again.</p>`;
-    showToast(error instanceof ApiError ? error.message : "Couldn't load contacts.", "error");
+    list.innerHTML = `<p class="contacts-empty">${t("contacts.loadError")}</p>`;
+    showToast(error instanceof ApiError ? error.message : t("contacts.loadErrorToast"), "error");
   }
 }
 
 function renderContactRows(list, contacts) {
   if (contacts.length === 0) {
-    list.innerHTML = `
-      <p class="contacts-empty">
-        No emergency contacts yet. Tap the + button to add someone who should be notified
-        when you trigger a panic alert.
-      </p>
-    `;
+    list.innerHTML = `<p class="contacts-empty">${t("contacts.empty")}</p>`;
     return;
   }
 
@@ -56,10 +52,10 @@ function renderContactRows(list, contacts) {
         <span class="contact-avatar">${escapeHtml(contact.name.charAt(0).toUpperCase())}</span>
         <span class="contact-info">
           <span class="contact-name">${escapeHtml(contact.name)}</span>
-          <span class="contact-phone">${escapeHtml(contact.phone)}</span>
+          <span class="contact-phone">${Icon.phone()} ${escapeHtml(contact.phone)}</span>
         </span>
         <span class="badge ${contact.confirmed ? "badge-confirmed" : "badge-pending"}">
-          ${contact.confirmed ? `${Icon.checkCircle()} Confirmed` : "Pending"}
+          ${contact.confirmed ? `${Icon.checkCircle()} ${t("contacts.confirmed")}` : `${Icon.schedule()} ${t("contacts.pending")}`}
         </span>
       </button>
     `
@@ -77,13 +73,15 @@ function renderContactRows(list, contacts) {
 function openAddOptionsSheet(onSaved) {
   const body = document.createElement("div");
   body.innerHTML = `
-    <h2 class="sheet-title">Add Emergency Contact</h2>
+    <h2 class="sheet-title">${t("contacts.addTitle")}</h2>
     <div class="sheet-options">
       <button class="btn btn-outline btn-block" type="button" id="pick-device-contact">
-        Pick from device contacts
+        ${Icon.contacts()}
+        <span class="btn-label">${t("contacts.pickDevice")}</span>
       </button>
       <button class="btn btn-outline btn-block" type="button" id="add-manually">
-        Add manually
+        ${Icon.personAdd()}
+        <span class="btn-label">${t("contacts.addManually")}</span>
       </button>
     </div>
   `;
@@ -101,10 +99,7 @@ function openAddOptionsSheet(onSaved) {
       const prefill = await pickDeviceContact();
       openContactFormSheet({ prefill, onSaved });
     } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : "Couldn't access your contacts.",
-        "error"
-      );
+      showToast(error instanceof Error ? error.message : t("contacts.pickError"), "error");
     }
   });
 }
@@ -116,29 +111,29 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
   const body = document.createElement("div");
   body.innerHTML = `
     <form class="form sheet-form" novalidate>
-      <h2 class="sheet-title">${isEdit ? "Edit Contact" : "Add Emergency Contact"}</h2>
+      <h2 class="sheet-title">${isEdit ? t("contacts.editTitle") : t("contacts.addTitle")}</h2>
       <label class="field">
-        <span>Name</span>
+        <span>${t("contacts.name")}</span>
         <input type="text" name="name" required value="${escapeHtml(initial.name ?? "")}" />
       </label>
       <label class="field">
-        <span>Phone</span>
+        <span>${t("contacts.phone")}</span>
         <input type="tel" name="phone" required value="${escapeHtml(initial.phone ?? "")}" />
       </label>
       <label class="field">
-        <span>Email (optional)</span>
+        <span>${t("contacts.emailOptional")}</span>
         <input type="email" name="email" value="${escapeHtml(initial.email ?? "")}" />
       </label>
-      ${!isEdit ? `<p class="field-hint">If you add an email, we'll send this contact a confirmation link — only confirmed contacts are notified during a panic alert.</p>` : ""}
+      ${!isEdit ? `<p class="field-hint">${t("contacts.emailHint")}</p>` : ""}
       <button type="submit" class="btn btn-primary btn-block">
-        <span class="btn-label">${isEdit ? "Save Changes" : "Add Contact"}</span>
+        <span class="btn-label">${isEdit ? t("contacts.save") : t("contacts.add")}</span>
         <span class="btn-spinner" hidden></span>
       </button>
       ${
         isEdit
           ? `<button type="button" class="btn btn-danger-outline btn-block" id="delete-contact">
               ${Icon.delete()}
-              <span class="btn-label">Delete Contact</span>
+              <span class="btn-label">${t("contacts.delete")}</span>
               <span class="btn-spinner" hidden></span>
             </button>`
           : ""
@@ -164,19 +159,16 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
           return;
         }
         await Api.updateContact(contact.id, changes);
-        showToast("Contact updated.", "success");
+        showToast(t("contacts.updated"), "success");
       } else {
         await Api.createContact(data);
-        showToast(
-          data.email ? "Contact added — confirmation email sent." : "Contact added.",
-          "success"
-        );
+        showToast(data.email ? t("contacts.addedWithEmail") : t("contacts.added"), "success");
       }
       close();
       onSaved();
     } catch (error) {
       shake(form);
-      showToast(error instanceof ApiError ? error.message : "Something went wrong.", "error");
+      showToast(error instanceof ApiError ? error.message : t("errors.generic"), "error");
     } finally {
       setLoading(button, false);
     }
@@ -185,16 +177,16 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
   if (isEdit) {
     const deleteButton = body.querySelector("#delete-contact");
     deleteButton.addEventListener("click", async () => {
-      if (!confirm(`Remove ${contact.name} from your emergency contacts?`)) return;
+      if (!confirm(t("contacts.removeConfirm", { name: contact.name }))) return;
 
       setLoading(deleteButton, true);
       try {
         await Api.deleteContact(contact.id);
-        showToast("Contact removed.", "success");
+        showToast(t("contacts.removed"), "success");
         close();
         onSaved();
       } catch (error) {
-        showToast(error instanceof ApiError ? error.message : "Couldn't remove contact.", "error");
+        showToast(error instanceof ApiError ? error.message : t("contacts.removeError"), "error");
       } finally {
         setLoading(deleteButton, false);
       }

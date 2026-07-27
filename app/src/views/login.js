@@ -2,30 +2,31 @@ import { Api, ApiError } from "../lib/api.js";
 import { setToken } from "../lib/session.js";
 import { showToast } from "../lib/toast.js";
 import { setLoading, shake } from "../lib/dom.js";
+import { t } from "../lib/i18n.js";
 
 export async function renderLogin(container, { navigate, refreshUser }) {
   container.innerHTML = `
     <div class="auth-screen">
       <img class="brand-mark" src="assets/brand-mark.png" alt="" />
       <h1 class="auth-title">Panic Switch</h1>
-      <p class="auth-subtitle">Sign in to keep your emergency contacts one tap away.</p>
+      <p class="auth-subtitle">${t("login.subtitle")}</p>
 
       <form id="login-form" class="form" novalidate>
         <label class="field">
-          <span>Email</span>
+          <span>${t("login.email")}</span>
           <input type="email" name="email" autocomplete="email" required />
         </label>
         <label class="field">
-          <span>Password</span>
+          <span>${t("login.password")}</span>
           <input type="password" name="password" autocomplete="current-password" required />
         </label>
         <button type="submit" class="btn btn-primary btn-block">
-          <span class="btn-label">Log In</span>
+          <span class="btn-label">${t("login.submit")}</span>
           <span class="btn-spinner" hidden></span>
         </button>
       </form>
 
-      <p class="auth-switch">Don't have an account? <a href="#/register">Create one</a></p>
+      <p class="auth-switch">${t("login.switch")} <a href="#/register">${t("login.switchLink")}</a></p>
     </div>
   `;
 
@@ -44,7 +45,7 @@ export async function renderLogin(container, { navigate, refreshUser }) {
       navigate("home");
     } catch (error) {
       shake(form);
-      showToast(error instanceof ApiError ? error.message : "Something went wrong.", "error");
+      showToast(error instanceof ApiError ? error.message : t("errors.generic"), "error");
     } finally {
       setLoading(button, false);
     }

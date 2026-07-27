@@ -1,4 +1,5 @@
 import { getToken } from "./session.js";
+import { t } from "./i18n.js";
 
 const BASE_URL = import.meta.env.API_BASE_URL;
 
@@ -10,10 +11,10 @@ export class ApiError extends Error {
 }
 
 function extractMessage(body) {
-  if (!body) return "Something went wrong. Please try again.";
+  if (!body) return t("errors.generic");
   if (typeof body.detail === "string") return body.detail;
   if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
-  return "Something went wrong. Please try again.";
+  return t("errors.generic");
 }
 
 async function request(path, { method = "GET", body, auth = false } = {}) {
@@ -31,7 +32,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError("Can't reach the server. Check your connection.", 0);
+    throw new ApiError(t("errors.network"), 0);
   }
 
   const text = await response.text();
