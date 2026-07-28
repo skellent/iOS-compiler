@@ -115,3 +115,41 @@ See `credentials.md` for how these are read, and the root `README.md` ("Get the 
 ## Relationship with the rest of the backend
 
 `modules/routers/contacts.py` calls `Queries.SET_CONTACT_TELEGRAM_LINK_TOKEN` directly and uses `Mail.Send` (not `Telegram`) to deliver the link — the *invitation* still travels by email. `modules/routers/telegram.py` (the webhook) and `modules/routers/alerts.py` are what actually call into `Telegram.Send`/`SendBulk`. `modules/cursor.py` owns every SQL string this feature needs (see `cursor.md`); `modules/telegram.py` never touches `mariadb` directly, same separation of concerns as `modules/mail.py` never touching it either.
+
+## What a contact actually sees (`templates/telegram/panic_alert.txt.j2`)
+
+```
+PANIC ALERT
+
+{{ user_name }} triggered a panic alert on
+Panic Switch at {{ timestamp }}. You are one of their emergency contacts.
+
+Phone: {{ user_phone }}
+Email: {{ user_email }}
+
+Last reported location:
+{{ map_url }}
+(latitude {{ latitude }}, longitude {{ longitude }})
+
+Please try to contact {{ user_name }} as soon as possible.
+```
+
+The alerting user's name identifies them in the main sentence; phone and email sit on their own lines below instead of being crammed as `{{ user_name }} ({{ user_phone }})` — a change made after the client reviewed a real test alert and asked for the name-first layout. `modules/routers/alerts.py`'s `context` dict (shared between the `Mail` and `Telegram` recipient lists) carries `user_email` alongside `user_name`/`user_phone` for this reason; the equivalent `templates/mail/panic_alert.txt.j2` and `panic_alert.html.j2` got the same treatment, so the two channels stay consistent with each other (see `mail.md`).
+
+## Testing this end-to-end without a public webhook (local dev)
+
+`Telegram.SetWebhook` (see above) is a no-op the moment `API_BASE_URL` isn't a real, publicly reachable HTTPS URL — which is always true on a laptop. That means the ordinary path (Telegram pushes an `Update` to `POST /telegram/webhook` on its own) simply never fires locally, and the webhook route has to be exercised by hand instead of by waiting for real traffic. This was done against the client's own test bot (`panic_switch_alert_bot`) and a local MariaDB:
+
+1. **Fill in `TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME`/`TELEGRAM_WEBHOOK_SECRET`** in `backend/.env` (see the root `README.md` for getting these from BotFather — a throwaway/dev bot works fine, it doesn't have to be the production one).
+2. **If the database predates this feature** (true of any dev database created before this branch), run the `ALTER TABLE` from `sql.md` by hand first — without it, every query in `cursor.py` that touches `telegram_chat_id`/`telegram_link_token`/`telegram_link_expires_at` fails with `Unknown column`.
+3. **Start the backend** and confirm the webhook registration attempt is indeed a silent no-op: `GET https://api.telegram.org/bot<token>/getWebhookInfo` should show `"url": ""`. This also means `getUpdates` (long polling, step 5) is free to use — Telegram refuses `getUpdates` while a webhook URL is registered, but an empty one doesn't count.
+4. **Drive the normal flow through the API**: create a contact (one with no `email` is easiest — `POST /contacts/{id}/telegram/enable` then hands the `t.me` link straight back in the response instead of mailing it), open that link on a phone, press **Start**.
+5. **Fetch the update Telegram generated**: `GET https://api.telegram.org/bot<token>/getUpdates` returns the `/start <token>` message, including the real `chat.id`, exactly as it would have been POSTed to the webhook.
+6. **Replay it against the local webhook by hand**: `POST http://127.0.0.1:8000/telegram/webhook` with that same JSON body and an `X-Telegram-Bot-Api-Secret-Token` header matching `TELEGRAM_WEBHOOK_SECRET`. This runs the exact same `_handle_update` code a production webhook call would — it isn't a shortcut around the logic being tested, only around Telegram's inability to reach `127.0.0.1`.
+7. **Verify**: the contact's row now has `telegram_chat_id` set and both token columns cleared, and the "You're linked to Panic Switch" message (`telegram_linked.txt.j2`) arrives in the chat. From there, `POST /alerts` can be triggered normally to confirm `panic_alert.txt.j2` reaches the same chat.
+
+The same `getUpdates`-and-replay trick covers the edge cases worth checking before a deploy: sending `/start` with an already-consumed or expired token (expect `telegram_link_invalid.txt.j2`), `POST /telegram/webhook` with a missing/wrong secret header (expect `401`), and `DELETE /contacts/{id}/telegram` followed by a new alert (expect no Telegram message, `telegram_chat_id` back to `NULL`).
+
+## Production checklist
+
+Once a real domain is behind nginx (see the root `NGINX.md`) and `API_BASE_URL` is that `https://` domain, `Telegram.SetWebhook` stops being a no-op — `GET .../getWebhookInfo` should then show that URL with no `last_error_message`. Remaining pending items (bot creation, `ALTER TABLE`, `uv sync` for the new `httpx` dependency, restarting `panicswitch.service`) are tracked in the root `TASK.md`, "Telegram" section, not repeated here.

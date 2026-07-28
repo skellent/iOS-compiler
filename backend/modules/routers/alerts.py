@@ -23,6 +23,7 @@ def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = 
     context: dict = {
         "user_name":  user_rows[0]["name"],
         "user_phone": user_rows[0]["phone"],
+        "user_email": user_rows[0]["email"],
         "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "latitude":   data.latitude,
         "longitude":  data.longitude,
