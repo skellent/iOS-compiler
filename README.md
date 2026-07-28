@@ -117,86 +117,124 @@ The mobile client lives in [`app/`](app), built with [Capacitor](https://capacit
 
 ```mermaid
 gitGraph
-   commit id: "83b5d3e Initial commit"
+   commit id: "e3d641f Initial commit"
    branch devs
    checkout devs
-   commit id: "bd81c9c Prepare the Python environment"
-   commit id: "905986f Documentation + test server"
+   commit id: "cebdf38 Prepare the Python environment"
+   commit id: "f54f05f Documentation + test server"
    branch testing
    checkout testing
-   commit id: "1392a31 JWT login + Contacts + duplicate fix"
-   commit id: "872b6db Documentation up to date"
-   commit id: "89d570e JWT_SECRET_KEY in the README"
+   commit id: "5317178 JWT login + Contacts + duplicate fix"
+   commit id: "edceeed Documentation up to date"
+   commit id: "f22b6ef JWT_SECRET_KEY in the README"
    checkout devs
-   merge testing id: "bea6008 Merge testing -> devs"
-   commit id: "1f1bb32 gitGraph diagram in the README"
-   commit id: "9ca8023 Minor .gitignore tweak"
+   merge testing id: "34f4511 Merge testing -> devs"
+   commit id: "7972a8d gitGraph diagram in the README"
+   commit id: "5f58e4b Minor .gitignore tweak"
    branch feature/correo-app-password
    checkout feature/correo-app-password
-   commit id: "7047342 Contact confirmation (App Password)"
-   commit id: "e239c62 Panic alerts by email"
-   commit id: "58f9a1a Remove TASK.md mentions from docs"
-   commit id: "d2d8fa6 SMTP app password guide"
-   commit id: "58899ca Commit history brought up to date"
+   commit id: "7e3d7aa Contact confirmation (App Password)"
+   commit id: "694e6a2 Panic alerts by email"
+   commit id: "f102c0d Remove TASK.md mentions from docs"
+   commit id: "2af5cf7 SMTP app password guide"
+   commit id: "0daa055 Commit history brought up to date"
    checkout devs
    branch feature/correo-oauth2
    checkout feature/correo-oauth2
-   commit id: "820c07b Contact confirmation (OAuth2)"
-   commit id: "0cccfaa Panic alerts by email"
-   commit id: "2ef4493 Remove TASK.md mentions from docs"
-   commit id: "3b470f8 OAuth2 / Service Account guide"
-   commit id: "f4bb174 Commit history brought up to date"
+   commit id: "adaec8a Contact confirmation (OAuth2)"
+   commit id: "229a3f5 Panic alerts by email"
+   commit id: "95f5af3 Remove TASK.md mentions from docs"
+   commit id: "dd62949 OAuth2 / Service Account guide"
+   commit id: "1294621 Commit history brought up to date"
    checkout devs
-   merge feature/correo-app-password id: "ebca6da Merge correo-app-password -> devs"
-   commit id: "b10ad2d Commit history brought up to date"
+   merge feature/correo-app-password id: "d08f56a Merge correo-app-password -> devs"
+   commit id: "6d18427 Commit history brought up to date"
    branch traduccion
    checkout traduccion
-   commit id: "0159f94 Translate the entire project to English"
-   commit id: "fe73848 Commit history brought up to date"
+   commit id: "414908b Translate the entire project to English"
+   commit id: "05b187b Commit history brought up to date"
    checkout devs
-   merge traduccion id: "892930a Merge traduccion -> devs"
-   commit id: "6c62dbe Commit history brought up to date"
-   commit id: "4ee399b Add APP_MODE docs toggle"
-   commit id: "7f07a32 Redesign confirmation/alert emails"
-   commit id: "9268954 Extend session token to 30 days"
+   merge traduccion id: "32b3d44 Merge traduccion -> devs"
+   commit id: "5c0fc66 Commit history brought up to date"
+   commit id: "47f9058 Add APP_MODE docs toggle"
+   commit id: "8b57e67 Redesign confirmation/alert emails"
+   commit id: "4b62949 Extend session token to 30 days"
    branch app
    checkout app
-   commit id: "feda462 Configure CORS for the mobile app"
-   commit id: "1672bd1 Add the PanicSwitch mobile app"
+   commit id: "39cadc8 Configure CORS for the mobile app"
+   commit id: "1817689 Add the PanicSwitch mobile app"
    checkout main
-   merge devs id: "05f822b Merge devs -> main"
-   merge app id: "074906d Merge app -> main"
+   merge devs id: "5b3197c Merge devs -> main"
+   merge app id: "4e35353 Merge app -> main"
+   checkout devs
+   commit id: "ac747c8 Reconnect to MariaDB on stale connection errors"
+   commit id: "b976000 Add contact deletion and email-based user confirmation"
+   commit id: "6f522a4 Purge abandoned unconfirmed accounts, gate login on confirmation"
+   commit id: "2169395 Rebrand templates pink, fix a rowcount correctness bug"
+   commit id: "22665c5 Document the maintenance scripts"
+   commit id: "2ce9b39 Guard against re-vacuuming app/ build artifacts"
+   commit id: "f1139f7 Fix the templates' primary color: EA2052"
+   checkout app
+   commit id: "ccd14a9 Temporarily allow cleartext HTTP for devs.buttonhelpme.com"
+   commit id: "d1b0d6f Remove temporary cleartext HTTP allowances"
+   commit id: "19f92be Regenerate Capacitor Android/iOS assets"
+   commit id: "0571298 Rebrand the app UI, wire up contact deletion"
+   checkout devs
+   merge app id: "d297d20 Merge app -> devs"
+   checkout main
+   merge devs id: "f5b780f Merge devs -> main"
+   commit id: "61fba5b Finish the rebrand, bring every doc up to date"
+   commit id: "58ec03e Redesign with a dark tech aesthetic, add EN/ES i18n"
+   commit id: "6bcf28e Add Telegram panic-alert notifications"
+   commit id: "8d4de19 Adjust alert message format, document Telegram testing"
 ```
 
-- **`83b5d3e` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` didn't advance past this point until `05f822b`/`074906d` below — until then, all development happened on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
-- **`bd81c9c` — Prepare the Python environment**: the backend's first working skeleton — `pyproject.toml`, the `Cursor` class to talk to MariaDB, `credentials.py`, and the SQL table-creation scripts. Confirmed the database connection worked correctly with a real `.env`.
-- **`905986f` — Documentation + test server**: the first business endpoint (`POST /registrar/usuario`), `Guard` for bcrypt password hashing, and the first batch of documentation in `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
-- **`1392a31` — JWT login, Contacts CRUD, editing Users and a duplicate fix** (merged from `testing`): fixes the bug where inserting data that collides with an existing `UNIQUE` constraint used to fail; standardizes routes under `/auth`, `/usuarios` and `/contactos`, adds JWT login, and the full CRUD for emergency contacts and editing users.
-- **`872b6db` — Documentation up to date with JWT, routers and Contacts/Users CRUD** (merged from `testing`): updates all of `docs/backend/` to reflect the previous commit's code, and adds `backend/API.md` with usage examples in Python and JavaScript.
-- **`89d570e` — Document JWT_SECRET_KEY and API usage in the README** (merged from `testing`): adds the steps for generating the JWT secret in production to the README, and links to the API documentation.
-- **`bea6008` — Merge testing → devs**: integrates the three previous commits (developed and reviewed first on the local `testing` branch) into `devs`, bringing all of this stage's work to the main development branch.
-- **`1f1bb32` — Add gitGraph diagram and commit history to the README**: visually documents the relationship between `main`, `devs` and `testing` with a Mermaid diagram, along with this same explanation of what each commit contributed.
-- **`9ca8023` — Minor `.gitignore` tweak**: small adjustment to the git exclusions file.
-- **`7047342` — Add contact confirmation by email (Gmail App Password)**: first real use of the `contacts.confirmed` column — `POST /contacts` fires off a confirmation email in the background with a single-purpose JWT (`Token.CreateContactConfirmation`), and the new `GET /contacts/confirm/{token}` validates it and marks the contact as confirmed. This branch authenticates the send against Gmail with an app password on the Google Workspace account (see `docs/backend/mail.md`); the sibling branch `feature/correo-oauth2` solved the same module with OAuth2/Service Account as an alternative, until the client settled on a method.
-- **`e239c62` — Add panic-alert notification system by email**: `POST /alerts` inserts the alert record and notifies by email, in a single batch (`Mail.SendBulk`, one SMTP connection for every recipient), only to the user's **confirmed** contacts — those who never confirmed get nothing.
-- **`58f9a1a` — Remove TASK.md mentions from the backend documentation**: `TASK.md` is a personal file (ignored by git) for organizing personal tasks, so the mentions that had been cited from `docs/backend/` and `backend/API.md` were removed.
-- **`d2d8fa6` — Document how to get the SMTP app password in the README**: step-by-step guide (enable 2FA, confirm the Workspace administrator's policy, generate the 16-character password) to fill in `SMTP_PASSWORD` without needing context outside this repository.
-- **`58899ca` — Bring the README's commit history up to date**: on the `feature/correo-app-password` branch, brings this same diagram and this list up to date with the commits missing since `bea6008`.
-- **`820c07b` — Add contact confirmation by email (Gmail OAuth2 / Service Account)**: the same confirmation mechanism as `7047342`, but solved on the sibling branch `feature/correo-oauth2`: the send authenticates against Gmail with a service account and domain-wide delegation (`https://mail.google.com/`) instead of an app password (see `docs/backend/mail.md` on that branch).
-- **`0cccfaa` — Add panic-alert notification system by email**: equivalent to `e239c62`, implemented on `feature/correo-oauth2`.
-- **`2ef4493` — Remove TASK.md mentions from the backend documentation**: same cleanup as `58f9a1a`, applied in parallel on `feature/correo-oauth2`.
-- **`3b470f8` — Document how to configure OAuth2 (Service Account + domain-wide delegation) in the README**: step-by-step guide (Google Cloud project + Gmail API, service account, JSON key, authorizing domain-wide delegation in the Workspace admin console) to get `GOOGLE_SERVICE_ACCOUNT_FILE` working without needing context outside this repository.
-- **`f4bb174` — Bring the README's commit history up to date**: on `feature/correo-oauth2`, equivalent to `58899ca` but documenting the history from that branch's point of view.
-- **`ebca6da` — Merge feature/correo-app-password (app password) into devs**: the client settled on using a Google Workspace app password as the SMTP authentication method, so `feature/correo-app-password` is merged into `devs` with an explicit merge commit. `feature/correo-oauth2` stays documented in this history as an alternative that was evaluated, but isn't merged in.
-- **`b10ad2d` — Bring the README's commit history up to date**: on `devs`, after the merge, extends the diagram and this list with the `ebca6da` merge and with `feature/correo-oauth2`'s full history, so the diagram reflects the repository's complete history.
-- **`0159f94` — Translate the entire project to English** (branch `traduccion`, off `devs`): the client requested that the whole project — database schema, API paths, Pydantic models, module and function names, email templates, and every doc — be in English instead of Spanish. Tables/columns (`usuarios`/`contactos`/`alertas` → `users`/`contacts`/`alerts`, `nombre`/`telefono`/`correo`/`contraseña_hash` → `name`/`phone`/`email`/`password_hash`, etc.), API paths (`/auth/registro` → `/auth/register`, `/usuarios` → `/users`, `/contactos` → `/contacts`, `/alertas` → `/alerts`), and every backend module (`correo.py` → `mail.py`, `credenciales.py` → `credentials.py`, `querys/` → `queries/`, and so on) were renamed and translated together in a single commit, verified by importing `main.py` and inspecting the resulting OpenAPI schema.
-- **`fe73848` — Bring the README's commit history up to date**: on `traduccion`, documents that same commit in this diagram and list before the branch is reviewed and merged.
-- **`892930a` — Merge traduccion → devs**: the translation was reviewed and approved, so `traduccion` is merged into `devs` with an explicit merge commit. The whole project — code, schema, API, docs — is now in English on the main development branch.
-- **`6c62dbe` — Bring the README's commit history up to date**: on `devs`, documents the `892930a` merge in this diagram and list.
-- **`4ee399b` — Add `APP_MODE` to toggle FastAPI's automatic docs**: `main.py` now reads a new `app_mode` value (see `docs/backend/credentials.md`) to decide whether `/docs`, `/redoc` and `/openapi.json` get registered at all. `APP_MODE=Deploy` disables all three (they return `404`, not just hidden from a menu); `Debug`, or `APP_MODE` not being set, keeps them enabled — the same behavior every environment already had before this change. See `docs/backend/main.md` for the implementation detail.
-- **`7f07a32` — Redesign confirmation/alert emails and serve a real HTML result page**: `contact_confirmation.html.j2`/`panic_alert.html.j2` moved from plain unstyled paragraphs to a table-based layout with the red panic-button palette and a real styled button; `GET /contacts/confirm/{token}` stopped returning raw JSON and now renders a styled success/error page instead (new `modules/pages.py`, `templates/web/`). See `docs/backend/mail.md`, `docs/backend/pages.md`.
-- **`9268954` — Extend the session token's lifetime from 24 hours to 30 days**: `Token.EXPIRATION` (see `docs/backend/token.md`) went from `timedelta(hours=24)` to `timedelta(days=30)`, so the mobile app (below) can keep a user logged in across sessions instead of asking for the password again every day.
-- **`feda462` — Configure CORS so the mobile app's WebView can call the API** (branch `app`, off `devs`): `main.py` added `CORSMiddleware` allowing the fixed origins Capacitor's WebView presents (`capacitor://localhost`, `https://localhost`, `http://localhost`) — without it, the app's own JavaScript would never see a response, even though every request would still reach the server and succeed. See `docs/backend/main.md`'s CORS section.
-- **`1672bd1` — Add the PanicSwitch mobile app (Capacitor + vanilla JS)**: the `app/` Capacitor project (Android + iOS), built with plain HTML/CSS/JavaScript bundled by Bun — registration, login, the panic button (GPS via `@capacitor/geolocation` and a press-and-hold confirm gesture, `POST /alerts`), and managing emergency contacts manually or by picking them from the device's address book (`@capacitor-community/contacts`). Visually matches the emails' red panic-button palette. See `docs/app/`.
-- **`05f822b` — Merge devs → main**: with the mobile app about to be merged in too, `devs`'s full history (everything above, up through `9268954`) is brought into `main` for the first time since the initial commit — the start of preparing a test deployment.
-- **`074906d` — Merge app → main**: the `app` branch (`feda462`, `1672bd1`) is merged into `main` right after, so `main` now holds both the backend and the mobile client together, ready to deploy.
+- **`e3d641f` — Initial commit** (`main` branch): the repository's first commit, just the initial `README.md`. `main` didn't advance past this point until `5b3197c`/`4e35353` below — until then, all development happened on `devs` (and, temporarily, on branches like `testing` or `feature/*`).
+- **`cebdf38` — Prepare the Python environment**: the backend's first working skeleton — `pyproject.toml`, the `Cursor` class to talk to MariaDB, `credentials.py`, and the SQL table-creation scripts. Confirmed the database connection worked correctly with a real `.env`.
+- **`f54f05f` — Documentation + test server**: the first business endpoint (`POST /registrar/usuario`), `Guard` for bcrypt password hashing, and the first batch of documentation in `docs/backend/` (`credenciales.md`, `cursor.md`, `guard.md`).
+- **`5317178` — JWT login, Contacts CRUD, editing Users and a duplicate fix** (merged from `testing`): fixes the bug where inserting data that collides with an existing `UNIQUE` constraint used to fail; standardizes routes under `/auth`, `/usuarios` and `/contactos`, adds JWT login, and the full CRUD for emergency contacts and editing users.
+- **`edceeed` — Documentation up to date with JWT, routers and Contacts/Users CRUD** (merged from `testing`): updates all of `docs/backend/` to reflect the previous commit's code, and adds `backend/API.md` with usage examples in Python and JavaScript.
+- **`f22b6ef` — Document JWT_SECRET_KEY and API usage in the README** (merged from `testing`): adds the steps for generating the JWT secret in production to the README, and links to the API documentation.
+- **`34f4511` — Merge testing → devs**: integrates the three previous commits (developed and reviewed first on the local `testing` branch) into `devs`, bringing all of this stage's work to the main development branch.
+- **`7972a8d` — Add gitGraph diagram and commit history to the README**: visually documents the relationship between `main`, `devs` and `testing` with a Mermaid diagram, along with this same explanation of what each commit contributed.
+- **`5f58e4b` — Minor `.gitignore` tweak**: small adjustment to the git exclusions file.
+- **`7e3d7aa` — Add contact confirmation by email (Gmail App Password)**: first real use of the `contacts.confirmed` column — `POST /contacts` fires off a confirmation email in the background with a single-purpose JWT (`Token.CreateContactConfirmation`), and the new `GET /contacts/confirm/{token}` validates it and marks the contact as confirmed. This branch authenticates the send against Gmail with an app password on the Google Workspace account (see `docs/backend/mail.md`); the sibling branch `feature/correo-oauth2` solved the same module with OAuth2/Service Account as an alternative, until the client settled on a method.
+- **`694e6a2` — Add panic-alert notification system by email**: `POST /alerts` inserts the alert record and notifies by email, in a single batch (`Mail.SendBulk`, one SMTP connection for every recipient), only to the user's **confirmed** contacts — those who never confirmed get nothing.
+- **`f102c0d` — Remove TASK.md mentions from the backend documentation**: `TASK.md` is a personal file (ignored by git) for organizing personal tasks, so the mentions that had been cited from `docs/backend/` and `backend/API.md` were removed.
+- **`2af5cf7` — Document how to get the SMTP app password in the README**: step-by-step guide (enable 2FA, confirm the Workspace administrator's policy, generate the 16-character password) to fill in `SMTP_PASSWORD` without needing context outside this repository.
+- **`0daa055` — Bring the README's commit history up to date**: on the `feature/correo-app-password` branch, brings this same diagram and this list up to date with the commits missing since `34f4511`.
+- **`adaec8a` — Add contact confirmation by email (Gmail OAuth2 / Service Account)**: the same confirmation mechanism as `7e3d7aa`, but solved on the sibling branch `feature/correo-oauth2`: the send authenticates against Gmail with a service account and domain-wide delegation (`https://mail.google.com/`) instead of an app password (see `docs/backend/mail.md` on that branch).
+- **`229a3f5` — Add panic-alert notification system by email**: equivalent to `694e6a2`, implemented on `feature/correo-oauth2`.
+- **`95f5af3` — Remove TASK.md mentions from the backend documentation**: same cleanup as `f102c0d`, applied in parallel on `feature/correo-oauth2`.
+- **`dd62949` — Document how to configure OAuth2 (Service Account + domain-wide delegation) in the README**: step-by-step guide (Google Cloud project + Gmail API, service account, JSON key, authorizing domain-wide delegation in the Workspace admin console) to get `GOOGLE_SERVICE_ACCOUNT_FILE` working without needing context outside this repository.
+- **`1294621` — Bring the README's commit history up to date**: on `feature/correo-oauth2`, equivalent to `0daa055` but documenting the history from that branch's point of view.
+- **`d08f56a` — Merge feature/correo-app-password (app password) into devs**: the client settled on using a Google Workspace app password as the SMTP authentication method, so `feature/correo-app-password` is merged into `devs` with an explicit merge commit. `feature/correo-oauth2` stays documented in this history as an alternative that was evaluated, but isn't merged in.
+- **`6d18427` — Bring the README's commit history up to date**: on `devs`, after the merge, extends the diagram and this list with the `d08f56a` merge and with `feature/correo-oauth2`'s full history, so the diagram reflects the repository's complete history.
+- **`414908b` — Translate the entire project to English** (branch `traduccion`, off `devs`): the client requested that the whole project — database schema, API paths, Pydantic models, module and function names, email templates, and every doc — be in English instead of Spanish. Tables/columns (`usuarios`/`contactos`/`alertas` → `users`/`contacts`/`alerts`, `nombre`/`telefono`/`correo`/`contraseña_hash` → `name`/`phone`/`email`/`password_hash`, etc.), API paths (`/auth/registro` → `/auth/register`, `/usuarios` → `/users`, `/contactos` → `/contacts`, `/alertas` → `/alerts`), and every backend module (`correo.py` → `mail.py`, `credenciales.py` → `credentials.py`, `querys/` → `queries/`, and so on) were renamed and translated together in a single commit, verified by importing `main.py` and inspecting the resulting OpenAPI schema.
+- **`05b187b` — Bring the README's commit history up to date**: on `traduccion`, documents that same commit in this diagram and list before the branch is reviewed and merged.
+- **`32b3d44` — Merge traduccion → devs**: the translation was reviewed and approved, so `traduccion` is merged into `devs` with an explicit merge commit. The whole project — code, schema, API, docs — is now in English on the main development branch.
+- **`5c0fc66` — Bring the README's commit history up to date**: on `devs`, documents the `32b3d44` merge in this diagram and list.
+- **`47f9058` — Add `APP_MODE` to toggle FastAPI's automatic docs**: `main.py` now reads a new `app_mode` value (see `docs/backend/credentials.md`) to decide whether `/docs`, `/redoc` and `/openapi.json` get registered at all. `APP_MODE=Deploy` disables all three (they return `404`, not just hidden from a menu); `Debug`, or `APP_MODE` not being set, keeps them enabled — the same behavior every environment already had before this change. See `docs/backend/main.md` for the implementation detail.
+- **`8b57e67` — Redesign confirmation/alert emails and serve a real HTML result page**: `contact_confirmation.html.j2`/`panic_alert.html.j2` moved from plain unstyled paragraphs to a table-based layout with the red panic-button palette and a real styled button; `GET /contacts/confirm/{token}` stopped returning raw JSON and now renders a styled success/error page instead (new `modules/pages.py`, `templates/web/`). See `docs/backend/mail.md`, `docs/backend/pages.md`.
+- **`4b62949` — Extend the session token's lifetime from 24 hours to 30 days**: `Token.EXPIRATION` (see `docs/backend/token.md`) went from `timedelta(hours=24)` to `timedelta(days=30)`, so the mobile app (below) can keep a user logged in across sessions instead of asking for the password again every day.
+- **`39cadc8` — Configure CORS so the mobile app's WebView can call the API** (branch `app`, off `devs`): `main.py` added `CORSMiddleware` allowing the fixed origins Capacitor's WebView presents (`capacitor://localhost`, `https://localhost`, `http://localhost`) — without it, the app's own JavaScript would never see a response, even though every request would still reach the server and succeed. See `docs/backend/main.md`'s CORS section.
+- **`1817689` — Add the PanicSwitch mobile app (Capacitor + vanilla JS)**: the `app/` Capacitor project (Android + iOS), built with plain HTML/CSS/JavaScript bundled by Bun — registration, login, the panic button (GPS via `@capacitor/geolocation` and a press-and-hold confirm gesture, `POST /alerts`), and managing emergency contacts manually or by picking them from the device's address book (`@capacitor-community/contacts`). Visually matches the emails' red panic-button palette. See `docs/app/`.
+- **`5b3197c` — Merge devs → main**: with the mobile app about to be merged in too, `devs`'s full history (everything above, up through `4b62949`) is brought into `main` for the first time since the initial commit — the start of preparing a test deployment.
+- **`4e35353` — Merge app → main**: the `app` branch (`39cadc8`, `1817689`) is merged into `main` right after, so `main` now holds both the backend and the mobile client together, ready to deploy.
+- **`ac747c8` — Reconnect to MariaDB on stale connection errors**: `Cursor.execute` now retries once after an `InterfaceError` ("Server has gone away"), since the process held a single connection for its whole lifetime and MariaDB was closing it server-side after `wait_timeout`.
+- **`b976000` — Add contact deletion and email-based user confirmation**: `DELETE /contacts/{id}` (scoped to the authenticated user), a new `users.confirmed` column set via a JWT-based link sent on register (mirroring the existing contact-confirmation flow), and `GET /auth/confirm/{token}` now redirects into the app (`panicswitch://`, configurable via `APP_DEEP_LINK`) instead of showing a web page.
+- **`6f522a4` — Purge abandoned unconfirmed accounts, gate login on confirmation**: login now requires a confirmed email (`403` otherwise), which makes an unconfirmed account provably harmless — it can never own contacts or alerts — so `scripts/purge_unconfirmed_users.py` can safely delete any account still unconfirmed 24h after signup. Adds an index on `users(confirmed, created_at)` so the sweep stays cheap, and shortens the confirmation token's expiration to match that same 24h window.
+- **`2169395` — Rebrand templates to Panic Switch pink and fix a rowcount correctness bug**: every mail/web template moves to a single `#E15671` primary color; more importantly, `cursor.py` starts connecting with `CLIENT.FOUND_ROWS` and `autocommit=True` — without the former, an `UPDATE` that matches a row but doesn't change its value reports `rowcount=0`, which every existence/ownership check in this codebase misreads as "not found" (caught live: an already-confirmed account's link 404'd as "no longer exists"); without the latter, that same no-op `UPDATE` held a row lock nothing ever released.
+- **`22665c5` — Document the maintenance scripts, ignore stray local files**: adds `docs/backend/scripts.md` for the purge script, and ignores `NGINX.md`/`.directory`.
+- **`2ce9b39` — Guard against re-vacuuming app/ build artifacts into this branch**: `devs` doesn't track `app/`, so its `.gitignore` files don't exist on disk there either — a broad `git add` on this branch has nothing telling it to skip `node_modules` or native build caches. Mirrors the relevant ignore rules here so that can't happen again.
+- **`f1139f7` — Fix the templates' primary color: EA2052, not E15671**: the hex from `2169395` turned out to be wrong; the app's real 1024px icon is `#EA2052` exactly — every derived shade gets recomputed from the corrected anchor.
+- **`ccd14a9` — Temporarily allow cleartext HTTP for devs.buttonhelpme.com** (branch `app`): the test-deployment domain didn't have an HTTPS certificate yet, and both Android and iOS block cleartext traffic by default — scoped narrowly to that one domain, not a general allow-all.
+- **`d1b0d6f` — Remove temporary cleartext HTTP allowances now that HTTPS is live**: the client finished the certificate, so `ccd14a9`'s exceptions (Android's `networkSecurityConfig`, iOS's `NSAppTransportSecurity` domain) come back out, and the app rebuilds against the real `https://` URL.
+- **`19f92be` — Regenerate Capacitor Android/iOS assets and sync platform config**: new app icon/splash source assets and regenerated night-mode/ldpi variants, native project files re-synced (Gradle, `AndroidManifest`, Xcode project, `Package.swift`).
+- **`0571298` — Rebrand the app UI and wire up contact deletion + email confirmation**: `#EA2052` as the single brand color across CSS and the native Android theme (which didn't have one before, using Capacitor's stock indigo/pink), emoji icons replaced with inline Material-style SVGs, the real app icon as favicon/brand mark, `DELETE /contacts/{id}` reachable from the edit sheet, and `register()` no longer auto-logs in (the API blocks login pre-confirmation anyway) — it shows a "check your email" screen instead.
+- **`d297d20` — Merge branch 'app' into devs**: brings the mobile app's rebrand and contact-deletion/confirmation UI together with `devs`'s own parallel backend work into one branch.
+- **`f5b780f` — Merge branch 'devs' into main**: everything above — both `devs`'s and `app`'s independent work — reaches `main` together.
+- **`61fba5b` — Finish the Panic Switch rebrand and bring every doc up to date**: the plain-text mail templates and one in-app error message still had the old branding; every doc under `docs/backend/` and `docs/app/` gets rewritten to describe the backend and app as they exist today instead of the pre-redesign state they still described.
+- **`58ec03e` — Redesign the app with a dark tech aesthetic and add EN/ES i18n**: a dark/light theme following the system preference, a full Spanish/English translation layer with a switcher in Profile, expanded Material icon usage, and a live confirmed-contacts status chip on Home.
+- **`6bcf28e` — Add Telegram panic-alert notifications and app-side follow-up fixes**: contacts can now link Telegram (a single-use, DB-backed token deep-linked via `t.me`, redeemed through a webhook rather than polling) and receive panic alerts over Telegram in parallel to email — new `telegram_chat_id`/`telegram_link_token`/`telegram_link_expires_at` columns, a `Telegram` static class mirroring `Mail`, and full docs in `docs/backend/telegram.md`. On the app side: Telegram connect/disconnect UI on contacts, a phone country-code selector, email domain quick-picks, accent color customization, and a round of navbar/panic-button polish.
+- **`8d4de19` — Adjust panic alert message format and document Telegram testing/deploy steps**: panic alert messages (Telegram and email) now name the alerting user without the phone number crammed into the same sentence — phone and email get their own lines instead — per client feedback after reviewing a real test alert sent while validating the Telegram flow end-to-end against a real bot and a local database. `docs/backend/telegram.md` gained a section on testing that flow without a public webhook, plus a production checklist.
