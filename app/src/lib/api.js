@@ -60,4 +60,6 @@ export const Api = {
   disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
+
+  getFeatures: () => request("/features"),
 };
