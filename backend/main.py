@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 from modules.credentials import get_credentials
-from modules.routers     import auth, users, contacts, alerts, telegram as telegram_router
+from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
@@ -54,4 +54,5 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(alerts.router)
+app.include_router(features.router)
 app.include_router(telegram_router.router)

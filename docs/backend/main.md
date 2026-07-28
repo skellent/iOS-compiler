@@ -8,7 +8,7 @@ It's the API's entry point: this is where the FastAPI application is instantiate
 from contextlib import asynccontextmanager
 
 from modules.credentials import get_credentials
-from modules.routers     import auth, users, contacts, alerts, telegram as telegram_router
+from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
@@ -52,6 +52,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(alerts.router)
+app.include_router(features.router)
 app.include_router(telegram_router.router)
 ```
 
@@ -118,6 +119,7 @@ flowchart TD
         USR["users.py<br/>/users/me"]
         CON["contacts.py<br/>/contacts<br/>/contacts/confirm/{token}<br/>/contacts/{id}/telegram/*"]
         ALT["alerts.py<br/>/alerts"]
+        FEAT["features.py<br/>/features"]
         TGR["telegram.py<br/>/telegram/webhook"]
     end
 
@@ -137,6 +139,7 @@ flowchart TD
     APP --> USR
     APP --> CON
     APP --> ALT
+    APP --> FEAT
     APP --> TGR
     APP --> CRED
     APP --> TG
@@ -159,6 +162,8 @@ flowchart TD
     ALT --> MAIL
     ALT --> TG
 
+    FEAT --> CRED
+
     TGR --> DB
     TGR --> TG
 
@@ -171,7 +176,7 @@ flowchart TD
     TG --> TGAPI
 ```
 
-This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, SMTP, or the Telegram Bot API directly — it only needs to know about the five routers, mount them, read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs, and call `Telegram.SetWebhook` once at startup.
+This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, SMTP, or the Telegram Bot API directly — it only needs to know about the six routers, mount them, read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs, and call `Telegram.SetWebhook` once at startup.
 
 ## Module-level initialization
 
@@ -207,7 +212,7 @@ app.include_router(alerts.router)
 app.include_router(telegram_router.router)
 ```
 
-Each module inside `modules/routers/` defines its own `APIRouter` with a prefix (`/auth`, `/users`, `/contacts`, `/alerts`, `/telegram`) and its own endpoints (see `routers.md` for the detail of each one). `include_router` is the mechanism FastAPI offers to "attach" those routes, already defined in another file, to the main application, as if they had been declared directly on `app`. `routers/telegram.py` is the most recent example of why this matters: an entire new resource was added (a webhook, in this case) by adding a file and a single line here, without touching anything that already existed.
+Each module inside `modules/routers/` defines its own `APIRouter` with a prefix (`/auth`, `/users`, `/contacts`, `/alerts`, `/features`, `/telegram`) and its own endpoints (see `routers.md` for the detail of each one). `include_router` is the mechanism FastAPI offers to "attach" those routes, already defined in another file, to the main application, as if they had been declared directly on `app`. `routers/telegram.py` and `routers/features.py` are the most recent examples of why this matters: an entire new resource gets added by adding a file and a single line here, without touching anything that already existed.
 
 ## What's still missing (for now)
 
