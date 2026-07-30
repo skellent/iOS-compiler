@@ -6,7 +6,7 @@
 
 ## Why vanilla HTML/CSS/JS instead of a framework
 
-The whole `src/` directory is plain JavaScript using nothing but DOM APIs (`element.innerHTML`, `addEventListener`, `classList`) — no React, Vue, Svelte, or any templating engine. Every view module (`src/views/*.js`) exports one `render(container, ctx)` function that builds a screen's markup and wires its own event listeners directly, the same shape repeated across every screen rather than a component abstraction layered on top. For an app this size (five screens, no shared complex state beyond "who's logged in"), a framework's bundle size and build complexity buys little; plain DOM manipulation is easy to follow file by file, matching the backend's own preference for the simplest tool that solves the problem at hand (see `docs/backend/main.md`) over infrastructure justified by a future the project isn't at yet.
+The whole `src/` directory is plain JavaScript using nothing but DOM APIs (`element.innerHTML`, `addEventListener`, `classList`) — no React, Vue, Svelte, or any templating engine. Every view module (`src/views/*.js`) exports one `render(container, ctx)` function that builds a screen's markup and wires its own event listeners directly, the same shape repeated across every screen rather than a component abstraction layered on top. For an app this size (seven screens, no shared complex state beyond "who's logged in"), a framework's bundle size and build complexity buys little; plain DOM manipulation is easy to follow file by file, matching the backend's own preference for the simplest tool that solves the problem at hand (see `docs/backend/main.md`) over infrastructure justified by a future the project isn't at yet.
 
 ## Why Bun as a bundler, and what `import.meta.env.API_BASE_URL` actually is
 
@@ -58,11 +58,14 @@ app/
       geolocation.js        — thin wrapper around @capacitor/geolocation for the panic button
       contactsPicker.js     — thin wrapper around @capacitor-community/contacts' native picker
       icons.js               — inline Material-style SVG icon set, see screens.md
-      i18n.js                — EN/ES string dictionary + t(key, vars); language persisted via @capacitor/preferences
+      i18n.js                — 12-language string dictionary + t(key, vars); language persisted via @capacitor/preferences
       theme.js                — derives the full --primary-* CSS scale from one chosen accent hex (HSL math), persisted the same way
+      phone.js                — country-code list + split/combine helpers for the phone number fields
+      features.js              — caches GET /features so screens can ask "is Telegram on" without a request each
       toast.js, sheet.js, dom.js — small shared UI helpers (toast notifications, bottom sheet, escaping/loading-state utilities)
     views/
       login.js, register.js, home.js, contacts.js, profile.js — one render(container, ctx) per screen
+      about.js, help.js     — static informational screens, reached only from buttons on Profile
   www/
     index.html            — app shell markup (app bar, view container, bottom nav)
     css/styles.css         — the whole design system, see screens.md
@@ -88,4 +91,4 @@ See `docs/backend/main.md`'s CORS section: the app's WebView enforces CORS on ev
 
 ## Relationship with the rest of the project
 
-`app/` is a pure client of `backend/`'s HTTP API (see `backend/API.md`) — it has no direct access to MariaDB, no shared code with the Python backend, and no server-side logic of its own. Its points of contact with the rest of the repository are the URL it's configured to call (`API_BASE_URL`), the CORS origins the backend has to be told to trust, and the `panicswitch://` custom URL scheme the backend's account-confirmation page redirects to (see `docs/backend/credentials.md`'s `app_deep_link`, `docs/backend/pages.md`) — registering the app as that scheme's handler is a native-manifest concern on this side, not something either codebase enforces on the other.
+`app/` is a pure client of `backend/`'s HTTP API (see `backend/API.md`) — it has no direct access to MariaDB, no shared code with the Python backend, and no server-side logic of its own. Its points of contact with the rest of the repository are the URL it's configured to call (`API_BASE_URL`), the CORS origins the backend has to be told to trust, and `GET /features` (see `docs/backend/routers.md`, `docs/backend/features.md`), which `lib/features.js` reads once to decide whether the Contacts screen's Telegram-linking UI should render at all — a deployment with no Telegram bot configured hides that UI entirely instead of offering a button that would just fail. There's no custom URL scheme linking the two sides anymore: the account-confirmation email used to redirect into a `panicswitch://` deep link the app never actually registered a handler for, and both that redirect and the app-side registration it would have needed were dropped rather than finished (see `docs/backend/pages.md`) — a newly confirmed account is simply told to open the app and log in manually.
