@@ -21,10 +21,14 @@ export const Api = {
   disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
+
+  getFeatures: () => request("/features"),
 };
 ```
 
-This mirrors `backend/API.md` one endpoint at a time — every route the backend exposes for a logged-in user to consume has exactly one matching `Api.*` function here, named after the same action rather than the raw HTTP verb+path, the same way `modules/routers/*.py` groups endpoints by resource on the backend side. `register` and `login` are the only two entries without `auth: true`, since neither can carry a session token yet — they're what produces one. There's deliberately no `Api.*` wrapper for `POST /telegram/webhook` — that endpoint is never called from this app at all, only by Telegram's own servers (see `docs/backend/telegram.md`).
+This mirrors `backend/API.md` one endpoint at a time — every route the backend exposes for a logged-in user to consume has exactly one matching `Api.*` function here, named after the same action rather than the raw HTTP verb+path, the same way `modules/routers/*.py` groups endpoints by resource on the backend side. `register`, `login` and `getFeatures` are the only three entries without `auth: true`: `register`/`login` can't carry a session token yet — they're what produces one — while `getFeatures` is deployment-wide by design (see `docs/backend/features.md`) and its answer doesn't depend on who's asking. There's deliberately no `Api.*` wrapper for `POST /telegram/webhook` — that endpoint is never called from this app at all, only by Telegram's own servers (see `docs/backend/telegram.md`).
+
+`getFeatures` is never called directly from a view — `lib/features.js` wraps it in a small cache (a module-level promise, reused for the rest of the app's lifetime instead of re-fetching) since the answer can't change while the app is running, and falls back to `{ telegram: false }` if the call itself fails, so a flaky network hides the Telegram UI rather than crashing whichever screen asked. `src/views/contacts.js` is the only caller today, deciding whether to render the "Connect Telegram" button and badge at all (see `screens.md`).
 
 ## Why a shared `request()` instead of one `fetch()` call per function
 
@@ -39,7 +43,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 }
 ```
 
-Every one of the nine endpoints needs the same three things: a JSON `Content-Type` header, JSON-encoding the request body when there is one, and — for everything except register/login — the session token attached as `Authorization: Bearer <token>` (see `docs/backend/dependencies.md` for how the backend reads that same header). Writing that logic nine times would mean nine places to keep in sync if, for example, the token header name ever changed; `auth: true` is the one bit each endpoint definition needs to opt into it.
+Every one of the ten endpoints needs the same two things: a JSON `Content-Type` header, and JSON-encoding the request body when there is one — most of them also need the session token attached as `Authorization: Bearer <token>` (see `docs/backend/dependencies.md` for how the backend reads that same header). Writing that logic ten times would mean ten places to keep in sync if, for example, the token header name ever changed; `auth: true` is the one bit each endpoint definition needs to opt into it.
 
 ## `BASE_URL` and `import.meta.env.API_BASE_URL`
 
@@ -75,4 +79,4 @@ A network failure (no connectivity, DNS failure, the backend simply not running)
 
 ## Relationship with the rest of the app
 
-`src/lib/session.js` is `api.js`'s dependency for `getToken()` (attaching the `Authorization` header); `src/lib/i18n.js` is its dependency for the two fallback error strings above. Every view module (`src/views/*.js`) and `src/main.js` depend on `api.js`, never on `fetch` directly — keeping the backend's actual URL shape (paths, JSON field names) known in exactly one file, the same boundary `modules/cursor.py` keeps around `mariadb` on the backend side (see `docs/backend/cursor.md`).
+`src/lib/session.js` is `api.js`'s dependency for `getToken()` (attaching the `Authorization` header); `src/lib/i18n.js` is its dependency for the two fallback error strings above. Every view module (`src/views/*.js`) and `src/main.js` depend on `api.js`, never on `fetch` directly — keeping the backend's actual URL shape (paths, JSON field names) known in exactly one file, the same boundary `modules/cursor.py` keeps around `mariadb` on the backend side (see `docs/backend/cursor.md`). `src/lib/features.js` is the one exception that doesn't call `Api.*` directly from a view: it sits between `Api.getFeatures` and `src/views/contacts.js`, caching the one call every screen that cares about Telegram availability would otherwise have to repeat.
