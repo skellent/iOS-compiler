@@ -1,19 +1,23 @@
 from contextlib import asynccontextmanager
 
 from modules.credentials import get_credentials
-from modules.routers     import auth, users, contacts, alerts, telegram as telegram_router
+from modules.logs        import get_logger
+from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, dashboard
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
 from fastapi.middleware.cors  import CORSMiddleware
+from fastapi.responses        import RedirectResponse
 
 
 _docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
 _credentials: dict = get_credentials()
+_logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
     # Best-effort and non-blocking on failure: a backend with no Telegram bot
     # configured (local dev, or before the client sets one up) should still
     # boot normally, just without this feature wired up.
@@ -21,8 +25,9 @@ async def _lifespan(app: FastAPI):
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
             await Telegram.SetWebhook(webhook_url)
+            _logger.info(f"Telegram webhook registered at {webhook_url}")
         except Exception as e:
-            print(f"Could not register Telegram webhook: {e}")
+            _logger.error(f"Could not register Telegram webhook: {e}")
     yield
 
 
@@ -47,11 +52,13 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"Skellent": "You shouldn't be here, boy!" }
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(alerts.router)
+app.include_router(features.router)
 app.include_router(telegram_router.router)
+app.include_router(dashboard.router)

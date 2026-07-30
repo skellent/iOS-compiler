@@ -1,4 +1,5 @@
 import { Api, ApiError } from "../lib/api.js";
+import { getFeatures } from "../lib/features.js";
 import { pickDeviceContact } from "../lib/contactsPicker.js";
 import { openSheet } from "../lib/sheet.js";
 import { showToast } from "../lib/toast.js";
@@ -29,9 +30,12 @@ export async function renderContacts(container) {
   const fab = container.querySelector("#add-contact-fab");
 
   renderSkeleton(list);
-  await loadContacts(list);
+  // Fetched once per screen (and cached beyond that, see features.js) so
+  // every row/sheet below can ask "is Telegram on" without its own request.
+  const features = await getFeatures();
+  await loadContacts(list, features);
 
-  fab.addEventListener("click", () => openAddOptionsSheet(() => loadContacts(list)));
+  fab.addEventListener("click", () => openAddOptionsSheet(() => loadContacts(list, features), features));
 }
 
 function renderSkeleton(list) {
@@ -40,17 +44,17 @@ function renderSkeleton(list) {
     .join("");
 }
 
-async function loadContacts(list) {
+async function loadContacts(list, features) {
   try {
     const contacts = await Api.listContacts();
-    renderContactRows(list, contacts);
+    renderContactRows(list, contacts, features);
   } catch (error) {
     list.innerHTML = `<p class="contacts-empty">${t("contacts.loadError")}</p>`;
     showToast(error instanceof ApiError ? error.message : t("contacts.loadErrorToast"), "error");
   }
 }
 
-function renderContactRows(list, contacts) {
+function renderContactRows(list, contacts, features) {
   if (contacts.length === 0) {
     list.innerHTML = `<p class="contacts-empty">${t("contacts.empty")}</p>`;
     return;
@@ -64,11 +68,20 @@ function renderContactRows(list, contacts) {
         <span class="contact-info">
           <span class="contact-name">${escapeHtml(contact.name)}</span>
           <span class="contact-phone">${Icon.phone()} ${escapeHtml(contact.phone)}</span>
+          ${contact.email ? `<span class="contact-email">${Icon.mail()} ${escapeHtml(contact.email)}</span>` : ""}
         </span>
-        <span class="badge ${contact.confirmed ? "badge-confirmed" : "badge-pending"}">
-          ${contact.confirmed ? `${Icon.checkCircle()} ${t("contacts.confirmed")}` : `${Icon.schedule()} ${t("contacts.pending")}`}
+        <span class="contact-channels">
+          <span class="channel-icon ${contact.confirmed ? "channel-active" : "channel-inactive"}"
+                title="${contact.confirmed ? t("contacts.confirmed") : t("contacts.pending")}"
+                aria-label="${contact.confirmed ? t("contacts.confirmed") : t("contacts.pending")}">${Icon.mail()}</span>
+          ${
+            features.telegram
+              ? `<span class="channel-icon channel-telegram ${contact.telegram_linked ? "channel-active" : "channel-inactive"}"
+                       title="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}"
+                       aria-label="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}">${Icon.telegram()}</span>`
+              : ""
+          }
         </span>
-        ${contact.telegram_linked ? `<span class="badge badge-telegram" title="${t("contacts.telegramLinked")}">${Icon.telegram()}</span>` : ""}
       </button>
     `
     )
@@ -77,12 +90,12 @@ function renderContactRows(list, contacts) {
   list.querySelectorAll(".contact-row").forEach((row) => {
     row.addEventListener("click", () => {
       const contact = contacts.find((c) => String(c.id) === row.dataset.id);
-      openContactFormSheet({ contact, onSaved: () => loadContacts(list) });
+      openContactFormSheet({ contact, features, onSaved: () => loadContacts(list, features) });
     });
   });
 }
 
-function openAddOptionsSheet(onSaved) {
+function openAddOptionsSheet(onSaved, features) {
   const body = document.createElement("div");
   body.innerHTML = `
     <h2 class="sheet-title">${t("contacts.addTitle")}</h2>
@@ -102,21 +115,21 @@ function openAddOptionsSheet(onSaved) {
 
   body.querySelector("#add-manually").addEventListener("click", () => {
     close();
-    openContactFormSheet({ onSaved });
+    openContactFormSheet({ onSaved, features });
   });
 
   body.querySelector("#pick-device-contact").addEventListener("click", async () => {
     close();
     try {
       const prefill = await pickDeviceContact();
-      openContactFormSheet({ prefill, onSaved });
+      openContactFormSheet({ prefill, onSaved, features });
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("contacts.pickError"), "error");
     }
   });
 }
 
-function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
+function openContactFormSheet({ contact = null, prefill = null, features, onSaved }) {
   const isEdit = Boolean(contact);
   const initial = contact ?? prefill ?? { name: "", phone: "", email: "" };
   const { countryCode, number } = splitPhone(initial.phone);
@@ -137,8 +150,8 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
         </div>
       </label>
       <label class="field">
-        <span>${t("contacts.emailOptional")}</span>
-        <input type="email" name="email" value="${escapeHtml(initial.email ?? "")}" />
+        <span>${t("contacts.email")}</span>
+        <input type="email" name="email" required value="${escapeHtml(initial.email ?? "")}" />
         <div class="email-domain-chips">
           ${EMAIL_DOMAINS.map((domain) => `<button type="button" class="email-domain-chip" data-domain="${domain}">@${domain}</button>`).join("")}
         </div>
@@ -149,7 +162,7 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
         <span class="btn-spinner" hidden></span>
       </button>
       ${
-        isEdit
+        isEdit && features.telegram
           ? `<button type="button" class="btn btn-outline btn-block" id="telegram-toggle">
               ${Icon.telegram()}
               <span class="btn-label">${contact.telegram_linked ? t("contacts.telegramDisconnect") : t("contacts.telegramConnect")}</span>
@@ -185,9 +198,14 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
     const data = {
       name: formData.name,
       phone: combinePhone(formData.phone_country, formData.phone_number),
-      email: formData.email,
+      email: formData.email.trim(),
     };
-    data.email = data.email.trim() || null;
+
+    if (!data.email) {
+      shake(form);
+      showToast(t("contacts.emailRequired"), "error");
+      return;
+    }
 
     setLoading(button, true);
     try {
@@ -201,7 +219,7 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
         showToast(t("contacts.updated"), "success");
       } else {
         await Api.createContact(data);
-        showToast(data.email ? t("contacts.addedWithEmail") : t("contacts.added"), "success");
+        showToast(t("contacts.addedWithEmail"), "success");
       }
       close();
       onSaved();
@@ -215,7 +233,7 @@ function openContactFormSheet({ contact = null, prefill = null, onSaved }) {
 
   if (isEdit) {
     const telegramButton = body.querySelector("#telegram-toggle");
-    telegramButton.addEventListener("click", async () => {
+    telegramButton?.addEventListener("click", async () => {
       setLoading(telegramButton, true);
       try {
         if (contact.telegram_linked) {

@@ -4,9 +4,11 @@ from modules.cursor       import Queries, DuplicateRecordError
 from modules.db           import cursor
 from modules.dependencies import current_user
 from modules.guard        import Guard
+from modules.logs         import get_logger
 from modules.types        import UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
+_logger = get_logger(__name__)
 
 _COLUMN_BY_FIELD: dict[str, str] = {
     "name":     "name",
@@ -41,6 +43,7 @@ def update_current_user(data: UserUpdate, user_id: int = Depends(current_user)):
     except DuplicateRecordError:
         raise HTTPException(status_code=409, detail="Phone or email already registered")
     cursor.commit()
+    _logger.info(f"User {user_id} updated fields: {', '.join(fields.keys())}")
 
     rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
     return rows[0]

@@ -2,12 +2,12 @@ import { Api, ApiError } from "../lib/api.js";
 import { showToast } from "../lib/toast.js";
 import { escapeHtml, setLoading, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
-import { t } from "../lib/i18n.js";
+import { t, LANGUAGES } from "../lib/i18n.js";
 import { DEFAULT_ACCENT } from "../lib/theme.js";
 
 const COLOR_PRESETS = [DEFAULT_ACCENT, "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
 
-export async function renderProfile(container, { getUser, refreshUser, logout, getLanguage, changeLanguage, getAccentColor, setAccentColor }) {
+export async function renderProfile(container, { getUser, refreshUser, logout, navigate, getLanguage, changeLanguage, getAccentColor, setAccentColor }) {
   const user = getUser();
   const lang = getLanguage();
   const accentColor = getAccentColor();
@@ -42,10 +42,9 @@ export async function renderProfile(container, { getUser, refreshUser, logout, g
 
       <div class="lang-switcher">
         <span class="lang-switcher-label">${Icon.language()} ${t("profile.language")}</span>
-        <div class="lang-switcher-options">
-          <button type="button" class="lang-option ${lang === "en" ? "lang-option-active" : ""}" data-lang="en">EN</button>
-          <button type="button" class="lang-option ${lang === "es" ? "lang-option-active" : ""}" data-lang="es">ES</button>
-        </div>
+        <select id="lang-select" class="lang-select">
+          ${LANGUAGES.map((l) => `<option value="${l.code}" ${l.code === lang ? "selected" : ""}>${escapeHtml(l.label)}</option>`).join("")}
+        </select>
       </div>
 
       <div class="color-switcher">
@@ -65,6 +64,16 @@ export async function renderProfile(container, { getUser, refreshUser, logout, g
         </div>
       </div>
 
+      <button id="help-btn" class="btn btn-outline btn-block" type="button">
+        ${Icon.help()}
+        <span class="btn-label">${t("profile.help")}</span>
+      </button>
+
+      <button id="about-btn" class="btn btn-outline btn-block" type="button">
+        ${Icon.info()}
+        <span class="btn-label">${t("profile.about")}</span>
+      </button>
+
       <button id="logout-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.logout()}
         <span class="btn-label">${t("profile.logout")}</span>
@@ -76,9 +85,7 @@ export async function renderProfile(container, { getUser, refreshUser, logout, g
   const button = form.querySelector("button[type=submit]");
   const logoutBtn = container.querySelector("#logout-btn");
 
-  container.querySelectorAll(".lang-option").forEach((option) => {
-    option.addEventListener("click", () => changeLanguage(option.dataset.lang));
-  });
+  container.querySelector("#lang-select").addEventListener("change", (event) => changeLanguage(event.target.value));
 
   const customSwatch = container.querySelector(".color-swatch-custom");
   const customInput = container.querySelector("#color-custom-input");
@@ -136,4 +143,6 @@ export async function renderProfile(container, { getUser, refreshUser, logout, g
   });
 
   logoutBtn.addEventListener("click", () => logout());
+  container.querySelector("#help-btn").addEventListener("click", () => navigate("help"));
+  container.querySelector("#about-btn").addEventListener("click", () => navigate("about"));
 }

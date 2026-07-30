@@ -9,6 +9,7 @@ from modules.credentials  import get_credentials
 from modules.cursor       import Queries
 from modules.db           import cursor
 from modules.dependencies import current_user
+from modules.logs         import get_logger
 from modules.pages        import Pages
 from modules.telegram     import LINK_EXPIRATION
 from modules.token        import Token
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/contacts", tags=["contacts"])
 
 _URL_BASE: str = get_credentials()['api_base_url']
 _TELEGRAM_BOT_USERNAME: str = get_credentials()['telegram']['bot_username']
+_logger = get_logger(__name__)
 
 
 @router.post("", status_code=201)
@@ -25,6 +27,7 @@ def create_contact(data: Contact, background_tasks: BackgroundTasks, user_id: in
     cursor.execute(Queries.INSERT_CONTACT, (user_id, data.name, data.phone, data.email))
     cursor.commit()
     contact_id: int = cursor.lastrowid
+    _logger.info(f"User {user_id} added contact {contact_id}")
 
     if data.email:
         rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
@@ -53,6 +56,7 @@ def list_contacts(user_id: int = Depends(current_user)):
 def confirm_contact(token: str):
     contact_id: int | None = Token.ValidateContactConfirmation(token)
     if contact_id is None:
+        _logger.warning("Contact confirmation attempted with an invalid or expired token")
         return HTMLResponse(
             Pages.Render("confirmation_result", {
                 "success": False,
@@ -63,6 +67,7 @@ def confirm_contact(token: str):
 
     cursor.execute(Queries.CONFIRM_CONTACT, (contact_id,))
     if cursor.rowcount == 0:
+        _logger.warning(f"Confirmation attempted for contact {contact_id}, which no longer exists")
         return HTMLResponse(
             Pages.Render("confirmation_result", {
                 "success": False,
@@ -71,6 +76,7 @@ def confirm_contact(token: str):
             status_code=404,
         )
     cursor.commit()
+    _logger.info(f"Contact {contact_id} confirmed by email")
 
     return HTMLResponse(
         Pages.Render("confirmation_result", {
@@ -107,6 +113,7 @@ def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
+    _logger.info(f"User {user_id} deleted contact {contact_id}")
 
 
 @router.post("/{contact_id}/telegram/enable")
@@ -122,6 +129,7 @@ def enable_contact_telegram(contact_id: int, background_tasks: BackgroundTasks, 
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
+    _logger.info(f"User {user_id} started a Telegram link for contact {contact_id}")
 
     rows: list[dict] = cursor.execute("SELECT name, email FROM contacts WHERE id = %s;", (contact_id,))
     contact: dict = rows[0]
@@ -155,3 +163,4 @@ def disable_contact_telegram(contact_id: int, user_id: int = Depends(current_use
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
+    _logger.info(f"User {user_id} disconnected Telegram for contact {contact_id}")

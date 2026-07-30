@@ -8,24 +8,30 @@ It's the API's entry point: this is where the FastAPI application is instantiate
 from contextlib import asynccontextmanager
 
 from modules.credentials import get_credentials
-from modules.routers     import auth, users, contacts, alerts, telegram as telegram_router
+from modules.logs        import get_logger
+from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, dashboard
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
 from fastapi.middleware.cors  import CORSMiddleware
+from fastapi.responses        import RedirectResponse
 
 
 _docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
 _credentials: dict = get_credentials()
+_logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
-            await Telegram.SetWebhook(f"{_credentials['api_base_url']}/telegram/webhook")
+            webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
+            await Telegram.SetWebhook(webhook_url)
+            _logger.info(f"Telegram webhook registered at {webhook_url}")
         except Exception as e:
-            print(f"Could not register Telegram webhook: {e}")
+            _logger.error(f"Could not register Telegram webhook: {e}")
     yield
 
 
@@ -45,32 +51,41 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"Skellent": "You shouldn't be here, boy!" }
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(alerts.router)
+app.include_router(features.router)
 app.include_router(telegram_router.router)
+app.include_router(dashboard.router)
 ```
 
 There used to be a single business endpoint (`registrar_usuario`) written directly here, and `main.py` also used to be responsible for reading credentials and opening the MariaDB connection. With login, editing users, and the contacts CRUD arriving, that file would have grown without limit and mixed together things that have nothing to do with each other (registration, authentication, contacts) in one place. That's why this file was deliberately emptied out: `main.py` creates the app (deciding whether its automatic docs are exposed, and registering the Telegram webhook on startup — see below), configures CORS, tells it which routers exist, and mounts them — all the business logic lives in `modules/routers/` (see `routers.md`).
 
-## Startup: registering the Telegram webhook
+## Startup: logging, then registering the Telegram webhook
 
 ```python
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
-            await Telegram.SetWebhook(f"{_credentials['api_base_url']}/telegram/webhook")
+            webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
+            await Telegram.SetWebhook(webhook_url)
+            _logger.info(f"Telegram webhook registered at {webhook_url}")
         except Exception as e:
-            print(f"Could not register Telegram webhook: {e}")
+            _logger.error(f"Could not register Telegram webhook: {e}")
     yield
 ```
 
-FastAPI's `lifespan` parameter replaces the older `@app.on_event("startup")` decorator with an async context manager: code before `yield` runs once when the process starts, code after `yield` (there is none here) would run on shutdown. This is the only place `main.py` does anything beyond wiring — it tells Telegram where to deliver updates by calling `Telegram.SetWebhook` (see `telegram.md`) once, at boot, instead of requiring a manual step after every deploy. It's guarded on `bot_token` being set at all (a `Debug` environment with no bot configured just skips this silently) and wrapped in `try`/`except` (a Telegram API hiccup at boot shouldn't crash the entire backend over one optional integration) — the same fail-soft posture the rest of this feature takes, in contrast to the fail-fast `sys.exit(1)` `modules/cursor.py` uses when the database itself is unreachable (see `cursor.md`): losing the database means nothing works, losing Telegram at boot means one notification channel is temporarily unregistered.
+FastAPI's `lifespan` parameter replaces the older `@app.on_event("startup")` decorator with an async context manager: code before `yield` runs once when the process starts, code after `yield` (there is none here) would run on shutdown. Beyond the one-line "the process is up" log, the only thing `main.py` does here is tell Telegram where to deliver updates by calling `Telegram.SetWebhook` (see `telegram.md`) once, at boot, instead of requiring a manual step after every deploy. It's guarded on `bot_token` being set at all (a `Debug` environment with no bot configured just skips this silently) and wrapped in `try`/`except` (a Telegram API hiccup at boot shouldn't crash the entire backend over one optional integration) — the same fail-soft posture the rest of this feature takes, in contrast to the fail-fast `sys.exit(1)` `modules/cursor.py` uses when the database itself is unreachable (see `cursor.md`): losing the database means nothing works, losing Telegram at boot means one notification channel is temporarily unregistered. `SetWebhook` itself now raises on a Telegram-side rejection rather than returning a `bool` no one checked — see `telegram.md` for that fix, which is what makes the `except` branch here actually fire when registration fails instead of only on a network-level error.
+
+## `modules/logs.py`: imported before everything else
+
+`from modules.logs import get_logger` is the second import in this file, right after `modules.credentials` and before any router. This isn't incidental ordering: `modules/logs.py` calls `logging.basicConfig(...)` at module level, and that call only takes effect the *first* time it runs in the process — see `logs.md` for why. Every router, `modules/cursor.py` and `modules/mail.py` all log something of their own, so `main.py` has to be the one to settle the console/file handler configuration before importing any of them, otherwise whichever module happened to touch `logging` first (however indirectly) would decide it instead.
 
 ## `APP_MODE` and FastAPI's automatic docs
 
@@ -117,8 +132,10 @@ flowchart TD
         AUTH["auth.py<br/>/auth/register<br/>/auth/login"]
         USR["users.py<br/>/users/me"]
         CON["contacts.py<br/>/contacts<br/>/contacts/confirm/{token}<br/>/contacts/{id}/telegram/*"]
-        ALT["alerts.py<br/>/alerts"]
+        ALT["alerts.py<br/>/alerts<br/>/alerts/view/{token}"]
+        FEAT["features.py<br/>/features"]
         TGR["telegram.py<br/>/telegram/webhook"]
+        DASH["dashboard.py<br/>/dashboard"]
     end
 
     DEPS["modules/dependencies.py<br/>current_user"]
@@ -129,6 +146,7 @@ flowchart TD
     DB["modules/db.py<br/>cursor"]
     CURSOR["modules/cursor.py<br/>Cursor / Queries"]
     CRED["modules/credentials.py"]
+    LOGS["modules/logs.py (logs.md)"]
     MARIADB[(MariaDB)]
     SMTP[(smtp.gmail.com)]
     TGAPI[(api.telegram.org)]
@@ -137,9 +155,12 @@ flowchart TD
     APP --> USR
     APP --> CON
     APP --> ALT
+    APP --> FEAT
     APP --> TGR
+    APP --> DASH
     APP --> CRED
     APP --> TG
+    APP --> LOGS
 
     AUTH --> GUARD
     AUTH --> TOKEN
@@ -158,20 +179,28 @@ flowchart TD
     ALT --> DB
     ALT --> MAIL
     ALT --> TG
+    ALT --> TOKEN
+
+    FEAT --> CRED
 
     TGR --> DB
     TGR --> TG
+
+    DASH --> DB
 
     DEPS --> TOKEN
 
     DB --> CURSOR
     DB --> CRED
     CURSOR --> MARIADB
+    CURSOR --> LOGS
     MAIL --> SMTP
+    MAIL --> LOGS
     TG --> TGAPI
+    TG --> LOGS
 ```
 
-This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, SMTP, or the Telegram Bot API directly — it only needs to know about the five routers, mount them, read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs, and call `Telegram.SetWebhook` once at startup.
+This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, SMTP, or the Telegram Bot API directly — it only needs to know about the seven routers, mount them, read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs, configure logging once via `modules/logs.py`, and call `Telegram.SetWebhook` once at startup.
 
 ## Module-level initialization
 
@@ -192,10 +221,10 @@ This is all `main.py` initializes on its own: the `app_mode`-driven docs toggle 
 ```python
 @app.get("/")
 def root():
-    return {"Skellent": "You shouldn't be here, boy!" }
+    return RedirectResponse(url="/dashboard", status_code=302)
 ```
 
-It's the API's root route. It serves no business purpose: it acts as a quick check that the server is up and responding (an informal health-check endpoint), and incidentally makes casual exploration of the API a bit harder for someone who lands on the root without knowing what they're looking at. It's the only route that stays living directly in `main.py`: it doesn't belong to any business resource (it's not "users," it's not "contacts"), so there's no reason to move it into a router.
+It's the API's root route. It used to return a plain `{"Skellent": "You shouldn't be here, boy!"}` — an informal health-check string that also made casual exploration a bit harder for someone landing on the root without knowing what they were looking at. Now that `GET /dashboard` (see `routers.md`) exists and is itself a reasonable thing for a person to land on, the root simply redirects there instead: visiting the API's base URL in a browser now shows something useful (a login form) rather than a bare JSON string. It's still the only route that stays living directly in `main.py`, for the same reason as before: it doesn't belong to any business resource (it's not "users," it's not "contacts," and it isn't really "dashboard" either — it's a redirect *to* it), so there's no reason to move it into a router.
 
 ## `app.include_router(...)`
 
@@ -204,10 +233,12 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(alerts.router)
+app.include_router(features.router)
 app.include_router(telegram_router.router)
+app.include_router(dashboard.router)
 ```
 
-Each module inside `modules/routers/` defines its own `APIRouter` with a prefix (`/auth`, `/users`, `/contacts`, `/alerts`, `/telegram`) and its own endpoints (see `routers.md` for the detail of each one). `include_router` is the mechanism FastAPI offers to "attach" those routes, already defined in another file, to the main application, as if they had been declared directly on `app`. `routers/telegram.py` is the most recent example of why this matters: an entire new resource was added (a webhook, in this case) by adding a file and a single line here, without touching anything that already existed.
+Each module inside `modules/routers/` defines its own `APIRouter` with a prefix (`/auth`, `/users`, `/contacts`, `/alerts`, `/features`, `/telegram`, `/dashboard`) and its own endpoints (see `routers.md` for the detail of each one). `include_router` is the mechanism FastAPI offers to "attach" those routes, already defined in another file, to the main application, as if they had been declared directly on `app`. `routers/telegram.py`, `routers/features.py` and `routers/dashboard.py` are the most recent examples of why this matters: an entire new resource gets added by adding a file and a single line here, without touching anything that already existed.
 
 ## What's still missing (for now)
 

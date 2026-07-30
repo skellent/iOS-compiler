@@ -58,3 +58,22 @@ class Token:
         if payload is None or payload.get("type") != "user_confirmation":
             return None
         return int(payload["user_id"])
+
+    @staticmethod
+    def CreateAlertNotificationView(notification_id: int) -> str:
+        # Deliberately no "exp" claim: unlike the confirmation tokens above,
+        # this link is meant to keep working for as long as the alert itself
+        # is a meaningful historical record, not just for a short window
+        # after it's sent — a contact may check it days later.
+        payload: dict = {
+            "notification_id": notification_id,
+            "type": "alert_notification_view",
+        }
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateAlertNotificationView(token: str) -> int | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != "alert_notification_view":
+            return None
+        return int(payload["notification_id"])

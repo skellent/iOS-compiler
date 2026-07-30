@@ -33,5 +33,5 @@ def get_credentials() -> dict:
         },
         "api_base_url": os.getenv("API_BASE_URL", "http://127.0.0.1:8000"),
         "app_mode": os.getenv("APP_MODE", "Debug"),
-        "app_deep_link": os.getenv("APP_DEEP_LINK", "panicswitch://confirmed"),
+        "log_level": os.getenv("LOG_LEVEL", "INFO"),
     }
