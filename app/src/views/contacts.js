@@ -68,11 +68,20 @@ function renderContactRows(list, contacts, features) {
         <span class="contact-info">
           <span class="contact-name">${escapeHtml(contact.name)}</span>
           <span class="contact-phone">${Icon.phone()} ${escapeHtml(contact.phone)}</span>
+          ${contact.email ? `<span class="contact-email">${Icon.mail()} ${escapeHtml(contact.email)}</span>` : ""}
         </span>
-        <span class="badge ${contact.confirmed ? "badge-confirmed" : "badge-pending"}">
-          ${contact.confirmed ? `${Icon.checkCircle()} ${t("contacts.confirmed")}` : `${Icon.schedule()} ${t("contacts.pending")}`}
+        <span class="contact-channels">
+          <span class="channel-icon ${contact.confirmed ? "channel-active" : "channel-inactive"}"
+                title="${contact.confirmed ? t("contacts.confirmed") : t("contacts.pending")}"
+                aria-label="${contact.confirmed ? t("contacts.confirmed") : t("contacts.pending")}">${Icon.mail()}</span>
+          ${
+            features.telegram
+              ? `<span class="channel-icon channel-telegram ${contact.telegram_linked ? "channel-active" : "channel-inactive"}"
+                       title="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}"
+                       aria-label="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}">${Icon.telegram()}</span>`
+              : ""
+          }
         </span>
-        ${features.telegram && contact.telegram_linked ? `<span class="badge badge-telegram" title="${t("contacts.telegramLinked")}">${Icon.telegram()}</span>` : ""}
       </button>
     `
     )
@@ -141,8 +150,8 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         </div>
       </label>
       <label class="field">
-        <span>${t("contacts.emailOptional")}</span>
-        <input type="email" name="email" value="${escapeHtml(initial.email ?? "")}" />
+        <span>${t("contacts.email")}</span>
+        <input type="email" name="email" required value="${escapeHtml(initial.email ?? "")}" />
         <div class="email-domain-chips">
           ${EMAIL_DOMAINS.map((domain) => `<button type="button" class="email-domain-chip" data-domain="${domain}">@${domain}</button>`).join("")}
         </div>
@@ -189,9 +198,14 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
     const data = {
       name: formData.name,
       phone: combinePhone(formData.phone_country, formData.phone_number),
-      email: formData.email,
+      email: formData.email.trim(),
     };
-    data.email = data.email.trim() || null;
+
+    if (!data.email) {
+      shake(form);
+      showToast(t("contacts.emailRequired"), "error");
+      return;
+    }
 
     setLoading(button, true);
     try {
@@ -205,7 +219,7 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         showToast(t("contacts.updated"), "success");
       } else {
         await Api.createContact(data);
-        showToast(data.email ? t("contacts.addedWithEmail") : t("contacts.added"), "success");
+        showToast(t("contacts.addedWithEmail"), "success");
       }
       close();
       onSaved();

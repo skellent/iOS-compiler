@@ -12,9 +12,14 @@
   --glass-bg: rgba(11, 10, 16, 0.75);
   --toast-bg: rgba(28, 24, 36, 0.92);
   --grid-line: rgba(255, 255, 255, 0.045);
-  --scan-color: rgba(234, 32, 82, 0.16);
+  --scan-color: rgba(var(--primary-rgb), 0.16);
   --scrim: rgba(4, 3, 6, 0.6);
 
+  /* r, g, b components of --primary-500, kept in sync by theme.js so every
+     rgba(var(--primary-rgb), alpha) rule below (glow, background FX, radar
+     rings, etc.) follows the user's chosen accent color, not just the named
+     --primary-XXX shades. */
+  --primary-rgb: 234, 32, 82;
   --primary-900: #8c1331;
   --primary-800: #af183d;
   --primary-700: #c71b46;
@@ -22,8 +27,8 @@
   --primary-500: #ea2052;
   --primary-400: #ff4d75;
   --primary-300: #ff9bb2;
-  --primary-50: rgba(234, 32, 82, 0.14);
-  --glow: rgba(234, 32, 82, 0.55);
+  --primary-50: rgba(var(--primary-rgb), 0.14);
+  --glow: rgba(var(--primary-rgb), 0.55);
 
   --text-000: #ffffff;
   --text-100: #f2f0f5;
@@ -56,12 +61,12 @@
     --glass-bg: rgba(255, 255, 255, 0.75);
     --toast-bg: rgba(255, 255, 255, 0.95);
     --grid-line: rgba(20, 16, 30, 0.05);
-    --scan-color: rgba(234, 32, 82, 0.1);
+    --scan-color: rgba(var(--primary-rgb), 0.1);
     --scrim: rgba(10, 8, 14, 0.45);
 
     --primary-400: #d81851;
     --primary-300: #b8123f;
-    --glow: rgba(234, 32, 82, 0.35);
+    --glow: rgba(var(--primary-rgb), 0.35);
 
     --text-000: #14101c;
     --text-100: #221e2c;
@@ -109,9 +114,9 @@ button {
   pointer-events: none;
   overflow: hidden;
   background:
-    radial-gradient(circle at 12% -6%, rgba(234, 32, 82, 0.22), transparent 42%),
+    radial-gradient(circle at 12% -6%, rgba(var(--primary-rgb), 0.22), transparent 42%),
     radial-gradient(circle at 92% 14%, rgba(175, 24, 61, 0.18), transparent 38%),
-    radial-gradient(circle at 50% 108%, rgba(234, 32, 82, 0.14), transparent 48%),
+    radial-gradient(circle at 50% 108%, rgba(var(--primary-rgb), 0.14), transparent 48%),
     var(--bg-900);
 }
 
@@ -188,7 +193,7 @@ button {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--line);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(234, 32, 82, 0.12);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(var(--primary-rgb), 0.12);
   flex-shrink: 0;
 }
 
@@ -246,7 +251,7 @@ button {
   inset: 0;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, var(--primary-500), var(--primary-900));
-  box-shadow: 0 10px 22px rgba(234, 32, 82, 0.55), 0 0 0 6px var(--bg-900);
+  box-shadow: 0 10px 22px rgba(var(--primary-rgb), 0.55), 0 0 0 6px var(--bg-900);
   opacity: 0;
   transform: scale(0.5);
   transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
@@ -302,8 +307,8 @@ button {
 .field input:focus {
   outline: none;
   border-color: var(--primary-500);
-  background: rgba(234, 32, 82, 0.06);
-  box-shadow: 0 0 0 4px rgba(234, 32, 82, 0.18);
+  background: rgba(var(--primary-rgb), 0.06);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.18);
 }
 
 .field-hint {
@@ -407,23 +412,23 @@ button {
   background-size: 220% 100%;
   background-position: 0% 0%;
   color: #fff;
-  box-shadow: 0 4px 20px rgba(234, 32, 82, 0.4);
+  box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.4);
 }
 
 .btn-primary:hover,
 .btn-primary:focus-visible {
   background-position: 100% 0%;
-  box-shadow: 0 4px 26px rgba(234, 32, 82, 0.55);
+  box-shadow: 0 4px 26px rgba(var(--primary-rgb), 0.55);
 }
 
 .btn-outline {
-  background: rgba(234, 32, 82, 0.06);
+  background: rgba(var(--primary-rgb), 0.06);
   color: var(--primary-400);
   border: 1.5px solid var(--primary-700);
 }
 
 .btn-outline:hover {
-  background: rgba(234, 32, 82, 0.12);
+  background: rgba(var(--primary-rgb), 0.12);
   border-color: var(--primary-500);
 }
 
@@ -437,7 +442,7 @@ button {
 }
 
 .btn-outline .btn-spinner {
-  border: 2px solid rgba(234, 32, 82, 0.25);
+  border: 2px solid rgba(var(--primary-rgb), 0.25);
   border-top-color: var(--primary-400);
 }
 
@@ -519,7 +524,7 @@ button {
   height: 72px;
   border-radius: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 10px 28px rgba(234, 32, 82, 0.4);
+  box-shadow: 0 10px 28px rgba(var(--primary-rgb), 0.4);
   animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -529,7 +534,7 @@ button {
   font-weight: 800;
   letter-spacing: 0.4px;
   color: var(--text-000);
-  text-shadow: 0 0 24px rgba(234, 32, 82, 0.35);
+  text-shadow: 0 0 24px rgba(var(--primary-rgb), 0.35);
 }
 
 .auth-subtitle {
@@ -600,7 +605,7 @@ button {
 .toast-success {
   background: var(--toast-bg);
   border: 1.5px solid var(--primary-500);
-  box-shadow: 0 6px 24px rgba(234, 32, 82, 0.3);
+  box-shadow: 0 6px 24px rgba(var(--primary-rgb), 0.3);
 }
 
 /* Sheet / modal */
@@ -633,7 +638,7 @@ button {
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55), 0 -1px 0 rgba(234, 32, 82, 0.5);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55), 0 -1px 0 rgba(var(--primary-rgb), 0.5);
 }
 
 .sheet-open .sheet {
@@ -694,7 +699,7 @@ button {
   letter-spacing: 0.4px;
   color: var(--primary-400);
   background: var(--primary-50);
-  border: 1px solid rgba(234, 32, 82, 0.3);
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
   border-radius: 999px;
   padding: 5px 12px;
   opacity: 0;
@@ -729,7 +734,7 @@ button {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.5), 0 20px 60px rgba(234, 32, 82, 0.25);
+  box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.5), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   animation: idle-pulse 2.4s ease-in-out infinite;
 }
 
@@ -741,7 +746,7 @@ button {
   position: absolute;
   inset: -18px;
   border-radius: 50%;
-  border: 1px dashed rgba(234, 32, 82, 0.45);
+  border: 1px dashed rgba(var(--primary-rgb), 0.45);
   pointer-events: none;
 }
 
@@ -751,7 +756,7 @@ button {
 
 .panic-btn::after {
   inset: -34px;
-  border-color: rgba(234, 32, 82, 0.22);
+  border-color: rgba(var(--primary-rgb), 0.22);
   animation: radar-spin 10s linear infinite reverse;
 }
 
@@ -767,19 +772,19 @@ button {
 @keyframes idle-pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.5), 0 0 0 0 rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.5), 0 0 0 0 rgba(var(--primary-rgb), 0), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
   35% {
     transform: scale(1.018);
-    box-shadow: 0 0 0 14px rgba(234, 32, 82, 0.16), 0 0 0 0 rgba(234, 32, 82, 0.4), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 14px rgba(var(--primary-rgb), 0.16), 0 0 0 0 rgba(var(--primary-rgb), 0.4), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 26px rgba(234, 32, 82, 0), 0 0 0 14px rgba(234, 32, 82, 0.14), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 26px rgba(var(--primary-rgb), 0), 0 0 0 14px rgba(var(--primary-rgb), 0.14), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 26px rgba(234, 32, 82, 0), 0 0 0 26px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 26px rgba(var(--primary-rgb), 0), 0 0 0 26px rgba(var(--primary-rgb), 0), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
 }
 
@@ -811,8 +816,8 @@ button {
   /* --hold (0 → 1) is written from home.js on every animation frame of the
      hold, so the glow visibly builds as the ring fills instead of just
      jumping between fixed idle/busy states. */
-  box-shadow: 0 0 calc(20px + var(--hold, 0) * 50px) calc(2px + var(--hold, 0) * 10px) rgba(234, 32, 82, calc(0.35 + var(--hold, 0) * 0.4)),
-    0 20px 60px rgba(234, 32, 82, 0.25);
+  box-shadow: 0 0 calc(20px + var(--hold, 0) * 50px) calc(2px + var(--hold, 0) * 10px) rgba(var(--primary-rgb), calc(0.35 + var(--hold, 0) * 0.4)),
+    0 20px 60px rgba(var(--primary-rgb), 0.25);
 }
 
 .panic-btn-holding .panic-icon {
@@ -836,14 +841,14 @@ button {
 @keyframes success-burst {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.6), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.6), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
   45% {
     transform: scale(1.08);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 44px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 44px rgba(var(--primary-rgb), 0), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
 }
 
@@ -859,10 +864,10 @@ button {
 @keyframes error-flash {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(234, 32, 82, 0.6), 0 20px 60px rgba(234, 32, 82, 0.25);
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.6), 0 20px 60px rgba(var(--primary-rgb), 0.25);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(234, 32, 82, 0), 0 20px 60px rgba(234, 32, 82, 0.45);
+    box-shadow: 0 0 0 12px rgba(var(--primary-rgb), 0), 0 20px 60px rgba(var(--primary-rgb), 0.45);
   }
 }
 
@@ -1025,7 +1030,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 1px rgba(234, 32, 82, 0.35) inset;
+  box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.35) inset;
 }
 
 .contact-info {
@@ -1045,67 +1050,75 @@ button {
   text-overflow: ellipsis;
 }
 
-.contact-phone {
+.contact-phone,
+.contact-email {
   font-size: 13px;
   font-family: var(--font-mono);
   color: var(--text-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.contact-phone .icon {
+.contact-phone .icon,
+.contact-email .icon {
   font-size: 12px;
   margin-right: 3px;
   opacity: 0.8;
 }
 
-.badge {
+/* Per-channel status icons — one per notification channel (email, and
+   Telegram when the deployment supports it), lit up individually instead of
+   a single confirmed/pending pill, so which specific channel is active is
+   visible at a glance. */
+
+.contact-channels {
   flex-shrink: 0;
-  display: inline-flex;
+  display: flex;
+  gap: 6px;
+}
+
+.channel-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.badge .icon {
-  font-size: 12px;
+.channel-icon .icon {
+  font-size: 14px;
 }
 
-.badge-confirmed {
-  background: var(--primary-500);
-  color: #fff;
-  box-shadow: 0 0 12px rgba(234, 32, 82, 0.5);
-}
-
-.badge-pending {
-  background: transparent;
+.channel-icon.channel-inactive {
+  background: var(--surface-2);
   color: var(--text-500);
   border: 1px dashed var(--line-strong);
+  opacity: 0.6;
   animation: idle-pulse-soft 2.2s ease-in-out infinite;
 }
 
 @keyframes idle-pulse-soft {
   0%,
   100% {
-    opacity: 0.7;
+    opacity: 0.5;
   }
   50% {
-    opacity: 1;
+    opacity: 0.75;
   }
 }
 
-.badge-telegram {
-  background: rgba(34, 158, 217, 0.14);
-  color: #229ed9;
-  padding: 5px 8px;
+.channel-icon.channel-active {
+  background: var(--primary-500);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.5);
 }
 
-.badge-telegram .icon {
-  font-size: 13px;
+.channel-icon.channel-telegram.channel-active {
+  background: #229ed9;
+  box-shadow: 0 0 12px rgba(34, 158, 217, 0.5);
 }
 
 .contacts-empty {
@@ -1128,13 +1141,13 @@ button {
   color: #fff;
   font-size: 28px;
   line-height: 1;
-  box-shadow: 0 6px 22px rgba(234, 32, 82, 0.55);
+  box-shadow: 0 6px 22px rgba(var(--primary-rgb), 0.55);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .fab:hover {
-  box-shadow: 0 8px 28px rgba(234, 32, 82, 0.7);
+  box-shadow: 0 8px 28px rgba(var(--primary-rgb), 0.7);
 }
 
 .fab:active {
@@ -1162,7 +1175,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 4px rgba(234, 32, 82, 0.15), 0 12px 30px rgba(234, 32, 82, 0.3);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15), 0 12px 30px rgba(var(--primary-rgb), 0.3);
 }
 
 .profile-screen .form,
@@ -1200,31 +1213,20 @@ button {
   color: var(--primary-400);
 }
 
-.lang-switcher-options {
-  display: flex;
-  gap: 4px;
-  background: var(--surface-2);
-  border-radius: 999px;
-  padding: 3px;
-}
-
-.lang-option {
+.lang-select {
+  flex: 1;
+  min-width: 0;
+  max-width: 190px;
   border: none;
-  background: none;
-  color: var(--text-500);
-  font-size: 12px;
+  background: var(--surface-2);
+  color: var(--text-100);
+  font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 6px 14px;
+  letter-spacing: 0.3px;
+  padding: 8px 12px;
   border-radius: 999px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.lang-option-active {
-  background: linear-gradient(120deg, var(--primary-600), var(--primary-900));
-  color: #fff;
-  box-shadow: 0 2px 10px rgba(234, 32, 82, 0.4);
+  text-overflow: ellipsis;
 }
 
 /* Accent color picker */
@@ -1322,7 +1324,7 @@ button {
 }
 
 .icon-btn-danger:active {
-  background: rgba(234, 32, 82, 0.15);
+  background: rgba(var(--primary-rgb), 0.15);
 }
 
 /* Swipe-to-delete contact row */
@@ -1361,6 +1363,85 @@ button {
   transform: translateX(-76px);
 }
 
+/* About / Help screens */
+
+.info-screen {
+  padding: calc(20px + var(--safe-top)) 24px 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-000);
+}
+
+.info-intro {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-500);
+  line-height: 1.6;
+}
+
+.about-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  align-self: center;
+  box-shadow: 0 10px 24px rgba(var(--primary-rgb), 0.35);
+}
+
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.info-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.info-section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-400);
+}
+
+.info-section-body {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-300);
+  line-height: 1.6;
+}
+
+.about-credit {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-500);
+  line-height: 1.6;
+}
+
+.about-version {
+  font-family: var(--font-mono);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--primary-400);
+  font-weight: 700;
+}
+
 /* Confirm-your-email screen (post-registration) */
 
 .confirm-mail-screen {
@@ -1382,7 +1463,7 @@ button {
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  box-shadow: 0 0 0 1px rgba(234, 32, 82, 0.35) inset;
+  box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.35) inset;
   animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 

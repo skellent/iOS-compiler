@@ -8,6 +8,8 @@ import { renderRegister } from "./views/register.js";
 import { renderHome } from "./views/home.js";
 import { renderContacts } from "./views/contacts.js";
 import { renderProfile } from "./views/profile.js";
+import { renderAbout } from "./views/about.js";
+import { renderHelp } from "./views/help.js";
 
 const viewEl = document.getElementById("view");
 const bottomNav = document.getElementById("bottom-nav");
@@ -19,6 +21,8 @@ const ROUTES = {
   home: { render: renderHome, title: "Panic Switch", public: false },
   contacts: { render: renderContacts, titleKey: "route.contacts.title", public: false },
   profile: { render: renderProfile, titleKey: "route.profile.title", public: false },
+  about: { render: renderAbout, titleKey: "route.about.title", public: false },
+  help: { render: renderHelp, titleKey: "route.help.title", public: false },
 };
 
 function applyStaticLabels() {

@@ -93,6 +93,7 @@ export function applyAccentColor(hex) {
   for (const [shade, l] of Object.entries(SHADE_LIGHTNESS[mode])) {
     root.setProperty(`--primary-${shade}`, hslToHex(h, s, l));
   }
+  root.setProperty("--primary-rgb", `${r}, ${g}, ${b}`);
   root.setProperty("--primary-50", `rgba(${r}, ${g}, ${b}, ${ALPHA[mode].tint})`);
   root.setProperty("--glow", `rgba(${r}, ${g}, ${b}, ${ALPHA[mode].glow})`);
 }
