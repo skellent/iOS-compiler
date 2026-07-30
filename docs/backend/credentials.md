@@ -40,9 +40,9 @@ Credentials (user, password, host, etc.) are never written into the source code 
         "bot_username":   ..., # without the leading "@", used to build t.me deep links
         "webhook_secret": ..., # arbitrary string Telegram echoes back on every webhook call
     },
-    "api_base_url":  ..., # defaults to "http://127.0.0.1:8000" if not in the environment
-    "app_mode":      ..., # "Debug" or "Deploy", defaults to "Debug"
-    "app_deep_link": ..., # defaults to "panicswitch://confirmed" if not in the environment
+    "api_base_url": ..., # defaults to "http://127.0.0.1:8000" if not in the environment
+    "app_mode":     ..., # "Debug" or "Deploy", defaults to "Debug"
+    "log_level":    ..., # defaults to "INFO" if not in the environment
 }
 ```
 
@@ -93,14 +93,14 @@ The public URL the API uses to build the absolute links it emails out — a cont
 
 The switch `main.py` reads to decide whether FastAPI's automatic documentation (`/docs`, `/redoc`, `/openapi.json`) should be exposed — see `main.md` for the detail of how it's used there. It takes one of two values, `"Debug"` or `"Deploy"`; anything else (including not setting `APP_MODE` at all) is treated as `"Debug"`, so local development keeps the docs on by default and a deployment has to opt into hiding them explicitly by setting `APP_MODE=Deploy`.
 
-## `app_deep_link`
+## `log_level`
 
 ```python
-"app_deep_link": os.getenv("APP_DEEP_LINK", "panicswitch://confirmed"),
+"log_level": os.getenv("LOG_LEVEL", "INFO"),
 ```
 
-The custom URL scheme `GET /auth/confirm/{token}` redirects to once a new account is confirmed (see `routers.md`, `pages.md`) — the mobile app registers itself as the handler for `panicswitch://` links at the native (Android/iOS) level, outside anything this Python codebase controls, so that visiting the link on the same device that's about to use the app opens it directly instead of leaving the person stranded in a browser tab. It's exposed as its own environment variable, not hardcoded in the template that uses it, so the scheme can change (or point somewhere else entirely, if the redirect target is ever revisited) without touching template or router code.
+Read once, at import time, by `modules/logs.py` (see `logs.md`) to decide the minimum severity that gets written to both the console and `backend/logs/panicswitch.log`. It's plain text (`"DEBUG"`, `"INFO"`, `"WARNING"`, ...), matched against Python's own `logging` level names — an unrecognized value falls back to `INFO` rather than raising, the same "never let a config typo crash startup" posture `app_mode` takes above. There's no dedicated `logging` section in this dictionary, unlike `email` or `telegram`, because it's the only setting `modules/logs.py` needs; wrapping a single value in its own sub-dict would add a level of nesting without organizing anything.
 
 ## Relationship with the rest of the backend
 
-`modules/db.py` (see `db.md`) calls `get_credentials()` once, when the application starts, and uses the result's `database` section to build the connection's `Cursor`. `modules/token.py` (see `token.md`) calls it at module level to read `jwt.secret_key` once. `modules/mail.py` (see `mail.md`) does the same with the `email` section. `modules/routers/auth.py` reads `api_base_url` and `app_deep_link`; `modules/routers/contacts.py` reads `api_base_url`. `main.py` reads `app_mode` once, at module level, to decide whether to expose the automatic docs. Since `load_dotenv()` doesn't fail if the `.env` file doesn't exist, a deployment without that file will simply produce `None` values that later cause the MariaDB connection to fail in `Cursor.__init__` (see `cursor.md`), token signing in `token.py`, or email sending in `mail.py`, instead of a more descriptive error at this point — `app_mode` and `app_deep_link` are the exceptions, since both always fall back to a default regardless of whether `.env` exists.
+`modules/db.py` (see `db.md`) calls `get_credentials()` once, when the application starts, and uses the result's `database` section to build the connection's `Cursor`. `modules/token.py` (see `token.md`) calls it at module level to read `jwt.secret_key` once. `modules/mail.py` (see `mail.md`) does the same with the `email` section. `modules/telegram.py` and `modules/routers/alerts.py` read `api_base_url` to build absolute links (a `t.me` deep link and the map/webhook URLs, respectively — see `telegram.md`, `routers.md`); `modules/routers/contacts.py` reads it too, for confirmation links. `main.py` reads `app_mode` once, at module level, to decide whether to expose the automatic docs. `modules/logs.py` reads `log_level` once, at import time, to configure the root logger before anything else in the backend has a chance to log anything (see `logs.md`). Since `load_dotenv()` doesn't fail if the `.env` file doesn't exist, a deployment without that file will simply produce `None` values that later cause the MariaDB connection to fail in `Cursor.__init__` (see `cursor.md`), token signing in `token.py`, or email sending in `mail.py`, instead of a more descriptive error at this point — `app_mode` and `log_level` are the exceptions, since both always fall back to a default regardless of whether `.env` exists.

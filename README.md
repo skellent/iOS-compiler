@@ -45,6 +45,7 @@ TELEGRAM_BOT_USERNAME=''
 TELEGRAM_WEBHOOK_SECRET=''
 API_BASE_URL='http://127.0.0.1:8000'
 APP_MODE='Debug'
+LOG_LEVEL='INFO'
 ```
 
 `JWT_SECRET_KEY` is the key the backend uses to sign and verify the session tokens (JWT) issued by `POST /auth/login` — see `docs/backend/token.md` for the detail of how it's used. It isn't a MariaDB credential, so it doesn't come out of step 1's database setup: it has to be generated separately.
@@ -61,6 +62,10 @@ APP_MODE='Debug'
 - **`Deploy`**: the docs are fully disabled — the routes aren't just hidden, they stop being registered, so hitting them returns `404`. Use this in production, so the API's full surface (every endpoint, every field it expects) isn't handed out to anyone who can reach it without a token.
 
 See `docs/backend/main.md` for the implementation detail.
+
+#### `LOG_LEVEL`: how much gets logged
+
+`LOG_LEVEL` sets the minimum severity written to both the console and `backend/logs/panicswitch.log` (a rotating file, gitignored) — one of Python's standard `logging` level names (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). Defaults to `INFO` if unset or misspelled. See `docs/backend/logs.md` for what gets logged at each level.
 
 #### Generate `JWT_SECRET_KEY` for production
 

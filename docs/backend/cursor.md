@@ -36,13 +36,28 @@ class Queries:
     PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"
 
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
+    SELECT_ALERTS_BY_USER: str = "SELECT id, created_at, latitude, longitude FROM alerts WHERE user_id = %s ORDER BY created_at DESC;"
+
+    INSERT_ALERT_NOTIFICATION: str = "INSERT INTO alert_notifications (alert_id, contact_id, channel) VALUES (%s, %s, %s);"
+    SELECT_ALERT_NOTIFICATIONS_BY_ALERT: str = (
+        "SELECT alert_notifications.channel, alert_notifications.viewed_at, contacts.name AS contact_name "
+        "FROM alert_notifications JOIN contacts ON contacts.id = alert_notifications.contact_id "
+        "WHERE alert_notifications.alert_id = %s ORDER BY contacts.name;"
+    )
+    SELECT_ALERT_NOTIFICATION_BY_ID: str = (
+        "SELECT alert_notifications.id, alert_notifications.viewed_at, alerts.latitude, alerts.longitude "
+        "FROM alert_notifications JOIN alerts ON alerts.id = alert_notifications.alert_id "
+        "WHERE alert_notifications.id = %s;"
+    )
+    MARK_ALERT_NOTIFICATION_VIEWED: str = "UPDATE alert_notifications SET viewed_at = NOW() WHERE id = %s AND viewed_at IS NULL;"
 ```
 
 - `SELECT_USER_BY_EMAIL` fetches both `password_hash` and `confirmed`, the only query in the project that exposes the hash — it's the one `POST /auth/login` (see `routers.md`) needs to verify a password and to decide whether the account is allowed to log in at all. `SELECT_USER_BY_ID` deliberately fetches neither: it backs `GET /users/me`, which should never return the hash to the client, and doesn't need to re-confirm an identity the caller already proved with a valid session token.
 - `CONFIRM_CONTACT` and `CONFIRM_USER` are fixed constants, unlike the partial edits in `users.py`/`contacts.py` (see below): each always touches the same column with the same fixed value (`TRUE`), never a variable subset of fields depending on what the client sent. `GET /contacts/confirm/{token}` and `GET /auth/confirm/{token}` (see `routers.md`, `mail.md`) use them respectively.
 - `DELETE_CONTACT` filters by both `id` and `user_id` in the same statement, the same ownership-scoping pattern `PUT /{contact_id}` already uses (see `routers.md`) — a contact that exists but belongs to someone else is indistinguishable, from the caller's point of view, from one that doesn't exist at all.
 - `PURGE_UNCONFIRMED_USERS` is the only query in this class not called from a router — it backs `scripts/purge_unconfirmed_users.py` (see `scripts.md`), a standalone maintenance job, not an HTTP endpoint.
-- `SELECT_CONFIRMED_CONTACTS_BY_USER` is a variant of `SELECT_CONTACTS_BY_USER` with a stricter `WHERE` and fewer columns: it doesn't fetch `id` (no one needs to edit these contacts, just notify them) and filters by `confirmed = TRUE OR telegram_chat_id IS NOT NULL` — either channel alone is enough to be notified, they aren't sequential steps. `POST /alerts` uses it to decide who to notify when an alert fires — a different question than `SELECT_CONTACTS_BY_USER` (which returns every contact, confirmed or not, for `GET /contacts`, alongside a computed `telegram_linked` boolean so the app can show connection status without exposing the raw `chat_id`).
+- `SELECT_CONFIRMED_CONTACTS_BY_USER` is a variant of `SELECT_CONTACTS_BY_USER` with a stricter `WHERE` and fewer columns: it filters by `confirmed = TRUE OR telegram_chat_id IS NOT NULL` — either channel alone is enough to be notified, they aren't sequential steps. `POST /alerts` uses it to decide who to notify when an alert fires — a different question than `SELECT_CONTACTS_BY_USER` (which returns every contact, confirmed or not, for `GET /contacts`, alongside a computed `telegram_linked` boolean so the app can show connection status without exposing the raw `chat_id`). It does fetch `id`, unlike most other "notify, don't edit" queries in this file — `POST /alerts` needs it to write `Queries.INSERT_ALERT_NOTIFICATION` (below) once per contact per channel.
+- `SELECT_ALERTS_BY_USER` and the four `*_ALERT_NOTIFICATION*` queries back `GET /alerts` and `GET /alerts/view/{token}` (see `routers.md`), the dashboard's data source. `INSERT_ALERT_NOTIFICATION` writes one row per contact *per channel* the moment `POST /alerts` decides to notify them — a contact confirmed by both email and Telegram gets two rows for the same alert, not one, because each channel gets its own tracking link and its own independent `viewed_at`. `SELECT_ALERT_NOTIFICATIONS_BY_ALERT` joins back to `contacts` for the name, since the dashboard shows who was notified, not just how many rows exist; `SELECT_ALERT_NOTIFICATION_BY_ID` joins to `alerts` instead, for the `latitude`/`longitude` `GET /alerts/view/{token}` needs to build the redirect. `MARK_ALERT_NOTIFICATION_VIEWED`'s `AND viewed_at IS NULL` makes a second click on the same link a no-op at the SQL level — the first `viewed_at` written is kept, not overwritten by whatever time the link happens to get opened again.
 - `SET_CONTACT_TELEGRAM_LINK_TOKEN`, `SELECT_CONTACT_BY_TELEGRAM_TOKEN`, `CONFIRM_CONTACT_TELEGRAM` and `CLEAR_CONTACT_TELEGRAM` back the Telegram-linking flow end to end — see `telegram.md` for the full sequence. Like `DELETE_CONTACT`, the ones that mutate on the app-user's behalf (`SET_CONTACT_TELEGRAM_LINK_TOKEN`, `CLEAR_CONTACT_TELEGRAM`) scope by `id AND user_id`; `SELECT_CONTACT_BY_TELEGRAM_TOKEN` and `CONFIRM_CONTACT_TELEGRAM` don't, because by that point in the flow the caller is Telegram itself (via the webhook), not an authenticated app user — the token, not `user_id`, is what proves which contact this request is about.
 - There's no fixed `UPDATE_USER` or `UPDATE_CONTACT` constant: a partial edit (`PUT /users/me`, `PUT /contacts/{id}`) should only touch the fields the client actually sent, so those queries are built dynamically inside their respective routers instead (see `routers.md`), concatenating only the column names that correspond to the fields present. This stays safe even though column names are concatenated directly into the SQL string: what gets concatenated are *column names*, which can only come from a fixed, known-in-advance list (the Pydantic model's fields, see `types.md`), never from arbitrary text written by whoever calls the API — the only thing that travels parameterized with `%s` are the values, same as in every other query.
 
@@ -73,14 +88,14 @@ def _connect(self) -> None:
             autocommit  = True,
         )
     except mariadb.Error as e:
-        print(f"Error connecting to MariaDB: {e}")
+        _logger.critical(f"Error connecting to MariaDB: {e}")
         sys.exit(1)
     self.cursor = self.conn.cursor(dictionary=True)
 ```
 
 `__init__` stores the credentials instead of using them once and discarding them, because `_connect` needs to be callable again later, not just at startup (see the reconnect behavior in `execute`, below). Opening the actual connection is factored into its own `_connect` method rather than inlined in `__init__` for exactly that reason: it's the same logic needed in two different moments (first boot, and recovering from a dropped connection), so it only exists once.
 
-If the very first connection attempt fails, `mariadb.Error` is caught, the reason is printed, and `sys.exit(1)` is called. This is a deliberate **fail-fast** decision: since `Cursor` is instantiated at module level in `modules/db.py` (that is, when the application starts, not on every request), if the database is unreachable at that point the entire process should refuse to start instead of coming up in a half-working state where every endpoint would later fail in a less obvious way.
+If the very first connection attempt fails, `mariadb.Error` is caught, the reason is logged at `CRITICAL` (see `logs.md`), and `sys.exit(1)` is called. This is a deliberate **fail-fast** decision: since `Cursor` is instantiated at module level in `modules/db.py` (that is, when the application starts, not on every request), if the database is unreachable at that point the entire process should refuse to start instead of coming up in a half-working state where every endpoint would later fail in a less obvious way.
 
 The cursor is created with `dictionary=True`, so each returned row is a `dict` (column → value) instead of a positional tuple — directly serializable to JSON by FastAPI and more readable than relying on column order.
 
@@ -117,7 +132,7 @@ class DuplicateRecordError(Exception):
 
 It's defined here, and not in the router that ends up using it (see `routers.md`), because `cursor.py` is the only backend file that imports `mariadb` directly — it's, on purpose, the only point where the project knows the database is MariaDB and not something else. If the routers had to catch `mariadb.IntegrityError` themselves, they'd have to import `mariadb` too, leaking an infrastructure detail (which database engine is used) into the layer that should only care about HTTP. With `DuplicateRecordError` as an intermediary, a router can `except DuplicateRecordError` and respond `409 Conflict` without knowing `mariadb` even exists.
 
-The second `except` catches `mariadb.InterfaceError`, the error MariaDB raises when a query is sent over a connection the server already closed on its own side — typically because the connection sat idle longer than the server's `wait_timeout` and got dropped hours after the last query, long before this one. Since the whole application shares a single long-lived connection (see `db.md`), this isn't a hypothetical: any connection that survives past that timeout eventually hits it. Rather than letting the request fail outright, `execute` reconnects (`self._connect()`) and retries the exact same query once. If the retry also fails, the exception propagates normally — this handles the ordinary "the connection went stale" case without trying to paper over a database that's genuinely unreachable.
+The second `except` catches `mariadb.InterfaceError`, the error MariaDB raises when a query is sent over a connection the server already closed on its own side — typically because the connection sat idle longer than the server's `wait_timeout` and got dropped hours after the last query, long before this one. Since the whole application shares a single long-lived connection (see `db.md`), this isn't a hypothetical: any connection that survives past that timeout eventually hits it. Rather than letting the request fail outright, `execute` logs a `WARNING` (see `logs.md`), reconnects (`self._connect()`) and retries the exact same query once. If the retry also fails, the exception propagates normally — this handles the ordinary "the connection went stale" case without trying to paper over a database that's genuinely unreachable.
 
 ### `rowcount`
 

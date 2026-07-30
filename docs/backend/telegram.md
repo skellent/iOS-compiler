@@ -64,14 +64,14 @@ async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: st
     try:
         await _handle_update(await request.json())
     except Exception as e:
-        print(f"Error handling Telegram webhook: {e}")
+        _logger.exception(f"Error handling Telegram webhook: {e}")
     return {"ok": True}
 ```
 
 Two things make this endpoint different from everything else in `modules/routers/`:
 
 - **No `Depends(current_user)`, but not unauthenticated either.** The caller is Telegram's servers, not an app user — there's no session JWT to check. Instead, `Telegram.SetWebhook` (called once at startup, see below) registers a `secret_token` with Telegram, which echoes it back on the `X-Telegram-Bot-Api-Secret-Token` header of every subsequent call. Anyone who discovers this URL and posts to it without knowing that secret gets `401`ed before their payload is even parsed. If `TELEGRAM_WEBHOOK_SECRET` isn't set at all (no Telegram bot configured), the check is skipped rather than locking the endpoint open with a `None != None` comparison — acceptable since without a registered webhook, Telegram never calls this URL in the first place.
-- **It always returns `200`**, even when `_handle_update` raises. Telegram retries a webhook call aggressively on anything but a 2xx response; since almost any failure here (a malformed update, a transient Telegram API error while replying) is either not the caller's fault or won't succeed on a bare retry, swallowing the exception (and just `print`-ing it, this project's only error-reporting mechanism today — see `TASK.md`) avoids a retry storm without hiding the failure completely.
+- **It always returns `200`**, even when `_handle_update` raises. Telegram retries a webhook call aggressively on anything but a 2xx response; since almost any failure here (a malformed update, a transient Telegram API error while replying) is either not the caller's fault or won't succeed on a bare retry, catching the exception and logging it (`_logger.exception`, which — unlike `_logger.error` — also records the full traceback, see `logs.md`) avoids a retry storm without hiding the failure completely.
 
 `_handle_update` itself only cares about one shape: a `message` whose `text` starts with `"/start "`. Anything else (the bot being added to a group, a `/start` with no payload, an unrelated message) is a silent no-op — this webhook doesn't implement a general-purpose bot, only the one interaction this feature needs.
 
@@ -80,15 +80,33 @@ Two things make this endpoint different from everything else in `modules/routers
 ```python
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
-            await Telegram.SetWebhook(f"{_credentials['api_base_url']}/telegram/webhook")
+            webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
+            await Telegram.SetWebhook(webhook_url)
+            _logger.info(f"Telegram webhook registered at {webhook_url}")
         except Exception as e:
-            print(f"Could not register Telegram webhook: {e}")
+            _logger.error(f"Could not register Telegram webhook: {e}")
     yield
 ```
 
-Telegram has to be told, once, where to send updates — that's what `setWebhook` (the Bot API method `Telegram.SetWebhook` wraps) does. Rather than requiring a manual `curl` step after every deploy, `main.py`'s lifespan calls it every time the process starts, using `api_base_url` (the same setting that builds every other absolute link this backend emails out, see `credentials.md`) to build the callback URL. Calling it repeatedly is harmless — Telegram's `setWebhook` is idempotent, it just re-registers the same URL/secret. If `TELEGRAM_BOT_TOKEN` isn't set (no bot configured yet, e.g. a fresh `Debug` environment), this is skipped entirely rather than failing startup; if the call itself fails (network issue, Telegram API down), the exception is caught and logged, not allowed to crash the whole application over one optional integration.
+Telegram has to be told, once, where to send updates — that's what `setWebhook` (the Bot API method `Telegram.SetWebhook` wraps) does. Rather than requiring a manual `curl` step after every deploy, `main.py`'s lifespan calls it every time the process starts, using `api_base_url` (the same setting that builds every other absolute link this backend emails out, see `credentials.md`) to build the callback URL. Calling it repeatedly is harmless — Telegram's `setWebhook` is idempotent, it just re-registers the same URL/secret. If `TELEGRAM_BOT_TOKEN` isn't set (no bot configured yet, e.g. a fresh `Debug` environment), this is skipped entirely rather than failing startup; if the call itself fails (network issue, Telegram API down), the exception is caught and logged at `ERROR`, not allowed to crash the whole application over one optional integration.
+
+```python
+@staticmethod
+async def SetWebhook(url: str) -> None:
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.post(
+            _url("setWebhook"),
+            json={"url": url, "secret_token": _credentials['webhook_secret']},
+        )
+    if response.status_code != 200 or not response.json().get("ok", False):
+        _logger.error(f"Telegram rejected setWebhook for {url}: {response.text}")
+        raise TelegramNotSentError(f"Telegram rejected setWebhook: {response.text}")
+```
+
+`SetWebhook` used to `return response.status_code == 200 and response.json().get("ok", False)` — a `bool` the lifespan's `await Telegram.SetWebhook(...)` never inspected. In practice that meant a Telegram-side rejection (an `http://` `api_base_url` in local dev, since Telegram requires HTTPS for webhooks; a malformed secret; any `4xx` from the Bot API) still fell through to the success log line right after it, misreporting a registration that hadn't actually happened — the `try`/`except` below it only ever caught network-level failures (`httpx` raising), not Telegram *answering* with a rejection. `SetWebhook` now raises `TelegramNotSentError` on exactly the same conditions `Telegram.Send` already does (see below), so the existing `except Exception as e: _logger.error(...)` in the lifespan actually fires when registration fails, instead of only when the HTTP call itself couldn't be made.
 
 ## Why `Telegram.Send`/`SendBulk` mirror `Mail.Send`/`SendBulk` so closely
 
@@ -101,6 +119,8 @@ class Telegram:
 ```
 
 Same rationale as `Mail` (see `mail.md`): templates live as separate files (`templates/telegram/*.txt.j2`), rendered with the project's existing Jinja2 pattern, and `SendBulk` reuses a single `httpx.AsyncClient` across every recipient in a batch instead of opening a new connection per message. There's no HTML/plain-text pair here (unlike `Mail`) — Telegram messages are plain text, there's no separate "does the client render this" concern the way there is with an email client. `TelegramNotSentError` plays the same role as `MailNotSentError`: `modules/telegram.py` is, on purpose, the only file that imports `httpx` for talking to Telegram, so nothing else in the backend needs to know the transport is HTTP against `api.telegram.org`.
+
+Both methods also log the same way `Mail.Send`/`SendBulk` do (see `mail.md`, `logs.md`): an `ERROR` naming the chat id before raising, an `INFO` on success — one line per message for `Send`, a single `Sent 'panic_alert' bulk Telegram message to N/M chats` summary for `SendBulk`.
 
 ## Environment variables introduced by this module
 
@@ -135,6 +155,8 @@ Please try to contact {{ user_name }} as soon as possible.
 ```
 
 The alerting user's name identifies them in the main sentence; phone and email sit on their own lines below instead of being crammed as `{{ user_name }} ({{ user_phone }})` — a change made after the client reviewed a real test alert and asked for the name-first layout. `modules/routers/alerts.py`'s `context` dict (shared between the `Mail` and `Telegram` recipient lists) carries `user_email` alongside `user_name`/`user_phone` for this reason; the equivalent `templates/mail/panic_alert.txt.j2` and `panic_alert.html.j2` got the same treatment, so the two channels stay consistent with each other (see `mail.md`).
+
+`{{ map_url }}` isn't a plain, static `https://www.google.com/maps?q=...` link — it's a per-recipient, per-channel redirect through `GET /alerts/view/{token}` (`Token.CreateAlertNotificationView`, see `token.md`) that marks that specific `alert_notifications` row as `viewed_at` before sending the contact on to the real map (see `routers.md`, `sql.md`). This means a contact tapping the link inside Telegram gets tracked exactly the same way a contact clicking the equivalent link in the email does — `alerts.py` builds one `_view_url(notification_id)` per contact per channel, so the two links (email and Telegram, for the same contact and the same alert) point at two different notification rows, and either one being opened is independently recorded. The dashboard (`GET /dashboard`) currently shows this per row — a contact confirmed on both channels appears twice for the same alert, each with its own "Seen"/"Not seen yet" status — rather than collapsing the two into a single per-contact indicator; nothing about the tracking mechanism itself needs to change to do that later, it's purely how `GET /alerts` groups the rows it already has (see `routers.md`).
 
 ## Testing this end-to-end without a public webhook (local dev)
 

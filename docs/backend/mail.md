@@ -75,9 +75,11 @@ async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict
             try:
                 message: EmailMessage = _build_message(recipient, subject, template, context)
                 await smtp.send_message(message)
-            except Exception:
+            except Exception as e:
+                _logger.error(f"Could not send '{template}' email to {recipient}: {e}")
                 failed.append(recipient)
 
+    _logger.info(f"Sent '{template}' bulk email to {len(recipients) - len(failed)}/{len(recipients)} recipients")
     if failed:
         raise MailNotSentError(f"Could not notify: {', '.join(failed)}")
 ```
@@ -87,6 +89,8 @@ async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict
 - **Why it takes `list[tuple[str, dict]]`, not `list[str]` plus a single `dict`**: each recipient of an alert needs their own template context (`contact_name` changes depending on who's being written to, even though `user_name`/`latitude`/`longitude` are the same for everyone). A list of `(recipient, context)` pairs lets each message render with the data that belongs to that specific person.
 - **Why the `except` catches generic `Exception`, not `aiosmtplib.SMTPException`**: the goal is that a problem with **one** contact doesn't stop the rest from receiving the alert. Catching only `SMTPException` isn't enough for that guarantee — any unexpected exception while building or sending a specific message could cut the loop short and leave contacts whose turn hadn't come up yet without a notification. The `try`/`except` wraps both `_build_message` and `smtp.send_message` and catches broadly, because in a panic-alert system the priority is that one isolated failure never takes down the rest of the batch.
 - **Why it collects failures and raises a single error at the end**: `failed` accumulates which addresses couldn't receive the message, and only at the end — if the list isn't empty — does it raise one `MailNotSentError` listing all of them, preserving the same visibility as any other `Mail` failure without raising and swallowing one exception per recipient mid-loop.
+
+Both `Mail.Send` and `Mail.SendBulk` log an `ERROR` (see `logs.md`) *before* raising `MailNotSentError`, and `Mail.Send` logs an `INFO` on success — `SendBulk` logs a single summary line instead (`Sent 'panic_alert' bulk email to 2/3 recipients`), since one line per successful recipient in a batch would be noise the failure count above it already conveys. This closes a gap the project used to have: since `Mail.Send`/`SendBulk` are always invoked through `BackgroundTasks` (above), the `201` response has already gone out by the time a send fails — the exception has no one left to propagate to, and used to simply vanish. For most endpoints that's an acceptable tradeoff (a confirmation email can be re-triggered); for `POST /alerts` specifically, a contact silently not being notified during an actual emergency is a failure worth having a permanent record of, which is exactly what this log line now is (searchable in `backend/logs/panicswitch.log`, see `logs.md`) — still not a retry or an alert to a human, but no longer invisible either.
 
 ## Authentication with Gmail/Google Workspace: App Password
 

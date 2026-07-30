@@ -3,6 +3,10 @@ import sys
 
 from mariadb.constants import CLIENT
 
+from modules.logs import get_logger
+
+_logger = get_logger(__name__)
+
 class DuplicateRecordError(Exception):
     pass
 
@@ -17,7 +21,7 @@ class Queries:
     # A contact is notified over email when `confirmed`, over Telegram when
     # `telegram_chat_id` is set — the two channels are independent, not
     # sequential, so either one alone is enough to appear here.
-    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT name, phone, email, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
+    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
     DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
 
@@ -34,6 +38,20 @@ class Queries:
     PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"
 
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
+    SELECT_ALERTS_BY_USER: str = "SELECT id, created_at, latitude, longitude FROM alerts WHERE user_id = %s ORDER BY created_at DESC;"
+
+    INSERT_ALERT_NOTIFICATION: str = "INSERT INTO alert_notifications (alert_id, contact_id, channel) VALUES (%s, %s, %s);"
+    SELECT_ALERT_NOTIFICATIONS_BY_ALERT: str = (
+        "SELECT alert_notifications.channel, alert_notifications.viewed_at, contacts.name AS contact_name "
+        "FROM alert_notifications JOIN contacts ON contacts.id = alert_notifications.contact_id "
+        "WHERE alert_notifications.alert_id = %s ORDER BY contacts.name;"
+    )
+    SELECT_ALERT_NOTIFICATION_BY_ID: str = (
+        "SELECT alert_notifications.id, alert_notifications.viewed_at, alerts.latitude, alerts.longitude "
+        "FROM alert_notifications JOIN alerts ON alerts.id = alert_notifications.alert_id "
+        "WHERE alert_notifications.id = %s;"
+    )
+    MARK_ALERT_NOTIFICATION_VIEWED: str = "UPDATE alert_notifications SET viewed_at = NOW() WHERE id = %s AND viewed_at IS NULL;"
 
 class Cursor:
 
@@ -66,7 +84,7 @@ class Cursor:
                 autocommit  = True,
             )
         except mariadb.Error as e:
-            print(f"Error connecting to MariaDB: {e}")
+            _logger.critical(f"Error connecting to MariaDB: {e}")
             sys.exit(1)
         self.cursor = self.conn.cursor(dictionary=True)
 
@@ -79,6 +97,7 @@ class Cursor:
         except mariadb.InterfaceError:
             # The idle connection was closed server-side (e.g. wait_timeout).
             # Reconnect and retry the query once before giving up.
+            _logger.warning("MariaDB connection was stale, reconnecting")
             self._connect()
             self.cursor.execute(query, params)
         try:

@@ -3,11 +3,13 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from modules.credentials import get_credentials
 from modules.cursor       import Queries
 from modules.db           import cursor
+from modules.logs         import get_logger
 from modules.telegram     import Telegram
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 
 _WEBHOOK_SECRET: str | None = get_credentials()['telegram']['webhook_secret']
+_logger = get_logger(__name__)
 
 
 async def _handle_update(update: dict) -> None:
@@ -27,6 +29,7 @@ async def _handle_update(update: dict) -> None:
     contact: dict = rows[0]
     cursor.execute(Queries.CONFIRM_CONTACT_TELEGRAM, (chat_id, contact["id"]))
     cursor.commit()
+    _logger.info(f"Contact {contact['id']} linked Telegram chat {chat_id}")
 
     await Telegram.Send(chat_id, "telegram_linked", {"user_name": contact["user_name"]})
 
@@ -47,6 +50,6 @@ async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: st
         # Telegram retries aggressively on anything but a 2xx response.
         # Whatever went wrong here, acknowledging the update is safer than
         # risking a retry storm over something a retry won't fix anyway.
-        print(f"Error handling Telegram webhook: {e}")
+        _logger.exception(f"Error handling Telegram webhook: {e}")
 
     return {"ok": True}

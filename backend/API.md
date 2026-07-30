@@ -260,6 +260,44 @@ Logs the panic button being triggered: saves the authenticated user's location a
 
 If the user has no contact confirmed by email or Telegram, the alert still gets logged — there's just no one to notify yet.
 
+### `GET /alerts`
+
+Lists the authenticated user's own alert history, most recent first, including who was notified for each one and whether they've opened the location link yet.
+
+**Response (`200`):**
+
+```json
+[
+  {
+    "id": 6,
+    "created_at": "2026-07-30T09:51:35",
+    "latitude": 10.4806,
+    "longitude": -66.9036,
+    "notifications": [
+      { "channel": "email", "viewed_at": "2026-07-30T09:51:44", "contact_name": "Ana Martinez" },
+      { "channel": "telegram", "viewed_at": null, "contact_name": "Ana Martinez" }
+    ]
+  }
+]
+```
+
+A contact confirmed by both email and Telegram appears twice in `notifications` for the same alert — one entry per channel, each with its own independent `viewed_at` (`null` until that specific link has been opened at least once). There's no `GET /alerts/{id}` for a single alert; the full list is small enough (see `docs/backend/routers.md`) that this one endpoint covers both the dashboard's list view and any future per-alert detail view.
+
+| Code | When it happens |
+|--------|----------------|
+| `200`  | Always, even with an empty `[]` if the user has never triggered an alert. |
+| `401`  | Token missing, invalid, or expired. |
+
+### `GET /alerts/view/{token}`
+
+Not meant to be called from application code — this is the link embedded as `map_url` inside every panic-alert email and Telegram message a contact receives (see `docs/backend/mail.md`, `docs/backend/telegram.md`). Opening it marks that specific notification as viewed (reflected the next time the alerting user checks `GET /alerts` or the dashboard) and redirects to Google Maps with the alert's coordinates. Unlike every other `{token}` in this API, this one **never expires**.
+
+| Code | When it happens |
+|--------|----------------|
+| `302`  | Token valid. Redirects to `https://www.google.com/maps?q=<latitude>,<longitude>`. |
+| `401`  | The token is invalid or malformed. Renders an error page (`text/html`, same as `GET /contacts/confirm/{token}`). |
+| `404`  | The token was valid but the notification it points to no longer exists. Renders an error page. |
+
 ## Examples in Python
 
 Using the `requests` library (`pip install requests`, or, if the client is also a `uv` project, `uv add requests`):

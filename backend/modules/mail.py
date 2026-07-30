@@ -5,8 +5,10 @@ import aiosmtplib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from modules.credentials import get_credentials
+from modules.logs        import get_logger
 
 _credentials: dict = get_credentials()['email']
+_logger = get_logger(__name__)
 
 _jinja_env: Environment = Environment(
     loader=FileSystemLoader(Path(__file__).resolve().parent.parent / "templates" / "mail"),
@@ -46,7 +48,9 @@ class Mail:
                 password=_credentials['password'],
             )
         except aiosmtplib.SMTPException as e:
+            _logger.error(f"Could not send '{template}' email to {recipient}: {e}")
             raise MailNotSentError(str(e)) from e
+        _logger.info(f"Sent '{template}' email to {recipient}")
 
     @staticmethod
     async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
@@ -63,8 +67,11 @@ class Mail:
                 try:
                     message: EmailMessage = _build_message(recipient, subject, template, context)
                     await smtp.send_message(message)
-                except Exception:
+                except Exception as e:
+                    _logger.error(f"Could not send '{template}' email to {recipient}: {e}")
                     failed.append(recipient)
 
+        sent = len(recipients) - len(failed)
+        _logger.info(f"Sent '{template}' bulk email to {sent}/{len(recipients)} recipients")
         if failed:
             raise MailNotSentError(f"Could not notify: {', '.join(failed)}")

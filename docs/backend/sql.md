@@ -98,6 +98,32 @@ CREATE TABLE alerts (
 
 The historical record of every time a user hits the panic button: which user, when (`created_at`, with the same `DEFAULT CURRENT_TIMESTAMP` pattern as `users.created_at`) and where (`latitude`/`longitude` as `DOUBLE`, the standard precision for GPS coordinates). In a sense, this table is the whole reason the project exists: the other two tables exist so the app can respond correctly whenever a row gets inserted here. `POST /alerts` (see `routers.md`) inserts a row and uses it to build the notification that reaches that user's confirmed emergency contacts (see `mail.md`).
 
+### `alert_notifications`
+
+```sql
+CREATE TABLE alert_notifications (
+    id         INT                       AUTO_INCREMENT PRIMARY KEY,
+    alert_id   INT                       NOT NULL,
+    contact_id INT                       NOT NULL,
+    channel    ENUM('email', 'telegram') NOT NULL,
+    viewed_at  DATETIME,
+    FOREIGN KEY (alert_id) REFERENCES alerts(id),
+    FOREIGN KEY (contact_id) REFERENCES contacts(id)
+);
+```
+
+One row per contact **per channel** that got notified about a given alert — not one row per alert, and not one row per contact. A contact confirmed by email and linked via Telegram who receives both messages for the same alert produces two rows here, not one, because each channel gets its own tracking link (see below) and needs to record whether *that specific message* was opened, independently of the other.
+
+- `channel ENUM('email', 'telegram')`: matches the only two notification channels `POST /alerts` currently dispatches through (see `routers.md`) — a third channel (SMS via Twilio, still pending, see `TASK.md`) would extend this `ENUM`, not add a new table.
+- `viewed_at DATETIME` (nullable, no default): starts `NULL` the moment the row is inserted, before the email/Telegram message has even been sent, and is set exactly once, by `MARK_ALERT_NOTIFICATION_VIEWED` (see `cursor.md`), when someone opens that notification's tracking link. It never gets unset or overwritten afterward — the query that sets it explicitly filters `WHERE ... AND viewed_at IS NULL`, so the timestamp always reflects the *first* time the link was opened.
+- Every outgoing panic-alert message (email and Telegram both) embeds a `map_url` that, instead of pointing straight at Google Maps, points at `GET /alerts/view/{token}` — the `token` is a JWT carrying this row's `id` (`Token.CreateAlertNotificationView`, see `token.md`), deliberately issued **without an expiration**, unlike every other JWT this project issues. Opening that link sets `viewed_at` and redirects on to the real map — a "read receipt," reusing a link the contact was always going to click anyway instead of adding a separate tracking pixel or a second link. See `routers.md` for the endpoint and `token.md` for why this one token never expires.
+- Both foreign keys default to `RESTRICT` (no `ON DELETE` clause), the same as `contacts.user_id` above: neither an `alerts` row nor a `contacts` row can be deleted while `alert_notifications` rows still point to it. Since nothing in the API deletes alerts, and a contact can only be removed by its owning user (`DELETE /contacts/{contact_id}`, see `routers.md`), this constraint isn't expected to be hit in normal operation — it exists as a safety net, the same posture `contacts.user_id`'s `RESTRICT` already takes.
+- Unlike `alerts` and `contacts`, there's no `CREATE TABLE`-time index here beyond the primary key and the two foreign keys (MariaDB implicitly indexes foreign key columns) — `GET /alerts` (see `routers.md`) looks up notifications by `alert_id`, already covered by that implicit index, and the table's expected volume (a handful of rows per alert, alerts themselves being rare by the nature of the app) doesn't currently justify anything more.
+
+#### Applying this to an existing database
+
+Same situation as the Telegram columns above: there's no migration framework, so a database created before this feature needs the table created by hand — the `CREATE TABLE alert_notifications (...)` statement above, run as-is against any existing `panic_dev` or production database.
+
 ## `insertions.sql` — sample data
 
 ```sql

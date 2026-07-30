@@ -16,9 +16,13 @@ class Token:
     def CreateUserConfirmation(user_id: int) -> str: ...
     @staticmethod
     def ValidateUserConfirmation(token: str) -> int | None: ...
+    @staticmethod
+    def CreateAlertNotificationView(notification_id: int) -> str: ...
+    @staticmethod
+    def ValidateAlertNotificationView(token: str) -> int | None: ...
 ```
 
-This module isolates everything related to issuing and verifying JSON Web Tokens (JWT) behind a `Token` class, following the same static "verb class" pattern as `Guard` (see `guard.md`). It issues three distinct kinds of token — a login session, an emergency-contact confirmation, and a user-account confirmation — each with its own shape and its own expiration, sharing only the underlying signing/verification mechanics.
+This module isolates everything related to issuing and verifying JSON Web Tokens (JWT) behind a `Token` class, following the same static "verb class" pattern as `Guard` (see `guard.md`). It issues four distinct kinds of token — a login session, an emergency-contact confirmation, a user-account confirmation, and an alert-notification view link — each with its own shape and its own expiration (or lack of one), sharing only the underlying signing/verification mechanics.
 
 ## What a JWT is, and why it solves the login problem
 
@@ -119,6 +123,29 @@ An emergency contact confirming they agree to be notified, and a newly registere
 
 `modules/routers/contacts.py` uses the contact-confirmation pair: `POST /contacts` calls `CreateContactConfirmation` to build the link sent by email, and `GET /contacts/confirm/{token}` calls `ValidateContactConfirmation` to decide whether it can set `confirmed = TRUE` (see `routers.md`, `mail.md`). `modules/routers/auth.py` uses the user-confirmation pair the same way: `POST /auth/register` calls `CreateUserConfirmation`, and `GET /auth/confirm/{token}` calls `ValidateUserConfirmation`.
 
+## The alert-notification view token: the one that deliberately never expires
+
+```python
+@staticmethod
+def CreateAlertNotificationView(notification_id: int) -> str:
+    payload: dict = {
+        "notification_id": notification_id,
+        "type": "alert_notification_view",
+    }
+    return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+@staticmethod
+def ValidateAlertNotificationView(token: str) -> int | None:
+    payload: dict | None = Token.Validate(token)
+    if payload is None or payload.get("type") != "alert_notification_view":
+        return None
+    return int(payload["notification_id"])
+```
+
+Same "verb pair" shape and the same `"type"`-claim discipline as the two confirmation flows above, with one deliberate difference: there's no `"exp"` claim at all. Every other token this module issues is meant to be used once, soon, by the person it was generated for — a session lasts 30 days, a confirmation link a matter of hours or days. This one is the `map_url` embedded in a panic-alert email or Telegram message (see `mail.md`, `telegram.md`): a contact might not open that message the day it arrives, and even if they do, the alert it points to stays a meaningful historical record in the dashboard (`GET /alerts`, see `routers.md`) for as long as the `alert_notifications` row itself exists (see `sql.md`) — there's no natural point at which the link should stop working while the record it points to is still there to look at.
+
+This is a narrower tradeoff than it looks: unlike a session token, holding this JWT doesn't authenticate as anyone or expose anything beyond "which map coordinates to redirect to" (`GET /alerts/view/{token}`, see `routers.md`) — the `notification_id` it carries isn't sensitive on its own, and the endpoint that consumes it doesn't return the alert's owner's identity, only a `302` to Google Maps. `ValidateAlertNotificationView` follows the same `Token.Validate` → `"type"` check shape as `ValidateContactConfirmation`/`ValidateUserConfirmation`, just without an expiration ever entering into whether it still decodes successfully.
+
 ## Relationship with the rest of the backend
 
-`auth.py` calls `Token.Create(user_id)` at the end of a successful login, and both `Token.CreateUserConfirmation`/`ValidateUserConfirmation` around registration and account confirmation. `contacts.py` calls `Token.CreateContactConfirmation`/`ValidateContactConfirmation` around adding and confirming an emergency contact. `modules/dependencies.py` calls `Token.Validate(token)` in the `current_user` dependency, which protects every endpoint that requires being logged in.
+`auth.py` calls `Token.Create(user_id)` at the end of a successful login, and both `Token.CreateUserConfirmation`/`ValidateUserConfirmation` around registration and account confirmation. `contacts.py` calls `Token.CreateContactConfirmation`/`ValidateContactConfirmation` around adding and confirming an emergency contact. `alerts.py` calls `Token.CreateAlertNotificationView` once per notification row it creates (`POST /alerts`) and `Token.ValidateAlertNotificationView` when that link is opened (`GET /alerts/view/{token}`). `modules/dependencies.py` calls `Token.Validate(token)` in the `current_user` dependency, which protects every endpoint that requires being logged in.

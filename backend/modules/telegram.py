@@ -5,8 +5,10 @@ import httpx
 from jinja2 import Environment, FileSystemLoader
 
 from modules.credentials import get_credentials
+from modules.logs        import get_logger
 
 _credentials: dict = get_credentials()['telegram']
+_logger = get_logger(__name__)
 
 # How long a POST /contacts/{id}/telegram/enable link stays valid before the
 # contact has to be re-sent a fresh one. Same order of magnitude as
@@ -42,7 +44,9 @@ class Telegram:
             response = await client.post(_url("sendMessage"), json={"chat_id": chat_id, "text": text})
 
         if response.status_code != 200:
+            _logger.error(f"Telegram rejected '{template}' message to chat {chat_id}: {response.text}")
             raise TelegramNotSentError(f"Telegram rejected message to chat {chat_id}: {response.text}")
+        _logger.info(f"Sent '{template}' Telegram message to chat {chat_id}")
 
     @staticmethod
     async def SendBulk(template: str, recipients: list[tuple[int, dict]]) -> None:
@@ -54,18 +58,24 @@ class Telegram:
                 try:
                     response = await client.post(_url("sendMessage"), json={"chat_id": chat_id, "text": text})
                     if response.status_code != 200:
+                        _logger.error(f"Telegram rejected '{template}' message to chat {chat_id}: {response.text}")
                         failed.append(str(chat_id))
-                except httpx.HTTPError:
+                except httpx.HTTPError as e:
+                    _logger.error(f"Could not reach Telegram for chat {chat_id}: {e}")
                     failed.append(str(chat_id))
 
+        sent = len(recipients) - len(failed)
+        _logger.info(f"Sent '{template}' bulk Telegram message to {sent}/{len(recipients)} chats")
         if failed:
             raise TelegramNotSentError(f"Could not notify chat ids: {', '.join(failed)}")
 
     @staticmethod
-    async def SetWebhook(url: str) -> bool:
+    async def SetWebhook(url: str) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
                 _url("setWebhook"),
                 json={"url": url, "secret_token": _credentials['webhook_secret']},
             )
-        return response.status_code == 200 and response.json().get("ok", False)
+        if response.status_code != 200 or not response.json().get("ok", False):
+            _logger.error(f"Telegram rejected setWebhook for {url}: {response.text}")
+            raise TelegramNotSentError(f"Telegram rejected setWebhook: {response.text}")
