@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
 android {
     namespace = "com.keycodelogics.panicswitch"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +22,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (localProperties.containsKey('RELEASE_STORE_FILE')) {
+                storeFile file(localProperties['RELEASE_STORE_FILE'])
+                storePassword localProperties['RELEASE_STORE_PASSWORD']
+                keyAlias localProperties['RELEASE_KEY_ALIAS']
+                keyPassword localProperties['RELEASE_KEY_PASSWORD']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (localProperties.containsKey('RELEASE_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
