@@ -1,4 +1,4 @@
-# PanicSwitch
+# PanicButton
 
 A panic button emergency call
 
@@ -65,7 +65,7 @@ See `docs/backend/main.md` for the implementation detail.
 
 #### `LOG_LEVEL`: how much gets logged
 
-`LOG_LEVEL` sets the minimum severity written to both the console and `backend/logs/panicswitch.log` (a rotating file, gitignored) — one of Python's standard `logging` level names (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). Defaults to `INFO` if unset or misspelled. See `docs/backend/logs.md` for what gets logged at each level.
+`LOG_LEVEL` sets the minimum severity written to both the console and `backend/logs/panicbutton.log` (a rotating file, gitignored) — one of Python's standard `logging` level names (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). Defaults to `INFO` if unset or misspelled. See `docs/backend/logs.md` for what gets logged at each level.
 
 #### Generate `JWT_SECRET_KEY` for production
 
@@ -83,7 +83,7 @@ This branch (`feature/correo-app-password`) authenticates outgoing email with an
 
 1. **Enable 2-Step Verification on the account.** Go to [`myaccount.google.com/security`](https://myaccount.google.com/security) with the `soporte@keylogics.com` account and turn on "2-Step Verification" if it isn't already. This is a hard requirement: without 2FA on, Google won't even show the app passwords option.
 2. **Confirm the Workspace administrator allows app passwords.** This is controlled at the organization level, not the individual account level, so it can be blocked even if step 1 is done. The Workspace administrator has to go to [Admin Console](https://admin.google.com) → **Security** → **Authentication** → **2-Step Verification**, and enable "Allow users to create app passwords" there. If this policy is disabled, step 3 won't show the option even if the account has 2FA on — in that case, ask the administrator to enable it, or use the OAuth2 alternative (`feature/correo-oauth2` branch, see `docs/backend/mail.md`) if the organization prefers not to enable app passwords.
-3. **Generate the password.** With the account already logged in and 2FA on, go to [`myaccount.google.com/apppasswords`](https://myaccount.google.com/apppasswords), give it a recognizable name (for example, "PanicSwitch Backend") and generate it. Google shows a 16-character password grouped into 4 blocks of 4 (for example `abcd efgh ijkl mnop`) — use it **without the spaces**.
+3. **Generate the password.** With the account already logged in and 2FA on, go to [`myaccount.google.com/apppasswords`](https://myaccount.google.com/apppasswords), give it a recognizable name (for example, "PanicButton Backend") and generate it. Google shows a 16-character password grouped into 4 blocks of 4 (for example `abcd efgh ijkl mnop`) — use it **without the spaces**.
 4. **Fill in the `.env`.** `SMTP_USER` is the account's full email (`soporte@keylogics.com`) and `SMTP_PASSWORD` is the 16-character password generated in the previous step (no spaces). `SMTP_HOST`/`SMTP_PORT` already come with the correct default value (`smtp.gmail.com`/`587`) and shouldn't need changes.
 
 This password can be revoked at any time from the same `apppasswords` page without affecting the account's real password — it's worth generating a different one per environment (development, production) so one can be revoked without affecting the other, same as with `JWT_SECRET_KEY`.
@@ -94,8 +94,8 @@ Panic alerts can also reach a contact over Telegram, in parallel to email (see `
 
 1. **Open a chat with BotFather.** In Telegram (any device), search for `@BotFather` and start a chat — it's the official bot Telegram itself provides for managing other bots, verified with a blue checkmark.
 2. **Create the bot.** Send `/newbot`. BotFather will ask for:
-   - A **display name** (e.g. "Panic Switch"), shown to contacts in their chat list — can be changed later, doesn't need to be unique.
-   - A **username**, which does have to be unique across all of Telegram and must end in `bot` (e.g. `PanicSwitchBot` or `panic_switch_bot`). This is what goes into `TELEGRAM_BOT_USERNAME` — **without** the leading `@`.
+   - A **display name** (e.g. "Panic Button"), shown to contacts in their chat list — can be changed later, doesn't need to be unique.
+   - A **username**, which does have to be unique across all of Telegram and must end in `bot` (e.g. `PanicButtonBot` or `panic_button_bot`). This is what goes into `TELEGRAM_BOT_USERNAME` — **without** the leading `@`.
 3. **Copy the token.** Once created, BotFather replies with a message containing a line like:
    ```
    Use this token to access the HTTP API:

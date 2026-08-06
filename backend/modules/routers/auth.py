@@ -37,7 +37,7 @@ def register(data: User, background_tasks: BackgroundTasks):
     background_tasks.add_task(
         Mail.Send,
         data.email,
-        "Confirm your Panic Switch account",
+        "Confirm your Panic Button account",
         "user_confirmation",
         {
             "user_name":        data.name,
@@ -92,6 +92,6 @@ def confirm_user(token: str):
     return HTMLResponse(
         Pages.Render("confirmation_result", {
             "success": True,
-            "message": "Your account is confirmed. Open the Panic Switch app and log in to get started.",
+            "message": "Your account is confirmed. Open the Panic Button app and log in to get started.",
         })
     )

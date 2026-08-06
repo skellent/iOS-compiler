@@ -3,6 +3,17 @@ import { showToast } from "../lib/toast.js";
 import { setLoading, shake, escapeHtml } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t } from "../lib/i18n.js";
+import { attachPhoneSanitizer, buildCountryCodeOptions, combinePhone, DEFAULT_COUNTRY_CODE } from "../lib/phone.js";
+
+const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
+
+function insertEmailDomain(input, domain) {
+  const at = input.value.indexOf("@");
+  const local = at >= 0 ? input.value.slice(0, at) : input.value;
+  input.value = `${local}@${domain}`;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
 
 export async function renderRegister(container, { navigate }) {
   container.innerHTML = `
@@ -18,11 +29,17 @@ export async function renderRegister(container, { navigate }) {
         </label>
         <label class="field">
           <span>${t("register.phone")}</span>
-          <input type="tel" name="phone" autocomplete="tel" required />
+          <div class="phone-field">
+            <select name="phone_country" class="phone-country">${buildCountryCodeOptions(DEFAULT_COUNTRY_CODE)}</select>
+            <input type="tel" name="phone_number" autocomplete="tel" inputmode="numeric" required />
+          </div>
         </label>
         <label class="field">
           <span>${t("register.email")}</span>
           <input type="email" name="email" autocomplete="email" required />
+          <div class="email-domain-chips">
+            ${EMAIL_DOMAINS.map((domain) => `<button type="button" class="email-domain-chip" data-domain="${domain}">@${domain}</button>`).join("")}
+          </div>
         </label>
         <label class="field">
           <span>${t("register.password")}</span>
@@ -45,9 +62,16 @@ export async function renderRegister(container, { navigate }) {
   const form = container.querySelector("#register-form");
   const button = form.querySelector("button");
 
+  attachPhoneSanitizer(form.querySelector('input[name="phone_number"]'));
+  const emailInput = form.querySelector('input[name="email"]');
+  form.querySelectorAll(".email-domain-chip").forEach((chip) => {
+    chip.addEventListener("click", () => insertEmailDomain(emailInput, chip.dataset.domain));
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const { confirm_password, ...data } = Object.fromEntries(new FormData(form));
+    const { confirm_password, phone_country, phone_number, ...data } = Object.fromEntries(new FormData(form));
+    data.phone = combinePhone(phone_country, phone_number);
 
     if (data.password !== confirm_password) {
       shake(form);

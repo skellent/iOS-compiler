@@ -8,7 +8,7 @@ export async function renderLogin(container, { navigate, refreshUser }) {
   container.innerHTML = `
     <div class="auth-screen">
       <img class="brand-mark" src="assets/brand-mark.png" alt="" />
-      <h1 class="auth-title">Panic Switch</h1>
+      <h1 class="auth-title">Panic Button</h1>
       <p class="auth-subtitle">${t("login.subtitle")}</p>
 
       <form id="login-form" class="form" novalidate>

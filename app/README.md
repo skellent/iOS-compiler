@@ -1,4 +1,4 @@
-# PanicSwitch — Mobile App
+# PanicButton — Mobile App
 
 A [Capacitor](https://capacitorjs.com/) app (Android + iOS) built with vanilla HTML/CSS/JavaScript that consumes the [`backend/`](../backend) API: register, log in, hold the panic button to send an alert with your GPS location, and manage your emergency contacts. See [`docs/app/`](../docs/app) for the design decisions behind how it's built.
 

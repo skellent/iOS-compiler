@@ -1,4 +1,4 @@
-package com.keycodelogics.panicswitch;
+package com.keycodelogics.panicbutton;
 
 import com.getcapacitor.BridgeActivity;
 

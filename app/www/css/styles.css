@@ -45,9 +45,14 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Light theme — same tech language (grid, glow, glass), swapped for a bright surface */
+/* Light theme — same tech language (grid, glow, glass), swapped for a bright
+   surface. Applies automatically when the system prefers light AND the user
+   hasn't forced a theme via the Profile screen's Light/Dark/Auto selector
+   (theme.js sets data-theme="light"/"dark"/"auto" on <html>); the explicit
+   [data-theme="light"] rule below covers the forced case regardless of what
+   the system prefers. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
     color-scheme: light;
 
     --bg-950: #e8e7ec;
@@ -76,6 +81,40 @@
 
     --shadow-card: 0 10px 26px rgba(20, 16, 30, 0.12), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
   }
+}
+
+/* Same values, applied unconditionally when the user forces Light regardless
+   of what the system prefers (data-theme="light", see theme.js) — the block
+   above only fires inside the `prefers-color-scheme: light` media query, so
+   it can't cover a system-dark device with Light forced on. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-950: #e8e7ec;
+  --bg-900: #f4f4f7;
+  --bg-800: #ffffff;
+  --bg-700: #ececf1;
+  --surface: rgba(20, 16, 30, 0.035);
+  --surface-2: rgba(20, 16, 30, 0.065);
+  --line: rgba(20, 16, 30, 0.1);
+  --line-strong: rgba(20, 16, 30, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --toast-bg: rgba(255, 255, 255, 0.95);
+  --grid-line: rgba(20, 16, 30, 0.05);
+  --scan-color: rgba(var(--primary-rgb), 0.1);
+  --scrim: rgba(10, 8, 14, 0.45);
+
+  --primary-400: #d81851;
+  --primary-300: #b8123f;
+  --glow: rgba(var(--primary-rgb), 0.35);
+
+  --text-000: #14101c;
+  --text-100: #221e2c;
+  --text-300: #494555;
+  --text-500: #726d7d;
+  --text-700: #a8a4b0;
+
+  --shadow-card: 0 10px 26px rgba(20, 16, 30, 0.12), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 
 * {
@@ -1129,6 +1168,14 @@ button {
   padding: 60px 20px 0 20px;
 }
 
+.contacts-limit-hint {
+  text-align: center;
+  color: var(--text-500);
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 0 20px 14px 20px;
+}
+
 .fab {
   position: absolute;
   right: 24px;
@@ -1152,6 +1199,16 @@ button {
 
 .fab:active {
   transform: scale(0.92);
+}
+
+.fab-disabled {
+  background: var(--surface-2);
+  color: var(--text-500);
+  box-shadow: none;
+}
+
+.fab-disabled:hover {
+  box-shadow: none;
 }
 
 /* Profile screen */

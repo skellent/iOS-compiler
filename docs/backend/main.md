@@ -6,15 +6,18 @@ It's the API's entry point: this is where the FastAPI application is instantiate
 
 ```python
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from modules.credentials import get_credentials
 from modules.logs        import get_logger
+from modules.pages       import Pages
 from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, dashboard
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import RedirectResponse
+from fastapi.responses        import HTMLResponse
+from fastapi.staticfiles      import StaticFiles
 
 
 _docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
@@ -24,7 +27,7 @@ _logger = get_logger(__name__)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
+    _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
@@ -49,9 +52,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return RedirectResponse(url="/dashboard", status_code=302)
+    return Pages.Render("landing", {})
 
 
 app.include_router(auth.router)
@@ -70,7 +75,7 @@ There used to be a single business endpoint (`registrar_usuario`) written direct
 ```python
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
+    _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
@@ -119,6 +124,18 @@ app.add_middleware(
 Every client that existed before the `app/` Capacitor app (`curl`, `requests`, the automatic docs) talks to this API from *outside* any browser engine, so none of them were ever subject to CORS — that's a restriction browsers (and browser-based WebViews) enforce, not something servers hit on their own. The mobile app changes that: it's a web page (`app/www/`, see the app's own docs) running inside Capacitor's WebView, and `fetch()` calls from that page to this API are cross-origin as far as the WebView's engine is concerned, even though both "sides" are pieces of the same project. Without `CORSMiddleware`, the WebView's engine would block every response from reaching the app's JavaScript, regardless of whether the request itself reached the server and succeeded.
 
 `allow_origins` lists Capacitor's own fixed WebView origins instead of `["*"]`: `capacitor://localhost` for iOS, `https://localhost` for Android's default `androidScheme`, and `http://localhost` as a fallback for testing the same `www/` folder in a desktop browser during development. These don't change per install or per device — every copy of the app, on every phone, presents one of these same three origins — so there's no reason to open this up to arbitrary origins just to cover a set that's actually fixed and known in advance.
+
+## `/static`: CSS/JS/images for the server-rendered pages
+
+```python
+app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
+```
+
+The three pages this backend renders itself — `landing`, `dashboard`, `confirmation_result` (see `pages.md`) — used to carry their CSS and JS as `<style>`/`<script>` blocks baked directly into the `.html.j2` file, plus the favicon as an inline `data:` URI. That worked, but none of it could be cached by a browser independently of the HTML (a repeat visit to `/dashboard` re-downloaded the same CSS every time, embedded in the response), and editing styles meant scrolling through a wall of Jinja. `StaticFiles` is Starlette's (and therefore FastAPI's) built-in `ASGI` app for exactly this: point it at a directory, mount it under a prefix, and every file under `backend/static/` becomes downloadable at `/static/<same path>` — `backend/static/css/dashboard.css` is `GET /static/css/dashboard.css`, with a real `Content-Type` (`text/css`, `text/javascript`, `image/png`) instead of everything being `text/html`.
+
+This isn't related to the mobile app's own static assets — those are a separate `www/` folder bundled *inside* the Capacitor build (see `docs/app/architecture.md`) and never touch this server. `/static` here only serves the three server-rendered pages above.
+
+One template needed an actual behavior change to make this split possible, not just a cut-and-paste: `confirmation_result.html.j2`'s icon color used to depend on `success` directly inside the `<style>` block (`background: {{ "var(--primario)" if success else "var(--primario-oscuro)" }};`), which only works when Jinja renders the CSS — a plain `.css` file served by `StaticFiles` has no access to template variables at all. It's now two static classes, `.icon-success`/`.icon-error`, and the template just picks which one to put on the element (`class="icon {{ 'icon-success' if success else 'icon-error' }}"`) — the same visual result, but the conditional lives in the one-line template instead of the stylesheet.
 
 ## Module diagram
 
@@ -219,12 +236,12 @@ This is all `main.py` initializes on its own: the `app_mode`-driven docs toggle 
 ## `GET /`
 
 ```python
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return RedirectResponse(url="/dashboard", status_code=302)
+    return Pages.Render("landing", {})
 ```
 
-It's the API's root route. It used to return a plain `{"Skellent": "You shouldn't be here, boy!"}` — an informal health-check string that also made casual exploration a bit harder for someone landing on the root without knowing what they were looking at. Now that `GET /dashboard` (see `routers.md`) exists and is itself a reasonable thing for a person to land on, the root simply redirects there instead: visiting the API's base URL in a browser now shows something useful (a login form) rather than a bare JSON string. It's still the only route that stays living directly in `main.py`, for the same reason as before: it doesn't belong to any business resource (it's not "users," it's not "contacts," and it isn't really "dashboard" either — it's a redirect *to* it), so there's no reason to move it into a router.
+It's the API's root route. It used to return a plain `{"Skellent": "You shouldn't be here, boy!"}` — an informal health-check string — then, once `GET /dashboard` (see `routers.md`) existed, a `302` redirect straight there. Both were fine for a developer poking at the API, but neither was something worth handing a first-time visitor: a bare JSON string explains nothing, and jumping straight to a login form with no context does not either. `landing.html.j2` (see `pages.md`) is a small static page instead — brand, a one-line description of what this even is, and a single "Open Dashboard" button that links to `/dashboard` — the same destination the old redirect went to, just reached by a click instead of forced automatically. It's still the only route that stays living directly in `main.py`, for the same reason as before: it doesn't belong to any business resource (it's not "users," it's not "contacts," and it isn't really "dashboard" either), so there's no reason to move it into a router.
 
 ## `app.include_router(...)`
 

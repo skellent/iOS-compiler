@@ -80,7 +80,7 @@ Two things make this endpoint different from everything else in `modules/routers
 ```python
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
+    _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
@@ -126,7 +126,7 @@ Both methods also log the same way `Mail.Send`/`SendBulk` do (see `mail.md`, `lo
 
 ```env
 TELEGRAM_BOT_TOKEN=123456:ABC-...        # from @BotFather, secret
-TELEGRAM_BOT_USERNAME=PanicSwitchBot     # no leading @, used to build t.me links
+TELEGRAM_BOT_USERNAME=PanicButtonBot     # no leading @, used to build t.me links
 TELEGRAM_WEBHOOK_SECRET=some-random-string  # made up by whoever deploys this, not issued by Telegram
 ```
 
@@ -142,7 +142,7 @@ See `credentials.md` for how these are read, and the root `README.md` ("Get the 
 PANIC ALERT
 
 {{ user_name }} triggered a panic alert on
-Panic Switch at {{ timestamp }}. You are one of their emergency contacts.
+Panic Button at {{ timestamp }}. You are one of their emergency contacts.
 
 Phone: {{ user_phone }}
 Email: {{ user_email }}
@@ -168,10 +168,10 @@ The alerting user's name identifies them in the main sentence; phone and email s
 4. **Drive the normal flow through the API**: create a contact (one with no `email` is easiest — `POST /contacts/{id}/telegram/enable` then hands the `t.me` link straight back in the response instead of mailing it), open that link on a phone, press **Start**.
 5. **Fetch the update Telegram generated**: `GET https://api.telegram.org/bot<token>/getUpdates` returns the `/start <token>` message, including the real `chat.id`, exactly as it would have been POSTed to the webhook.
 6. **Replay it against the local webhook by hand**: `POST http://127.0.0.1:8000/telegram/webhook` with that same JSON body and an `X-Telegram-Bot-Api-Secret-Token` header matching `TELEGRAM_WEBHOOK_SECRET`. This runs the exact same `_handle_update` code a production webhook call would — it isn't a shortcut around the logic being tested, only around Telegram's inability to reach `127.0.0.1`.
-7. **Verify**: the contact's row now has `telegram_chat_id` set and both token columns cleared, and the "You're linked to Panic Switch" message (`telegram_linked.txt.j2`) arrives in the chat. From there, `POST /alerts` can be triggered normally to confirm `panic_alert.txt.j2` reaches the same chat.
+7. **Verify**: the contact's row now has `telegram_chat_id` set and both token columns cleared, and the "You're linked to Panic Button" message (`telegram_linked.txt.j2`) arrives in the chat. From there, `POST /alerts` can be triggered normally to confirm `panic_alert.txt.j2` reaches the same chat.
 
 The same `getUpdates`-and-replay trick covers the edge cases worth checking before a deploy: sending `/start` with an already-consumed or expired token (expect `telegram_link_invalid.txt.j2`), `POST /telegram/webhook` with a missing/wrong secret header (expect `401`), and `DELETE /contacts/{id}/telegram` followed by a new alert (expect no Telegram message, `telegram_chat_id` back to `NULL`).
 
 ## Production checklist
 
-Once a real domain is behind nginx (see the root `NGINX.md`) and `API_BASE_URL` is that `https://` domain, `Telegram.SetWebhook` stops being a no-op — `GET .../getWebhookInfo` should then show that URL with no `last_error_message`. Remaining pending items (bot creation, `ALTER TABLE`, `uv sync` for the new `httpx` dependency, restarting `panicswitch.service`) are tracked in the root `TASK.md`, "Telegram" section, not repeated here.
+Once a real domain is behind nginx (see the root `NGINX.md`) and `API_BASE_URL` is that `https://` domain, `Telegram.SetWebhook` stops being a no-op — `GET .../getWebhookInfo` should then show that URL with no `last_error_message`. Remaining pending items (bot creation, `ALTER TABLE`, `uv sync` for the new `httpx` dependency, restarting `panicbutton.service`) are tracked in the root `TASK.md`, "Telegram" section, not repeated here.

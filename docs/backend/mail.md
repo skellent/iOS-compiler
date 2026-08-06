@@ -67,17 +67,21 @@ Same rationale as `DuplicateRecordError` in `cursor.py`: `mail.py` is, on purpos
 @staticmethod
 async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
     failed: list[str] = []
-    async with aiosmtplib.SMTP(
-        hostname=_credentials['host'], port=_credentials['port'], start_tls=True,
-        username=_credentials['user'], password=_credentials['password'],
-    ) as smtp:
-        for recipient, context in recipients:
-            try:
-                message: EmailMessage = _build_message(recipient, subject, template, context)
-                await smtp.send_message(message)
-            except Exception as e:
-                _logger.error(f"Could not send '{template}' email to {recipient}: {e}")
-                failed.append(recipient)
+    try:
+        async with aiosmtplib.SMTP(
+            hostname=_credentials['host'], port=_credentials['port'], start_tls=True,
+            username=_credentials['user'], password=_credentials['password'],
+        ) as smtp:
+            for recipient, context in recipients:
+                try:
+                    message: EmailMessage = _build_message(recipient, subject, template, context)
+                    await smtp.send_message(message)
+                except Exception as e:
+                    _logger.error(f"Could not send '{template}' email to {recipient}: {e}")
+                    failed.append(recipient)
+    except aiosmtplib.SMTPException as e:
+        _logger.error(f"Could not send '{template}' bulk email: {e}")
+        raise MailNotSentError(str(e)) from e
 
     _logger.info(f"Sent '{template}' bulk email to {len(recipients) - len(failed)}/{len(recipients)} recipients")
     if failed:
@@ -87,10 +91,11 @@ async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict
 `Mail.Send` opens a connection, sends one message and closes it — fine for an isolated send, but wasteful (TCP handshake, STARTTLS, authentication) when repeated several times in a row for the same batch, as `POST /alerts` needs when a user has more than one confirmed contact. `SendBulk` opens the connection once and reuses it for every message in the batch, closing it automatically when the `async with` block exits.
 
 - **Why it takes `list[tuple[str, dict]]`, not `list[str]` plus a single `dict`**: each recipient of an alert needs their own template context (`contact_name` changes depending on who's being written to, even though `user_name`/`latitude`/`longitude` are the same for everyone). A list of `(recipient, context)` pairs lets each message render with the data that belongs to that specific person.
-- **Why the `except` catches generic `Exception`, not `aiosmtplib.SMTPException`**: the goal is that a problem with **one** contact doesn't stop the rest from receiving the alert. Catching only `SMTPException` isn't enough for that guarantee — any unexpected exception while building or sending a specific message could cut the loop short and leave contacts whose turn hadn't come up yet without a notification. The `try`/`except` wraps both `_build_message` and `smtp.send_message` and catches broadly, because in a panic-alert system the priority is that one isolated failure never takes down the rest of the batch.
+- **Why the inner `except` catches generic `Exception`, not `aiosmtplib.SMTPException`**: the goal is that a problem with **one** contact doesn't stop the rest from receiving the alert. Catching only `SMTPException` isn't enough for that guarantee — any unexpected exception while building or sending a specific message could cut the loop short and leave contacts whose turn hadn't come up yet without a notification. The `try`/`except` wraps both `_build_message` and `smtp.send_message` and catches broadly, because in a panic-alert system the priority is that one isolated failure never takes down the rest of the batch.
+- **Why there's a second, outer `try`/`except` around the whole `async with`**: connecting *and logging in* both happen inside `aiosmtplib.SMTP.__aenter__` — before the per-recipient loop's own `try`/`except` ever runs. A bad password (wrong `SMTP_PASSWORD`, revoked app password, etc.) fails right there, as `aiosmtplib.SMTPAuthenticationError`, a subclass of `SMTPException` the inner loop never gets a chance to catch. Without the outer `try`/`except`, that exception would escape `SendBulk` in its raw `aiosmtplib` form instead of `MailNotSentError` — and `alerts.py`'s `_notify_by_mail` wrapper only catches `MailNotSentError` (see `routers.md`), specifically so a broken mailbox can't also skip the `Telegram.SendBulk` background task queued right after it. This was caught by testing against a deliberately wrong `SMTP_PASSWORD`: the per-recipient loop's `except Exception` looked like it covered every failure mode, but a connection/login failure never reaches that loop at all.
 - **Why it collects failures and raises a single error at the end**: `failed` accumulates which addresses couldn't receive the message, and only at the end — if the list isn't empty — does it raise one `MailNotSentError` listing all of them, preserving the same visibility as any other `Mail` failure without raising and swallowing one exception per recipient mid-loop.
 
-Both `Mail.Send` and `Mail.SendBulk` log an `ERROR` (see `logs.md`) *before* raising `MailNotSentError`, and `Mail.Send` logs an `INFO` on success — `SendBulk` logs a single summary line instead (`Sent 'panic_alert' bulk email to 2/3 recipients`), since one line per successful recipient in a batch would be noise the failure count above it already conveys. This closes a gap the project used to have: since `Mail.Send`/`SendBulk` are always invoked through `BackgroundTasks` (above), the `201` response has already gone out by the time a send fails — the exception has no one left to propagate to, and used to simply vanish. For most endpoints that's an acceptable tradeoff (a confirmation email can be re-triggered); for `POST /alerts` specifically, a contact silently not being notified during an actual emergency is a failure worth having a permanent record of, which is exactly what this log line now is (searchable in `backend/logs/panicswitch.log`, see `logs.md`) — still not a retry or an alert to a human, but no longer invisible either.
+Both `Mail.Send` and `Mail.SendBulk` log an `ERROR` (see `logs.md`) *before* raising `MailNotSentError`, and `Mail.Send` logs an `INFO` on success — `SendBulk` logs a single summary line instead (`Sent 'panic_alert' bulk email to 2/3 recipients`), since one line per successful recipient in a batch would be noise the failure count above it already conveys. This closes a gap the project used to have: since `Mail.Send`/`SendBulk` are always invoked through `BackgroundTasks` (above), the `201` response has already gone out by the time a send fails — the exception has no one left to propagate to, and used to simply vanish. For most endpoints that's an acceptable tradeoff (a confirmation email can be re-triggered); for `POST /alerts` specifically, a contact silently not being notified during an actual emergency is a failure worth having a permanent record of, which is exactly what this log line now is (searchable in `backend/logs/panicbutton.log`, see `logs.md`) — still not a retry or an alert to a human, but no longer invisible either.
 
 ## Authentication with Gmail/Google Workspace: App Password
 
@@ -210,7 +215,7 @@ flowchart TD
 | Light-medium tint | `#F7A6BA` | The callout box border in `panic_alert.html.j2` |
 | Near-white / gray | `#f4f4f5`, `#fafafa`, `#3f3f46`, `#a1a1aa` | Page background, footer, body text |
 
-The brand mark is the words "PANIC SWITCH," set in bold uppercase in the header band — there's no image logo embedded in the mail templates (email clients frequently block remote images by default, so text is the more reliable mark here); the app itself uses the real icon image where an embedded image is reliable (see `docs/app/architecture.md`).
+The brand mark is the words "PANIC BUTTON," set in bold uppercase in the header band — there's no image logo embedded in the mail templates (email clients frequently block remote images by default, so text is the more reliable mark here); the app itself uses the real icon image where an embedded image is reliable (see `docs/app/architecture.md`).
 
 Every HTML template includes a hidden preheader (`display:none` div with a one-line summary) so the snippet shown in an inbox list (Gmail, Outlook) is meaningful instead of showing the first stray words of the HTML. Confirmation buttons are real markup (a table-wrapped `<a>`), not just a plain link, but the raw URL is still printed below in small gray text — some email clients strip inline styles or block images, so a link that still works even if the button doesn't render is kept as a fallback, not a decorative afterthought.
 

@@ -1,4 +1,4 @@
-# PanicSwitch API — Usage guide
+# PanicButton API — Usage guide
 
 This document explains how to consume the API from an external client (in particular, with the future Capacitor application in mind), with equivalent examples in Python and JavaScript. To understand *why* the API is built the way it is (design decisions, security, internal structure), see `docs/backend/` — this file focuses only on *how to use it* from the outside.
 
@@ -149,6 +149,8 @@ Creates a new emergency contact.
 ```
 
 `email` is optional (it can be omitted or sent as `null`); `name` and `phone` are required. Response: `201` with no relevant body.
+
+A user can have at most 4 emergency contacts. Trying to add a 5th returns `400` with `{"detail": "You can have at most 4 emergency contacts"}` — the app is expected to stop offering the "add contact" action once `GET /contacts` (see below) returns 4 rows, so hitting this in practice means the app's own count is stale.
 
 If `email` is sent, the API fires off a confirmation email to that address in the background (it doesn't block the `201` response, see `docs/backend/mail.md`), with a link to `GET /contacts/confirm/{token}`. Until the contact confirms by clicking that link, `confirmed` stays `false` in `GET /contacts` (see below). If `email` isn't sent, there's currently no way to confirm it and it stays `false` indefinitely.
 

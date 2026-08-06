@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Panic Switch</string>
+        <string>Panic Button</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,8 +48,8 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>PanicSwitch needs your location to include it in the panic alert sent to your emergency contacts.</string>
+	<string>Panic Button needs your location to include it in the panic alert sent to your emergency contacts.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>PanicSwitch needs access to your contacts so you can pick someone to add as an emergency contact.</string>
+	<string>Panic Button needs access to your contacts so you can pick someone to add as an emergency contact.</string>
 </dict>
 </plist>

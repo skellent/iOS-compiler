@@ -23,7 +23,7 @@ _console_handler.setFormatter(_formatter)
 # without depending on systemd/journalctl's own retention policy, which the
 # console handler already covers in production (see docs/backend/logs.md).
 _file_handler = RotatingFileHandler(
-    _LOG_DIR / "panicswitch.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8",
+    _LOG_DIR / "panicbutton.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8",
 )
 _file_handler.setFormatter(_formatter)
 

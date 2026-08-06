@@ -1,6 +1,6 @@
 import { Preferences } from "@capacitor/preferences";
 
-const TOKEN_KEY = "panicswitch.token";
+const TOKEN_KEY = "panicbutton.token";
 
 let cachedUser = null;
 

@@ -7,11 +7,12 @@ import { DEFAULT_ACCENT } from "../lib/theme.js";
 
 const COLOR_PRESETS = [DEFAULT_ACCENT, "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
 
-export async function renderProfile(container, { getUser, refreshUser, logout, navigate, getLanguage, changeLanguage, getAccentColor, setAccentColor }) {
+export async function renderProfile(container, { getUser, refreshUser, logout, navigate, getLanguage, changeLanguage, getAccentColor, setAccentColor, getTheme, setTheme }) {
   const user = getUser();
   const lang = getLanguage();
   const accentColor = getAccentColor();
   const isPreset = COLOR_PRESETS.includes(accentColor);
+  const theme = getTheme();
 
   container.innerHTML = `
     <div class="profile-screen">
@@ -44,6 +45,15 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
         <span class="lang-switcher-label">${Icon.language()} ${t("profile.language")}</span>
         <select id="lang-select" class="lang-select">
           ${LANGUAGES.map((l) => `<option value="${l.code}" ${l.code === lang ? "selected" : ""}>${escapeHtml(l.label)}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="lang-switcher">
+        <span class="lang-switcher-label">${Icon.theme()} ${t("profile.theme")}</span>
+        <select id="theme-select" class="lang-select">
+          <option value="auto" ${theme === "auto" ? "selected" : ""}>${t("profile.themeAuto")}</option>
+          <option value="light" ${theme === "light" ? "selected" : ""}>${t("profile.themeLight")}</option>
+          <option value="dark" ${theme === "dark" ? "selected" : ""}>${t("profile.themeDark")}</option>
         </select>
       </div>
 
@@ -86,6 +96,7 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
   const logoutBtn = container.querySelector("#logout-btn");
 
   container.querySelector("#lang-select").addEventListener("change", (event) => changeLanguage(event.target.value));
+  container.querySelector("#theme-select").addEventListener("change", (event) => setTheme(event.target.value));
 
   const customSwatch = container.querySelector(".color-swatch-custom");
   const customInput = container.querySelector("#color-custom-input");

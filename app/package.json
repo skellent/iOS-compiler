@@ -1,5 +1,5 @@
 {
-  "name": "panicswitch-app",
+  "name": "panicbutton-app",
   "private": true,
   "scripts": {
     "build": "bun build.js",

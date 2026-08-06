@@ -8,7 +8,7 @@ See `architecture.md` for the overall project layout; this document covers how `
 const ROUTES = {
   login:    { render: renderLogin,    titleKey: "route.login.title",    public: true },
   register: { render: renderRegister, titleKey: "route.register.title", public: true },
-  home:     { render: renderHome,     title: "Panic Switch",            public: false },
+  home:     { render: renderHome,     title: "Panic Button",            public: false },
   contacts: { render: renderContacts, titleKey: "route.contacts.title", public: false },
   profile:  { render: renderProfile,  titleKey: "route.profile.title",  public: false },
   about:    { render: renderAbout,    titleKey: "route.about.title",    public: false },
