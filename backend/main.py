@@ -17,7 +17,7 @@ _logger = get_logger(__name__)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
+    _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
     # Best-effort and non-blocking on failure: a backend with no Telegram bot
     # configured (local dev, or before the client sets one up) should still
     # boot normally, just without this feature wired up.

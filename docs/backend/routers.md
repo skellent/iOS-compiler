@@ -44,7 +44,7 @@ def register(data: User, background_tasks: BackgroundTasks):
 
     token: str = Token.CreateUserConfirmation(user_id)
     background_tasks.add_task(
-        Mail.Send, data.email, "Confirm your Panic Switch account", "user_confirmation",
+        Mail.Send, data.email, "Confirm your Panic Button account", "user_confirmation",
         {"user_name": data.name, "confirmation_url": f"{_URL_BASE}/auth/confirm/{token}"},
     )
     return {"Skellent": "Success!"}
@@ -99,7 +99,7 @@ def confirm_user(token: str):
     return HTMLResponse(
         Pages.Render("confirmation_result", {
             "success": True,
-            "message": "Your account is confirmed. Open the Panic Switch app and log in to get started.",
+            "message": "Your account is confirmed. Open the Panic Button app and log in to get started.",
         })
     )
 ```
@@ -153,6 +153,8 @@ The emergency-contacts CRUD, plus the confirmation endpoint. The three authentic
 ### `POST /contacts` and `GET /contacts`
 
 No surprises in the `INSERT`/`SELECT`: they follow the same parameterized pattern as the rest of the project. Routes are declared as `""` (empty string), not `"/"` — with the router's `prefix="/contacts"`, `""` resolves to exactly `/contacts`, while `"/"` would produce `/contacts/`, a different URL as far as HTTP is concerned.
+
+`create_contact` runs `COUNT_CONTACTS_BY_USER` before the `INSERT` and rejects with `400` once the user already has `MAX_CONTACTS` (4, client-picked). This is a plain `SELECT COUNT(*)` followed by a separate `INSERT`, not an atomic check-and-insert — two concurrent requests from the same user could both pass the count check and end up with 5 contacts. Not worth guarding against here: a user can only ever have one app session triggering this endpoint, so the race would need the same person double-tapping "add" fast enough to beat their own request's round-trip, and the cost of getting it wrong is one extra contact row, not a security issue.
 
 If the contact is created with an `email`, `POST /contacts` queues a confirmation email in the background (see `mail.md` for why it's a background task). `cursor.lastrowid` gives the just-inserted contact's `id`, needed to build the confirmation token with `Token.CreateContactConfirmation` (see `token.md`). A `SELECT_USER_BY_ID` also runs to get the name of whoever is adding the contact, used in the email's body — there's no way to avoid it without changing what `current_user` returns (see `dependencies.md`), which deliberately only exposes the `id`. If `data.email` is `None` (the only optional field on `Contact`, see `types.md`), nothing is sent, and that contact stays `confirmed = FALSE` indefinitely — there's no other channel today to confirm a contact without an email.
 
@@ -294,6 +296,8 @@ The endpoint that corresponds to hitting the panic button itself — the project
 ### Why Telegram and email are dispatched as two separate background tasks
 
 `create_alert` builds two recipient lists off the same `contacts` query result — one keyed by `email`, one by `telegram_chat_id` — and queues `Mail.SendBulk` and `Telegram.SendBulk` (see `telegram.md`) independently. A contact can be in either list, both, or neither; the two channels don't gate each other, so a Gmail outage doesn't stop Telegram notifications from going out, and vice versa. A contact confirmed on both channels gets two notification rows for this same alert (see `sql.md`) — one per channel, each with its own tracking link and its own independent `viewed_at`.
+
+That "don't gate each other" guarantee isn't automatic just from queuing two separate `background_tasks.add_task` calls: Starlette's `BackgroundTasks` runs its queued tasks in the order they were added and stops at the first one that raises, so `Mail.SendBulk` raising `MailNotSentError` (see `mail.md`) — queued first — would silently skip the `Telegram.SendBulk` call queued right after it, the exact outage this section claims can't happen. `create_alert` doesn't queue `Mail.SendBulk` directly; it queues a local `_notify_by_mail` wrapper that awaits it inside a `try/except MailNotSentError: pass`. The error is still on record (`Mail.SendBulk` already logs it as `ERROR` before raising), but it no longer propagates out of the background task and blocks whatever was queued after it.
 
 ### Why `Mail.SendBulk`, not `Mail.Send` in a loop
 

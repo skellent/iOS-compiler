@@ -9,6 +9,10 @@ import { t } from "../lib/i18n.js";
 import { attachPhoneSanitizer, buildCountryCodeOptions, combinePhone, splitPhone } from "../lib/phone.js";
 
 const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
+// Mirrors MAX_CONTACTS in backend/modules/routers/contacts.py — the backend
+// is the source of truth (and rejects a 5th contact with 400 regardless),
+// this just lets the app stop offering "add" before that round-trip happens.
+const MAX_CONTACTS = 4;
 
 function insertEmailDomain(input, domain) {
   const at = input.value.indexOf("@");
@@ -33,9 +37,22 @@ export async function renderContacts(container) {
   // Fetched once per screen (and cached beyond that, see features.js) so
   // every row/sheet below can ask "is Telegram on" without its own request.
   const features = await getFeatures();
-  await loadContacts(list, features);
+  await loadContacts(list, fab, features);
 
-  fab.addEventListener("click", () => openAddOptionsSheet(() => loadContacts(list, features), features));
+  fab.addEventListener("click", () => {
+    if (fab.dataset.atLimit === "true") {
+      showToast(t("contacts.limitReached", { max: MAX_CONTACTS }), "info");
+      return;
+    }
+    openAddOptionsSheet(() => loadContacts(list, fab, features), features);
+  });
+}
+
+function updateFabState(fab, count) {
+  const atLimit = count >= MAX_CONTACTS;
+  fab.dataset.atLimit = String(atLimit);
+  fab.classList.toggle("fab-disabled", atLimit);
+  fab.setAttribute("aria-disabled", String(atLimit));
 }
 
 function renderSkeleton(list) {
@@ -44,25 +61,33 @@ function renderSkeleton(list) {
     .join("");
 }
 
-async function loadContacts(list, features) {
+async function loadContacts(list, fab, features) {
   try {
     const contacts = await Api.listContacts();
-    renderContactRows(list, contacts, features);
+    renderContactRows(list, fab, contacts, features);
+    updateFabState(fab, contacts.length);
   } catch (error) {
     list.innerHTML = `<p class="contacts-empty">${t("contacts.loadError")}</p>`;
     showToast(error instanceof ApiError ? error.message : t("contacts.loadErrorToast"), "error");
   }
 }
 
-function renderContactRows(list, contacts, features) {
+function renderContactRows(list, fab, contacts, features) {
   if (contacts.length === 0) {
     list.innerHTML = `<p class="contacts-empty">${t("contacts.empty")}</p>`;
     return;
   }
 
-  list.innerHTML = contacts
-    .map(
-      (contact, index) => `
+  const limitHint =
+    contacts.length >= MAX_CONTACTS
+      ? `<p class="contacts-limit-hint">${t("contacts.limitReached", { max: MAX_CONTACTS })}</p>`
+      : "";
+
+  list.innerHTML =
+    limitHint +
+    contacts
+      .map(
+        (contact, index) => `
       <button class="contact-row" type="button" data-id="${contact.id}" style="animation-delay:${index * 60}ms">
         <span class="contact-avatar">${escapeHtml(contact.name.charAt(0).toUpperCase())}</span>
         <span class="contact-info">
@@ -90,7 +115,7 @@ function renderContactRows(list, contacts, features) {
   list.querySelectorAll(".contact-row").forEach((row) => {
     row.addEventListener("click", () => {
       const contact = contacts.find((c) => String(c.id) === row.dataset.id);
-      openContactFormSheet({ contact, features, onSaved: () => loadContacts(list, features) });
+      openContactFormSheet({ contact, features, onSaved: () => loadContacts(list, fab, features) });
     });
   });
 }

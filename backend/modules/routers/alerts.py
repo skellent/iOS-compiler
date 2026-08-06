@@ -4,7 +4,7 @@ from fastapi            import APIRouter, BackgroundTasks, Depends
 from fastapi.responses  import HTMLResponse, RedirectResponse
 
 from modules.credentials  import get_credentials
-from modules.mail         import Mail
+from modules.mail         import Mail, MailNotSentError
 from modules.cursor       import Queries
 from modules.db           import cursor
 from modules.dependencies import current_user
@@ -29,6 +29,18 @@ def _create_notification(alert_id: int, contact_id: int, channel: str) -> int:
 def _view_url(notification_id: int) -> str:
     token: str = Token.CreateAlertNotificationView(notification_id)
     return f"{_URL_BASE}/alerts/view/{token}"
+
+
+async def _notify_by_mail(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
+    # BackgroundTasks runs its queued tasks in order and stops at the first
+    # exception, so letting MailNotSentError (already logged by Mail.SendBulk)
+    # propagate here would silently skip the Telegram.SendBulk task queued
+    # right after it — during an actual panic alert, a broken mailbox must
+    # never be the reason a contact who only has Telegram never hears about it.
+    try:
+        await Mail.SendBulk(subject, template, recipients)
+    except MailNotSentError:
+        pass
 
 
 @router.post("", status_code=201)
@@ -77,7 +89,7 @@ def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = 
 
     if mail_recipients:
         background_tasks.add_task(
-            Mail.SendBulk,
+            _notify_by_mail,
             f"Panic alert from {user_rows[0]['name']}",
             "panic_alert",
             mail_recipients,

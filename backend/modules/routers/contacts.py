@@ -17,6 +17,10 @@ from modules.types        import Contact, ContactUpdate
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
+# Keeps a single panic alert from having to fan out to an unbounded number of
+# recipients, and keeps the app's contacts list on one screen. Client-picked.
+MAX_CONTACTS: int = 4
+
 _URL_BASE: str = get_credentials()['api_base_url']
 _TELEGRAM_BOT_USERNAME: str = get_credentials()['telegram']['bot_username']
 _logger = get_logger(__name__)
@@ -24,6 +28,10 @@ _logger = get_logger(__name__)
 
 @router.post("", status_code=201)
 def create_contact(data: Contact, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
+    total: int = cursor.execute(Queries.COUNT_CONTACTS_BY_USER, (user_id,))[0]["total"]
+    if total >= MAX_CONTACTS:
+        raise HTTPException(status_code=400, detail=f"You can have at most {MAX_CONTACTS} emergency contacts")
+
     cursor.execute(Queries.INSERT_CONTACT, (user_id, data.name, data.phone, data.email))
     cursor.commit()
     contact_id: int = cursor.lastrowid

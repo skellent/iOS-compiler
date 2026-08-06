@@ -17,6 +17,7 @@ class Queries:
     SELECT_USER_BY_ID: str = "SELECT id, name, phone, email FROM users WHERE id = %s;"
 
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
+    COUNT_CONTACTS_BY_USER: str = "SELECT COUNT(*) AS total FROM contacts WHERE user_id = %s;"
     SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked FROM contacts WHERE user_id = %s;"
     # A contact is notified over email when `confirmed`, over Telegram when
     # `telegram_chat_id` is set — the two channels are independent, not

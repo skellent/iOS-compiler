@@ -99,7 +99,7 @@ The switch `main.py` reads to decide whether FastAPI's automatic documentation (
 "log_level": os.getenv("LOG_LEVEL", "INFO"),
 ```
 
-Read once, at import time, by `modules/logs.py` (see `logs.md`) to decide the minimum severity that gets written to both the console and `backend/logs/panicswitch.log`. It's plain text (`"DEBUG"`, `"INFO"`, `"WARNING"`, ...), matched against Python's own `logging` level names — an unrecognized value falls back to `INFO` rather than raising, the same "never let a config typo crash startup" posture `app_mode` takes above. There's no dedicated `logging` section in this dictionary, unlike `email` or `telegram`, because it's the only setting `modules/logs.py` needs; wrapping a single value in its own sub-dict would add a level of nesting without organizing anything.
+Read once, at import time, by `modules/logs.py` (see `logs.md`) to decide the minimum severity that gets written to both the console and `backend/logs/panicbutton.log`. It's plain text (`"DEBUG"`, `"INFO"`, `"WARNING"`, ...), matched against Python's own `logging` level names — an unrecognized value falls back to `INFO` rather than raising, the same "never let a config typo crash startup" posture `app_mode` takes above. There's no dedicated `logging` section in this dictionary, unlike `email` or `telegram`, because it's the only setting `modules/logs.py` needs; wrapping a single value in its own sub-dict would add a level of nesting without organizing anything.
 
 ## Relationship with the rest of the backend
 

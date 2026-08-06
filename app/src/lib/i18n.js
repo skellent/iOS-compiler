@@ -1,6 +1,6 @@
 import { Preferences } from "@capacitor/preferences";
 
-const LANG_KEY = "panicswitch.lang";
+const LANG_KEY = "panicbutton.lang";
 
 // Native-name/English-name pairs, in display order for the language dropdown.
 export const LANGUAGES = [
@@ -75,6 +75,7 @@ const STRINGS = {
       "No emergency contacts yet. Tap the + button to add someone who should be notified when you trigger a panic alert.",
     "contacts.loadError": "Couldn't load your contacts. Pull down or reopen this tab to try again.",
     "contacts.loadErrorToast": "Couldn't load contacts.",
+    "contacts.limitReached": "You've reached the limit of {max} emergency contacts.",
     "contacts.confirmed": "Confirmed",
     "contacts.pending": "Pending",
     "contacts.addTitle": "Add Emergency Contact",
@@ -117,6 +118,10 @@ const STRINGS = {
     "profile.noChanges": "No changes to save.",
     "profile.updated": "Profile updated.",
     "profile.language": "Language",
+    "profile.theme": "Theme",
+    "profile.themeAuto": "Auto",
+    "profile.themeLight": "Light",
+    "profile.themeDark": "Dark",
     "profile.color": "App color",
     "profile.colorCustom": "Custom",
     "profile.help": "Help",
@@ -124,7 +129,7 @@ const STRINGS = {
 
     "info.back": "Back",
 
-    "help.intro": "Everything you need to know to get the most out of Panic Switch.",
+    "help.intro": "Everything you need to know to get the most out of Panic Button.",
     "help.section.account.title": "Creating your account",
     "help.section.account.body":
       "Register with your name, phone, email and a password. We'll send a confirmation link to your email — open it on this device to activate your account, then come back and log in.",
@@ -142,7 +147,7 @@ const STRINGS = {
       "Update your name, phone, email or password from the Profile tab. You can also change the app's language and accent color from there — both are saved only on this device.",
 
     "about.description":
-      "Panic Switch is a personal safety app: press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most.",
+      "Panic Button is a personal safety app: press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most.",
     "about.developedBy": "Developed by Skellent",
     "about.rights": "© Keycodelogics. All rights reserved.",
     "about.version": "Version BETA",
@@ -202,6 +207,7 @@ const STRINGS = {
       "Todavía no tienes contactos de emergencia. Toca el botón + para agregar a alguien que deba ser notificado cuando actives una alerta de pánico.",
     "contacts.loadError": "No se pudieron cargar tus contactos. Vuelve a intentarlo reabriendo esta pestaña.",
     "contacts.loadErrorToast": "No se pudieron cargar los contactos.",
+    "contacts.limitReached": "Ya alcanzaste el límite de {max} contactos de emergencia.",
     "contacts.confirmed": "Confirmado",
     "contacts.pending": "Pendiente",
     "contacts.addTitle": "Agregar Contacto de Emergencia",
@@ -244,6 +250,10 @@ const STRINGS = {
     "profile.noChanges": "No hay cambios que guardar.",
     "profile.updated": "Perfil actualizado.",
     "profile.language": "Idioma",
+    "profile.theme": "Tema",
+    "profile.themeAuto": "Automático",
+    "profile.themeLight": "Claro",
+    "profile.themeDark": "Oscuro",
     "profile.color": "Color de la app",
     "profile.colorCustom": "Personalizado",
     "profile.help": "Ayuda",
@@ -251,7 +261,7 @@ const STRINGS = {
 
     "info.back": "Volver",
 
-    "help.intro": "Todo lo que necesitás saber para aprovechar Panic Switch al máximo.",
+    "help.intro": "Todo lo que necesitás saber para aprovechar Panic Button al máximo.",
     "help.section.account.title": "Crear tu cuenta",
     "help.section.account.body":
       "Registrate con tu nombre, teléfono, correo y una contraseña. Te enviaremos un enlace de confirmación a tu correo — ábrelo en este dispositivo para activar tu cuenta y luego volvé a iniciar sesión.",
@@ -269,7 +279,7 @@ const STRINGS = {
       "Actualizá tu nombre, teléfono, correo o contraseña desde la pestaña Perfil. También podés cambiar el idioma y el color de la app desde ahí — ambos se guardan solo en este dispositivo.",
 
     "about.description":
-      "Panic Switch es una app de seguridad personal: mantené presionado un botón para compartir tu ubicación y alertar a tus contactos de confianza por correo y Telegram, en el momento en que más los necesitás.",
+      "Panic Button es una app de seguridad personal: mantené presionado un botón para compartir tu ubicación y alertar a tus contactos de confianza por correo y Telegram, en el momento en que más los necesitás.",
     "about.developedBy": "Desarrollado por Skellent",
     "about.rights": "© Keycodelogics. Todos los derechos reservados.",
     "about.version": "Versión BETA",
@@ -329,6 +339,7 @@ const STRINGS = {
       "Você ainda não tem contatos de emergência. Toque no botão + para adicionar alguém que deva ser notificado quando você acionar um alerta de pânico.",
     "contacts.loadError": "Não foi possível carregar seus contatos. Reabra esta aba para tentar novamente.",
     "contacts.loadErrorToast": "Não foi possível carregar os contatos.",
+    "contacts.limitReached": "Você atingiu o limite de {max} contatos de emergência.",
     "contacts.confirmed": "Confirmado",
     "contacts.pending": "Pendente",
     "contacts.addTitle": "Adicionar Contato de Emergência",
@@ -371,6 +382,10 @@ const STRINGS = {
     "profile.noChanges": "Não há alterações para salvar.",
     "profile.updated": "Perfil atualizado.",
     "profile.language": "Idioma",
+    "profile.theme": "Tema",
+    "profile.themeAuto": "Automático",
+    "profile.themeLight": "Claro",
+    "profile.themeDark": "Escuro",
     "profile.color": "Cor do app",
     "profile.colorCustom": "Personalizado",
     "profile.help": "Ajuda",
@@ -378,7 +393,7 @@ const STRINGS = {
 
     "info.back": "Voltar",
 
-    "help.intro": "Tudo o que você precisa saber para aproveitar ao máximo o Panic Switch.",
+    "help.intro": "Tudo o que você precisa saber para aproveitar ao máximo o Panic Button.",
     "help.section.account.title": "Criar sua conta",
     "help.section.account.body":
       "Registre-se com seu nome, telefone, e-mail e uma senha. Enviaremos um link de confirmação ao seu e-mail — abra-o neste dispositivo para ativar sua conta e depois volte para entrar.",
@@ -396,7 +411,7 @@ const STRINGS = {
       "Atualize seu nome, telefone, e-mail ou senha na aba Perfil. Você também pode mudar o idioma e a cor do app por lá — ambos são salvos apenas neste dispositivo.",
 
     "about.description":
-      "Panic Switch é um app de segurança pessoal: mantenha pressionado um botão para compartilhar sua localização e alertar seus contatos de confiança por e-mail e Telegram, no momento em que você mais precisar deles.",
+      "Panic Button é um app de segurança pessoal: mantenha pressionado um botão para compartilhar sua localização e alertar seus contatos de confiança por e-mail e Telegram, no momento em que você mais precisar deles.",
     "about.developedBy": "Desenvolvido por Skellent",
     "about.rights": "© Keycodelogics. Todos os direitos reservados.",
     "about.version": "Versão BETA",
@@ -456,6 +471,7 @@ const STRINGS = {
       "Ainda não tens contactos de emergência. Toca no botão + para adicionares alguém que deva ser notificado quando ativares um alerta de pânico.",
     "contacts.loadError": "Não foi possível carregar os teus contactos. Reabre este separador para tentar novamente.",
     "contacts.loadErrorToast": "Não foi possível carregar os contactos.",
+    "contacts.limitReached": "Atingiste o limite de {max} contactos de emergência.",
     "contacts.confirmed": "Confirmado",
     "contacts.pending": "Pendente",
     "contacts.addTitle": "Adicionar Contacto de Emergência",
@@ -498,6 +514,10 @@ const STRINGS = {
     "profile.noChanges": "Não há alterações para guardar.",
     "profile.updated": "Perfil atualizado.",
     "profile.language": "Idioma",
+    "profile.theme": "Tema",
+    "profile.themeAuto": "Automático",
+    "profile.themeLight": "Claro",
+    "profile.themeDark": "Escuro",
     "profile.color": "Cor da aplicação",
     "profile.colorCustom": "Personalizada",
     "profile.help": "Ajuda",
@@ -505,7 +525,7 @@ const STRINGS = {
 
     "info.back": "Voltar",
 
-    "help.intro": "Tudo o que precisas de saber para tirar o máximo partido da Panic Switch.",
+    "help.intro": "Tudo o que precisas de saber para tirar o máximo partido da Panic Button.",
     "help.section.account.title": "Criar a tua conta",
     "help.section.account.body":
       "Regista-te com o teu nome, telefone, correio eletrónico e uma palavra-passe. Vamos enviar uma ligação de confirmação para o teu correio — abre-a neste dispositivo para ativares a conta e depois volta para iniciar sessão.",
@@ -523,7 +543,7 @@ const STRINGS = {
       "Atualiza o teu nome, telefone, correio eletrónico ou palavra-passe no separador Perfil. Também podes mudar o idioma e a cor da aplicação a partir daí — ambos ficam guardados só neste dispositivo.",
 
     "about.description":
-      "Panic Switch é uma aplicação de segurança pessoal: mantém premido um botão para partilhares a tua localização e alertares os teus contactos de confiança por correio eletrónico e Telegram, no momento em que mais precisares deles.",
+      "Panic Button é uma aplicação de segurança pessoal: mantém premido um botão para partilhares a tua localização e alertares os teus contactos de confiança por correio eletrónico e Telegram, no momento em que mais precisares deles.",
     "about.developedBy": "Desenvolvido por Skellent",
     "about.rights": "© Keycodelogics. Todos os direitos reservados.",
     "about.version": "Versão BETA",
@@ -583,6 +603,7 @@ const STRINGS = {
       "Tu n'as pas encore de contact d'urgence. Appuie sur le bouton + pour ajouter quelqu'un à prévenir quand tu déclenches une alerte panique.",
     "contacts.loadError": "Impossible de charger tes contacts. Rouvre cet onglet pour réessayer.",
     "contacts.loadErrorToast": "Impossible de charger les contacts.",
+    "contacts.limitReached": "Tu as atteint la limite de {max} contacts d'urgence.",
     "contacts.confirmed": "Confirmé",
     "contacts.pending": "En attente",
     "contacts.addTitle": "Ajouter un contact d'urgence",
@@ -625,6 +646,10 @@ const STRINGS = {
     "profile.noChanges": "Aucune modification à enregistrer.",
     "profile.updated": "Profil mis à jour.",
     "profile.language": "Langue",
+    "profile.theme": "Thème",
+    "profile.themeAuto": "Auto",
+    "profile.themeLight": "Clair",
+    "profile.themeDark": "Sombre",
     "profile.color": "Couleur de l'application",
     "profile.colorCustom": "Personnalisée",
     "profile.help": "Aide",
@@ -632,7 +657,7 @@ const STRINGS = {
 
     "info.back": "Retour",
 
-    "help.intro": "Tout ce qu'il faut savoir pour profiter au mieux de Panic Switch.",
+    "help.intro": "Tout ce qu'il faut savoir pour profiter au mieux de Panic Button.",
     "help.section.account.title": "Créer ton compte",
     "help.section.account.body":
       "Inscris-toi avec ton nom, ton téléphone, ton e-mail et un mot de passe. Nous t'enverrons un lien de confirmation par e-mail — ouvre-le sur cet appareil pour activer ton compte, puis reviens te connecter.",
@@ -650,7 +675,7 @@ const STRINGS = {
       "Mets à jour ton nom, ton téléphone, ton e-mail ou ton mot de passe depuis l'onglet Profil. Tu peux aussi y changer la langue et la couleur de l'application — les deux ne sont enregistrées que sur cet appareil.",
 
     "about.description":
-      "Panic Switch est une application de sécurité personnelle : maintiens appuyé un bouton pour partager ta position et alerter tes contacts de confiance par e-mail et Telegram, au moment où tu as le plus besoin d'eux.",
+      "Panic Button est une application de sécurité personnelle : maintiens appuyé un bouton pour partager ta position et alerter tes contacts de confiance par e-mail et Telegram, au moment où tu as le plus besoin d'eux.",
     "about.developedBy": "Développé par Skellent",
     "about.rights": "© Keycodelogics. Tous droits réservés.",
     "about.version": "Version BÊTA",
@@ -710,6 +735,7 @@ const STRINGS = {
       "Du hast noch keine Notfallkontakte. Tippe auf das +, um jemanden hinzuzufügen, der bei einem Notfallalarm benachrichtigt werden soll.",
     "contacts.loadError": "Deine Kontakte konnten nicht geladen werden. Öffne diesen Tab erneut, um es noch einmal zu versuchen.",
     "contacts.loadErrorToast": "Kontakte konnten nicht geladen werden.",
+    "contacts.limitReached": "Du hast das Limit von {max} Notfallkontakten erreicht.",
     "contacts.confirmed": "Bestätigt",
     "contacts.pending": "Ausstehend",
     "contacts.addTitle": "Notfallkontakt hinzufügen",
@@ -752,6 +778,10 @@ const STRINGS = {
     "profile.noChanges": "Keine Änderungen zum Speichern.",
     "profile.updated": "Profil aktualisiert.",
     "profile.language": "Sprache",
+    "profile.theme": "Design",
+    "profile.themeAuto": "Automatisch",
+    "profile.themeLight": "Hell",
+    "profile.themeDark": "Dunkel",
     "profile.color": "App-Farbe",
     "profile.colorCustom": "Benutzerdefiniert",
     "profile.help": "Hilfe",
@@ -759,7 +789,7 @@ const STRINGS = {
 
     "info.back": "Zurück",
 
-    "help.intro": "Alles, was du wissen musst, um Panic Switch optimal zu nutzen.",
+    "help.intro": "Alles, was du wissen musst, um Panic Button optimal zu nutzen.",
     "help.section.account.title": "Dein Konto erstellen",
     "help.section.account.body":
       "Registriere dich mit deinem Namen, deiner Telefonnummer, E-Mail-Adresse und einem Passwort. Wir senden dir einen Bestätigungslink per E-Mail — öffne ihn auf diesem Gerät, um dein Konto zu aktivieren, und melde dich danach an.",
@@ -777,7 +807,7 @@ const STRINGS = {
       "Aktualisiere deinen Namen, deine Telefonnummer, E-Mail-Adresse oder dein Passwort im Tab Profil. Dort kannst du auch die Sprache und die Farbe der App ändern — beides wird nur auf diesem Gerät gespeichert.",
 
     "about.description":
-      "Panic Switch ist eine App für persönliche Sicherheit: Halte einen Button gedrückt, um deinen Standort zu teilen und deine vertrauten Notfallkontakte per E-Mail und Telegram zu alarmieren — genau dann, wenn du sie am meisten brauchst.",
+      "Panic Button ist eine App für persönliche Sicherheit: Halte einen Button gedrückt, um deinen Standort zu teilen und deine vertrauten Notfallkontakte per E-Mail und Telegram zu alarmieren — genau dann, wenn du sie am meisten brauchst.",
     "about.developedBy": "Entwickelt von Skellent",
     "about.rights": "© Keycodelogics. Alle Rechte vorbehalten.",
     "about.version": "Version BETA",
@@ -837,6 +867,7 @@ const STRINGS = {
       "Non hai ancora contatti di emergenza. Tocca il pulsante + per aggiungere qualcuno da avvisare quando attivi un allarme di emergenza.",
     "contacts.loadError": "Impossibile caricare i tuoi contatti. Riapri questa scheda per riprovare.",
     "contacts.loadErrorToast": "Impossibile caricare i contatti.",
+    "contacts.limitReached": "Hai raggiunto il limite di {max} contatti di emergenza.",
     "contacts.confirmed": "Confermato",
     "contacts.pending": "In attesa",
     "contacts.addTitle": "Aggiungi contatto di emergenza",
@@ -879,6 +910,10 @@ const STRINGS = {
     "profile.noChanges": "Nessuna modifica da salvare.",
     "profile.updated": "Profilo aggiornato.",
     "profile.language": "Lingua",
+    "profile.theme": "Tema",
+    "profile.themeAuto": "Automatico",
+    "profile.themeLight": "Chiaro",
+    "profile.themeDark": "Scuro",
     "profile.color": "Colore dell'app",
     "profile.colorCustom": "Personalizzato",
     "profile.help": "Aiuto",
@@ -886,7 +921,7 @@ const STRINGS = {
 
     "info.back": "Indietro",
 
-    "help.intro": "Tutto quello che devi sapere per sfruttare al meglio Panic Switch.",
+    "help.intro": "Tutto quello che devi sapere per sfruttare al meglio Panic Button.",
     "help.section.account.title": "Creare il tuo account",
     "help.section.account.body":
       "Registrati con nome, telefono, e-mail e una password. Ti invieremo un link di conferma via e-mail — aprilo su questo dispositivo per attivare l'account, poi torna ad accedere.",
@@ -904,7 +939,7 @@ const STRINGS = {
       "Aggiorna nome, telefono, e-mail o password dalla scheda Profilo. Da lì puoi anche cambiare la lingua e il colore dell'app — entrambi vengono salvati solo su questo dispositivo.",
 
     "about.description":
-      "Panic Switch è un'app per la sicurezza personale: tieni premuto un pulsante per condividere la tua posizione e allertare i tuoi contatti di fiducia via e-mail e Telegram, proprio nel momento in cui ne hai più bisogno.",
+      "Panic Button è un'app per la sicurezza personale: tieni premuto un pulsante per condividere la tua posizione e allertare i tuoi contatti di fiducia via e-mail e Telegram, proprio nel momento in cui ne hai più bisogno.",
     "about.developedBy": "Sviluppato da Skellent",
     "about.rights": "© Keycodelogics. Tutti i diritti riservati.",
     "about.version": "Versione BETA",
@@ -964,6 +999,7 @@ const STRINGS = {
       "У тебя пока нет экстренных контактов. Нажми +, чтобы добавить того, кого нужно оповещать при сигнале тревоги.",
     "contacts.loadError": "Не удалось загрузить контакты. Открой вкладку заново, чтобы повторить попытку.",
     "contacts.loadErrorToast": "Не удалось загрузить контакты.",
+    "contacts.limitReached": "Достигнут лимит в {max} экстренных контакта.",
     "contacts.confirmed": "Подтверждён",
     "contacts.pending": "Ожидает",
     "contacts.addTitle": "Добавить экстренный контакт",
@@ -1006,6 +1042,10 @@ const STRINGS = {
     "profile.noChanges": "Нет изменений для сохранения.",
     "profile.updated": "Профиль обновлён.",
     "profile.language": "Язык",
+    "profile.theme": "Тема",
+    "profile.themeAuto": "Авто",
+    "profile.themeLight": "Светлая",
+    "profile.themeDark": "Тёмная",
     "profile.color": "Цвет приложения",
     "profile.colorCustom": "Свой цвет",
     "profile.help": "Помощь",
@@ -1013,7 +1053,7 @@ const STRINGS = {
 
     "info.back": "Назад",
 
-    "help.intro": "Всё, что нужно знать, чтобы использовать Panic Switch по максимуму.",
+    "help.intro": "Всё, что нужно знать, чтобы использовать Panic Button по максимуму.",
     "help.section.account.title": "Создание аккаунта",
     "help.section.account.body":
       "Зарегистрируйся, указав имя, телефон, эл. почту и пароль. Мы отправим ссылку для подтверждения на почту — открой её на этом устройстве, чтобы активировать аккаунт, а затем войди.",
@@ -1031,7 +1071,7 @@ const STRINGS = {
       "Обнови имя, телефон, эл. почту или пароль на вкладке «Профиль». Там же можно изменить язык и цвет приложения — оба параметра сохраняются только на этом устройстве.",
 
     "about.description":
-      "Panic Switch — приложение для личной безопасности: удерживай кнопку, чтобы поделиться своим местоположением и оповестить доверенные экстренные контакты по эл. почте и Telegram именно тогда, когда они нужны тебе больше всего.",
+      "Panic Button — приложение для личной безопасности: удерживай кнопку, чтобы поделиться своим местоположением и оповестить доверенные экстренные контакты по эл. почте и Telegram именно тогда, когда они нужны тебе больше всего.",
     "about.developedBy": "Разработано Skellent",
     "about.rights": "© Keycodelogics. Все права защищены.",
     "about.version": "Версия БЕТА",
@@ -1091,6 +1131,7 @@ const STRINGS = {
       "你还没有添加紧急联系人。点击 + 按钮添加一位在你触发紧急警报时应被通知的人。",
     "contacts.loadError": "无法加载你的联系人，请重新打开此页面重试。",
     "contacts.loadErrorToast": "无法加载联系人。",
+    "contacts.limitReached": "已达到 {max} 位紧急联系人的上限。",
     "contacts.confirmed": "已确认",
     "contacts.pending": "待确认",
     "contacts.addTitle": "添加紧急联系人",
@@ -1133,6 +1174,10 @@ const STRINGS = {
     "profile.noChanges": "没有需要保存的更改。",
     "profile.updated": "资料已更新。",
     "profile.language": "语言",
+    "profile.theme": "主题",
+    "profile.themeAuto": "自动",
+    "profile.themeLight": "浅色",
+    "profile.themeDark": "深色",
     "profile.color": "应用主题色",
     "profile.colorCustom": "自定义",
     "profile.help": "帮助",
@@ -1140,7 +1185,7 @@ const STRINGS = {
 
     "info.back": "返回",
 
-    "help.intro": "充分使用 Panic Switch 所需了解的一切。",
+    "help.intro": "充分使用 Panic Button 所需了解的一切。",
     "help.section.account.title": "创建账户",
     "help.section.account.body":
       "使用你的姓名、电话、邮箱和密码注册。我们会向你的邮箱发送确认链接 — 请在本设备上打开以激活账户，然后返回登录。",
@@ -1158,7 +1203,7 @@ const STRINGS = {
       "在“我的”页面更新你的姓名、电话、邮箱或密码。你也可以在那里更改应用的语言和主题色 — 这两项设置仅保存在本设备上。",
 
     "about.description":
-      "Panic Switch 是一款个人安全应用：长按一个按钮即可分享你的位置，并在你最需要的时刻，通过邮件和 Telegram 提醒你信任的紧急联系人。",
+      "Panic Button 是一款个人安全应用：长按一个按钮即可分享你的位置，并在你最需要的时刻，通过邮件和 Telegram 提醒你信任的紧急联系人。",
     "about.developedBy": "由 Skellent 开发",
     "about.rights": "© Keycodelogics 保留所有权利。",
     "about.version": "测试版（BETA）",
@@ -1218,6 +1263,7 @@ const STRINGS = {
       "緊急連絡先がまだ登録されていません。＋ボタンをタップして、緊急通報時に通知したい相手を追加しましょう。",
     "contacts.loadError": "連絡先を読み込めませんでした。このタブを開き直して再試行してください。",
     "contacts.loadErrorToast": "連絡先を読み込めませんでした。",
+    "contacts.limitReached": "緊急連絡先の上限（{max}件）に達しました。",
     "contacts.confirmed": "確認済み",
     "contacts.pending": "未確認",
     "contacts.addTitle": "緊急連絡先を追加",
@@ -1260,6 +1306,10 @@ const STRINGS = {
     "profile.noChanges": "保存する変更がありません。",
     "profile.updated": "プロフィールを更新しました。",
     "profile.language": "言語",
+    "profile.theme": "テーマ",
+    "profile.themeAuto": "自動",
+    "profile.themeLight": "ライト",
+    "profile.themeDark": "ダーク",
     "profile.color": "アプリの色",
     "profile.colorCustom": "カスタム",
     "profile.help": "ヘルプ",
@@ -1267,7 +1317,7 @@ const STRINGS = {
 
     "info.back": "戻る",
 
-    "help.intro": "Panic Switchを最大限に活用するために知っておきたいこと。",
+    "help.intro": "Panic Buttonを最大限に活用するために知っておきたいこと。",
     "help.section.account.title": "アカウントを作成する",
     "help.section.account.body":
       "氏名、電話番号、メールアドレス、パスワードを入力して登録してください。メールで確認リンクをお送りしますので、このデバイスで開いてアカウントを有効化し、その後ログインしてください。",
@@ -1285,7 +1335,7 @@ const STRINGS = {
       "プロフィールタブから、名前、電話番号、メールアドレス、パスワードを更新できます。同じ画面からアプリの言語やテーマカラーも変更できますが、どちらもこのデバイスにのみ保存されます。",
 
     "about.description":
-      "Panic Switchは、個人の安全を守るためのアプリです。ボタンを長押しするだけで現在地を共有し、あなたが最も必要としている瞬間に、信頼できる緊急連絡先へメールとTelegramで通報します。",
+      "Panic Buttonは、個人の安全を守るためのアプリです。ボタンを長押しするだけで現在地を共有し、あなたが最も必要としている瞬間に、信頼できる緊急連絡先へメールとTelegramで通報します。",
     "about.developedBy": "開発：Skellent",
     "about.rights": "© Keycodelogics 全著作権所有。",
     "about.version": "バージョン：ベータ版",
@@ -1345,6 +1395,7 @@ const STRINGS = {
       "아직 등록된 비상 연락처가 없습니다. + 버튼을 눌러 긴급 알림 시 알려야 할 사람을 추가하세요.",
     "contacts.loadError": "연락처를 불러오지 못했습니다. 이 탭을 다시 열어 재시도해 주세요.",
     "contacts.loadErrorToast": "연락처를 불러오지 못했습니다.",
+    "contacts.limitReached": "비상 연락처 한도({max}명)에 도달했습니다.",
     "contacts.confirmed": "확인됨",
     "contacts.pending": "대기 중",
     "contacts.addTitle": "비상 연락처 추가",
@@ -1387,6 +1438,10 @@ const STRINGS = {
     "profile.noChanges": "저장할 변경사항이 없습니다.",
     "profile.updated": "프로필이 업데이트되었습니다.",
     "profile.language": "언어",
+    "profile.theme": "테마",
+    "profile.themeAuto": "자동",
+    "profile.themeLight": "라이트",
+    "profile.themeDark": "다크",
     "profile.color": "앱 색상",
     "profile.colorCustom": "사용자 지정",
     "profile.help": "도움말",
@@ -1394,7 +1449,7 @@ const STRINGS = {
 
     "info.back": "뒤로",
 
-    "help.intro": "Panic Switch를 100% 활용하기 위해 알아야 할 모든 것.",
+    "help.intro": "Panic Button를 100% 활용하기 위해 알아야 할 모든 것.",
     "help.section.account.title": "계정 만들기",
     "help.section.account.body":
       "이름, 전화번호, 이메일과 비밀번호로 가입하세요. 이메일로 확인 링크를 보내드리니, 이 기기에서 열어 계정을 활성화한 뒤 다시 로그인해 주세요.",
@@ -1412,7 +1467,7 @@ const STRINGS = {
       "프로필 탭에서 이름, 전화번호, 이메일, 비밀번호를 업데이트할 수 있습니다. 같은 화면에서 앱의 언어와 색상도 변경할 수 있으며, 두 설정 모두 이 기기에만 저장됩니다.",
 
     "about.description":
-      "Panic Switch는 개인 안전을 위한 앱입니다. 버튼을 길게 누르는 것만으로 위치를 공유하고, 가장 필요한 순간에 신뢰하는 비상 연락처에 이메일과 Telegram으로 알릴 수 있습니다.",
+      "Panic Button는 개인 안전을 위한 앱입니다. 버튼을 길게 누르는 것만으로 위치를 공유하고, 가장 필요한 순간에 신뢰하는 비상 연락처에 이메일과 Telegram으로 알릴 수 있습니다.",
     "about.developedBy": "개발: Skellent",
     "about.rights": "© Keycodelogics. 모든 권리 보유.",
     "about.version": "버전: 베타",
@@ -1472,6 +1527,7 @@ const STRINGS = {
       "अभी तक आपका कोई आपातकालीन संपर्क नहीं है। पैनिक अलर्ट भेजने पर जिसे सूचित किया जाना चाहिए, उसे जोड़ने के लिए + बटन दबाएँ।",
     "contacts.loadError": "आपके संपर्क लोड नहीं हो सके। फिर से कोशिश करने के लिए इस टैब को दोबारा खोलें।",
     "contacts.loadErrorToast": "संपर्क लोड नहीं हो सके।",
+    "contacts.limitReached": "आप आपातकालीन संपर्कों की सीमा ({max}) तक पहुँच चुके हैं।",
     "contacts.confirmed": "पुष्टि हो गई",
     "contacts.pending": "लंबित",
     "contacts.addTitle": "आपातकालीन संपर्क जोड़ें",
@@ -1514,6 +1570,10 @@ const STRINGS = {
     "profile.noChanges": "सहेजने के लिए कोई बदलाव नहीं है।",
     "profile.updated": "प्रोफ़ाइल अपडेट हो गई।",
     "profile.language": "भाषा",
+    "profile.theme": "थीम",
+    "profile.themeAuto": "स्वचालित",
+    "profile.themeLight": "हल्का",
+    "profile.themeDark": "गहरा",
     "profile.color": "ऐप का रंग",
     "profile.colorCustom": "कस्टम",
     "profile.help": "सहायता",
@@ -1521,7 +1581,7 @@ const STRINGS = {
 
     "info.back": "वापस",
 
-    "help.intro": "Panic Switch का पूरा फ़ायदा उठाने के लिए आपको जो कुछ जानना चाहिए।",
+    "help.intro": "Panic Button का पूरा फ़ायदा उठाने के लिए आपको जो कुछ जानना चाहिए।",
     "help.section.account.title": "अपना खाता बनाना",
     "help.section.account.body":
       "अपने नाम, फ़ोन नंबर, ईमेल और एक पासवर्ड के साथ रजिस्टर करें। हम आपके ईमेल पर एक पुष्टिकरण लिंक भेजेंगे — अपना खाता सक्रिय करने के लिए इसे इसी डिवाइस पर खोलें, फिर वापस आकर लॉग इन करें।",
@@ -1539,7 +1599,7 @@ const STRINGS = {
       "प्रोफ़ाइल टैब से अपना नाम, फ़ोन नंबर, ईमेल या पासवर्ड अपडेट करें। वहीं से आप ऐप की भाषा और रंग भी बदल सकते हैं — दोनों केवल इसी डिवाइस पर सहेजे जाते हैं।",
 
     "about.description":
-      "Panic Switch एक व्यक्तिगत सुरक्षा ऐप है: एक बटन दबाए रखें और अपनी लोकेशन साझा करें, और जिस पल आपको उनकी सबसे ज़्यादा ज़रूरत हो, उस पल अपने भरोसेमंद आपातकालीन संपर्कों को ईमेल और Telegram के ज़रिए सतर्क करें।",
+      "Panic Button एक व्यक्तिगत सुरक्षा ऐप है: एक बटन दबाए रखें और अपनी लोकेशन साझा करें, और जिस पल आपको उनकी सबसे ज़्यादा ज़रूरत हो, उस पल अपने भरोसेमंद आपातकालीन संपर्कों को ईमेल और Telegram के ज़रिए सतर्क करें।",
     "about.developedBy": "Skellent द्वारा विकसित",
     "about.rights": "© Keycodelogics. सर्वाधिकार सुरक्षित।",
     "about.version": "संस्करण: बीटा",

@@ -1,6 +1,6 @@
 {
-  "appId": "com.keycodelogics.panicswitch",
-  "appName": "Panic Switch",
+  "appId": "com.keycodelogics.panicbutton",
+  "appName": "Panic Button",
   "webDir": "www",
   "plugins": {
     "SplashScreen": {

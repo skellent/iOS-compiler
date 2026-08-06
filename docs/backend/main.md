@@ -24,7 +24,7 @@ _logger = get_logger(__name__)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
+    _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
@@ -70,7 +70,7 @@ There used to be a single business endpoint (`registrar_usuario`) written direct
 ```python
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    _logger.info(f"Starting Panic Switch API (app_mode={_credentials['app_mode']})")
+    _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"

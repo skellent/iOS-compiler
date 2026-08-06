@@ -7,10 +7,10 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.keycodelogics.panicswitch"
+    namespace = "com.keycodelogics.panicbutton"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.keycodelogics.panicswitch"
+        applicationId "com.keycodelogics.panicbutton"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

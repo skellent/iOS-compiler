@@ -1,7 +1,7 @@
 import { getToken, clearToken, getUser, setUser } from "./lib/session.js";
 import { Api } from "./lib/api.js";
 import { loadLanguage, setLanguage, getLanguage, t } from "./lib/i18n.js";
-import { loadAccentColor, setAccentColor, getAccentColor } from "./lib/theme.js";
+import { loadAccentColor, setAccentColor, getAccentColor, loadTheme, setTheme, getTheme } from "./lib/theme.js";
 
 import { renderLogin } from "./views/login.js";
 import { renderRegister } from "./views/register.js";
@@ -18,7 +18,7 @@ const navTabs = [...document.querySelectorAll("#bottom-nav .nav-tab")];
 const ROUTES = {
   login: { render: renderLogin, titleKey: "route.login.title", public: true },
   register: { render: renderRegister, titleKey: "route.register.title", public: true },
-  home: { render: renderHome, title: "Panic Switch", public: false },
+  home: { render: renderHome, title: "Panic Button", public: false },
   contacts: { render: renderContacts, titleKey: "route.contacts.title", public: false },
   profile: { render: renderProfile, titleKey: "route.profile.title", public: false },
   about: { render: renderAbout, titleKey: "route.about.title", public: false },
@@ -102,6 +102,8 @@ async function renderCurrentRoute() {
     changeLanguage,
     getAccentColor,
     setAccentColor,
+    getTheme,
+    setTheme,
   });
 
   requestAnimationFrame(() => viewEl.classList.add("view-visible"));
@@ -112,6 +114,7 @@ navTabs.forEach((tab) => tab.addEventListener("click", () => navigate(tab.datase
 
 async function boot() {
   await loadLanguage();
+  await loadTheme();
   await loadAccentColor();
   applyStaticLabels();
 

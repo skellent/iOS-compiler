@@ -24,7 +24,7 @@ _console_handler = logging.StreamHandler(sys.stdout)
 _console_handler.setFormatter(_formatter)
 
 _file_handler = RotatingFileHandler(
-    _LOG_DIR / "panicswitch.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8",
+    _LOG_DIR / "panicbutton.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8",
 )
 _file_handler.setFormatter(_formatter)
 
@@ -35,8 +35,8 @@ logging.basicConfig(level=_level, handlers=[_console_handler, _file_handler])
 
 ## Two handlers, not one
 
-- **`StreamHandler(sys.stdout)`**: what `print()` was already giving for free — output visible in whatever terminal (or, in production, `journalctl`, since `panicswitch.service` runs under systemd, see the root `NGINX.md`) is attached to the process.
-- **`RotatingFileHandler`**: a copy of the same stream, on disk, at `backend/logs/panicswitch.log` (`backend/.gitignore` excludes the whole `logs/` directory — these are runtime artifacts, not something to commit). Systemd's own journal already has its own retention policy in production, but nothing plays that role in local development, where a crash investigated after the fact needs *something* to `cat`. `maxBytes=5_000_000, backupCount=3` caps the damage a runaway log (a bug that logs in a tight loop, for instance) can do to disk space: once the active file hits 5 MB it's rotated to `.1`, pushing older backups to `.2`/`.3`, and the oldest is deleted — at most ~20 MB across all four files, not an unbounded file that grows for the life of the deployment.
+- **`StreamHandler(sys.stdout)`**: what `print()` was already giving for free — output visible in whatever terminal (or, in production, `journalctl`, since `panicbutton.service` runs under systemd, see the root `NGINX.md`) is attached to the process.
+- **`RotatingFileHandler`**: a copy of the same stream, on disk, at `backend/logs/panicbutton.log` (`backend/.gitignore` excludes the whole `logs/` directory — these are runtime artifacts, not something to commit). Systemd's own journal already has its own retention policy in production, but nothing plays that role in local development, where a crash investigated after the fact needs *something* to `cat`. `maxBytes=5_000_000, backupCount=3` caps the damage a runaway log (a bug that logs in a tight loop, for instance) can do to disk space: once the active file hits 5 MB it's rotated to `.1`, pushing older backups to `.2`/`.3`, and the oldest is deleted — at most ~20 MB across all four files, not an unbounded file that grows for the life of the deployment.
 
 Both handlers share the same `_formatter`, so a line looks identical whether it's read from the terminal or from the file: `2026-07-30 09:43:58 [WARNING] modules.routers.alerts: Panic alert 5 triggered by user 10 at 10.5,-66.9`.
 

@@ -1,6 +1,6 @@
 # `queries/` — SQL scripts
 
-This directory holds the SQL needed to set up and seed PanicSwitch's database. It isn't Python code that runs automatically: these are scripts an administrator runs manually against MariaDB, in the order described in the main README (section "1. Configure MariaDB"). There's no migration framework — a schema change here has to be applied by hand (`ALTER TABLE ...`) against any database that already exists, in addition to updating this file for anyone setting up a fresh one.
+This directory holds the SQL needed to set up and seed PanicButton's database. It isn't Python code that runs automatically: these are scripts an administrator runs manually against MariaDB, in the order described in the main README (section "1. Configure MariaDB"). There's no migration framework — a schema change here has to be applied by hand (`ALTER TABLE ...`) against any database that already exists, in addition to updating this file for anyone setting up a fresh one.
 
 ## `creation.sql` — initial provisioning
 

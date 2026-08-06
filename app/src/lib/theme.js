@@ -1,7 +1,10 @@
 import { Preferences } from "@capacitor/preferences";
 
-const COLOR_KEY = "panicswitch.accentColor";
+const COLOR_KEY = "panicbutton.accentColor";
+const THEME_KEY = "panicbutton.theme";
 export const DEFAULT_ACCENT = "#ea2052";
+export const DEFAULT_THEME = "auto";
+export const THEMES = ["auto", "light", "dark"];
 
 // Relative lightness for each --primary-XXX shade, derived from the chosen
 // hue/saturation instead of storing a fixed palette per color. Dark and light
@@ -19,6 +22,7 @@ const ALPHA = {
 };
 
 let currentAccent = DEFAULT_ACCENT;
+let currentTheme = DEFAULT_THEME;
 const _media = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null;
 
 function hexToRgb(hex) {
@@ -79,7 +83,10 @@ function toHex(r, g, b) {
   return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
+// The resolved light/dark scheme actually in effect: the user's manual
+// choice if they picked one, otherwise whatever the system prefers.
 function scheme() {
+  if (currentTheme === "light" || currentTheme === "dark") return currentTheme;
   return _media && !_media.matches ? "light" : "dark";
 }
 
@@ -111,6 +118,32 @@ export async function setAccentColor(hex) {
 
 export function getAccentColor() {
   return currentAccent;
+}
+
+// "auto" leaves color-scheme resolution to the `@media (prefers-color-scheme)`
+// rules in styles.css; "light"/"dark" set data-theme so the CSS can force a
+// scheme regardless of what the system prefers, see styles.css.
+export function applyTheme(theme) {
+  currentTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME;
+  document.documentElement.dataset.theme = currentTheme;
+  // The accent color's 400/300/glow shades depend on which scheme is
+  // actually in effect, so they need recomputing whenever that changes.
+  applyAccentColor(currentAccent);
+}
+
+export async function loadTheme() {
+  const { value } = await Preferences.get({ key: THEME_KEY });
+  applyTheme(value || DEFAULT_THEME);
+  return currentTheme;
+}
+
+export async function setTheme(theme) {
+  await Preferences.set({ key: THEME_KEY, value: theme });
+  applyTheme(theme);
+}
+
+export function getTheme() {
+  return currentTheme;
 }
 
 if (_media) {
