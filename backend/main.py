@@ -1,13 +1,16 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from modules.credentials import get_credentials
 from modules.logs        import get_logger
+from modules.pages       import Pages
 from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, dashboard
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import RedirectResponse
+from fastapi.responses        import HTMLResponse
+from fastapi.staticfiles      import StaticFiles
 
 
 _docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
@@ -50,9 +53,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+# CSS/JS for the server-rendered web pages (landing, dashboard, confirmation
+# result) — kept out of the Jinja templates themselves so they're plain,
+# cacheable, browser-devtools-editable assets instead of strings baked into
+# an HTML response every time. Not related to the app's own static assets
+# (those ship inside the Capacitor build, see docs/app/architecture.md).
+app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return RedirectResponse(url="/dashboard", status_code=302)
+    return Pages.Render("landing", {})
 
 
 app.include_router(auth.router)
