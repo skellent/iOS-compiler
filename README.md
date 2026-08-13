@@ -40,6 +40,7 @@ SMTP_USER=''
 SMTP_PASSWORD=''
 SMTP_HOST='smtp.gmail.com'
 SMTP_PORT=587
+SMTP_FROM=''
 TELEGRAM_BOT_TOKEN=''
 TELEGRAM_BOT_USERNAME=''
 TELEGRAM_WEBHOOK_SECRET=''
@@ -51,6 +52,8 @@ LOG_LEVEL='INFO'
 `JWT_SECRET_KEY` is the key the backend uses to sign and verify the session tokens (JWT) issued by `POST /auth/login` — see `docs/backend/token.md` for the detail of how it's used. It isn't a MariaDB credential, so it doesn't come out of step 1's database setup: it has to be generated separately.
 
 `SMTP_USER`/`SMTP_PASSWORD` are the Google Workspace account (`soporte@keylogics.com`) emails confirming emergency contacts are sent from, and `SMTP_PASSWORD` is specifically a 16-character **app password** (`myaccount.google.com/apppasswords`), not the account's real password — Google hasn't accepted basic SMTP authentication on Workspace accounts since March 2025. It requires 2-Step Verification active on that account and the Workspace administrator allowing app passwords to be created. See `docs/backend/mail.md` for the complete detail (including the OAuth2 alternative, on the `feature/correo-oauth2` branch, if the client prefers not to rely on app passwords). `API_BASE_URL` is the public URL the API uses to build the confirmation link that travels in those emails — in production, the real domain behind nginx (see `NGINX.md`).
+
+`SMTP_FROM` is optional and defaults to `SMTP_USER` — it only needs to be set when the address emails should appear to come **from** isn't the same as the account SMTP authenticates **as**, which happens when that address lives on a domain alias rather than an independently-licensed account (for example, authenticating as `soporte@keycodelogics.com` while sending as `support@panicbutton.me`, if `panicbutton.me` is attached to the Workspace as a domain alias of the primary domain). `SMTP_USER`/`SMTP_PASSWORD` keep authenticating exactly as before either way — this only changes the `From:` header. See `docs/backend/mail.md`'s "`From:` address vs. the authenticating account" section for why the Workspace side (making the desired address an alias *of the authenticating account*, not just of the domain) has to be configured correctly first, or Gmail silently reverts `From:` back to `SMTP_USER`.
 
 `TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME` come from a bot registered with Telegram's own **@BotFather** (see the step-by-step below); `TELEGRAM_WEBHOOK_SECRET`, like `JWT_SECRET_KEY`, isn't issued by anyone — it's a random string this deployment makes up and registers with Telegram, used to verify that a call to `POST /telegram/webhook` genuinely came from Telegram and not from anyone who found the URL. All three are optional: without a `TELEGRAM_BOT_TOKEN`, the backend boots normally and simply never registers a webhook or sends Telegram messages — see `docs/backend/telegram.md` for the full flow.
 

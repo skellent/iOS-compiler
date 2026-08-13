@@ -114,6 +114,16 @@ await aiosmtplib.send(
 - **App password, not the account's real password**: Google no longer accepts SMTP authentication with a "normal" username+password on Workspace accounts — a specific *App Password* (a 16-character string, generated at `myaccount.google.com/apppasswords`) has to be used as `SMTP_PASSWORD`. This requires two client-side preconditions outside this code's control: 2-Step Verification enabled on the sending account, and the Workspace administrator having allowed app passwords to be created (some organizations disable this by policy, in which case the alternative is the OAuth2 variant on the `feature/correo-oauth2` branch, which solves this same module with a Service Account + domain-wide delegation instead).
 - **Google Workspace sending limits**: an account can send up to 10,000 unique recipients and 10,000 messages within 24 hours using `smtp.gmail.com` directly — well above this project's current volume.
 
+## `From:` address vs. the authenticating account
+
+```python
+message["From"] = _credentials['from']
+```
+
+`_build_message` sets `From:` from `_credentials['from']` (see `credentials.md`), not `_credentials['user']` — the value `aiosmtplib.send`/`SMTP(...)` authenticates with just above. They're the same address by default (`from` falls back to `user` when `SMTP_FROM` isn't set), but they don't have to be: Gmail's SMTP servers will accept a `From:` that differs from the authenticated account as long as that address is already a verified alias of it, and will otherwise silently rewrite `From:` back to the authenticated account instead of failing the send outright.
+
+This matters for a Google Workspace with more than one domain attached to it. Google draws a hard line between a **domain alias** (every existing user automatically gets a mirrored address on the alias domain, at no extra cost, but there's no independent account — no separate password, 2FA or app password for it) and a **secondary domain** (a fully independent, separately-licensed account per address). If, say, `panicbutton.me` is added as a domain alias of the Workspace's primary domain rather than a secondary domain, there is no account to generate an app password for at `support@panicbutton.me` directly — the app password still has to belong to a real account on the primary domain (or any domain that *is* independently licensed). `SMTP_USER`/`SMTP_PASSWORD` keep authenticating as that real account exactly as before; `SMTP_FROM` is what lets the outgoing mail still read `support@panicbutton.me`, provided that address has been set up as an alias *of that specific account* in the Workspace admin console (adding the domain alias alone isn't enough — the account being authenticated as also needs `support` among its own aliases, so the mirrored address actually resolves to it). Setting `SMTP_FROM` without that Workspace-side alias in place doesn't break anything — the send still goes through — but Gmail quietly reverts `From:` to `SMTP_USER`, so the address won't actually change on the recipient's end.
+
 ## Environment variables introduced by this module
 
 ```env
@@ -121,6 +131,7 @@ SMTP_USER=soporte@keylogics.com
 SMTP_PASSWORD='16-character app password'
 SMTP_HOST=smtp.gmail.com   # default value if not defined
 SMTP_PORT=587              # default value if not defined
+SMTP_FROM=support@panicbutton.me   # optional, defaults to SMTP_USER — see "From: address" above
 API_BASE_URL=http://127.0.0.1:8000   # or the real domain in production, see NGINX.md
 ```
 

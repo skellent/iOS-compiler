@@ -34,6 +34,7 @@ Credentials (user, password, host, etc.) are never written into the source code 
         "password": ...,
         "host":     ..., # defaults to "smtp.gmail.com" if not in the environment
         "port":     ..., # defaults to 587 if not in the environment, converted to int
+        "from":     ..., # defaults to "user" (SMTP_USER) if SMTP_FROM isn't set
     },
     "telegram": {
         "bot_token":      ..., # secret, from BotFather
@@ -60,10 +61,13 @@ The `jwt` section's `secret_key` reads the `JWT_SECRET_KEY` environment variable
     'password': os.getenv("SMTP_PASSWORD"),
     'host':     os.getenv("SMTP_HOST", "smtp.gmail.com"),
     'port':     int(os.getenv("SMTP_PORT", 587)),
+    'from':     os.getenv("SMTP_FROM", os.getenv("SMTP_USER")),
 },
 ```
 
 Used by `modules/mail.py` (see `mail.md`) to authenticate against `smtp.gmail.com` (Google Workspace) using an *App Password* instead of the account's real password — see `mail.md` for the reasoning behind that choice and its client-side preconditions. `host` and `port` default to Gmail's own values directly in the `os.getenv` call, since those don't need to be repeated in every `.env` — only `user` and `password` are mandatorily account-specific.
+
+`user` and `from` are deliberately two separate values, even though for most deployments they're the same address. `user` is always the real Google Workspace account SMTP authenticates as — it's what Gmail checks the app password against, and it never changes. `from` is only what ends up in the outgoing message's `From:` header, and only needs to be set explicitly (`SMTP_FROM`) when the desired sender address isn't the authenticating account itself but a domain alias of it (for example, authenticating as `soporte@keycodelogics.com` while sending as `support@panicbutton.me`, when `panicbutton.me` is configured in Workspace as a domain alias of `keycodelogics.com` rather than an independent, separately-licensed secondary domain). Gmail's SMTP servers accept a `From:` that doesn't match the authenticated account only when that address is already a verified alias of it — otherwise it silently rewrites `From:` back to `user`, so `SMTP_FROM` being set is not, on its own, a guarantee the domain-alias side is configured correctly. `from` defaults to `user` when `SMTP_FROM` isn't set, so a `.env` written before this variable existed keeps behaving exactly as before.
 
 ## The `telegram` section
 

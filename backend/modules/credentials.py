@@ -25,6 +25,7 @@ def get_credentials() -> dict:
             'password': os.getenv("SMTP_PASSWORD"),
             'host':     os.getenv("SMTP_HOST", "smtp.gmail.com"),
             'port':     int(os.getenv("SMTP_PORT", 587)),
+            'from':     os.getenv("SMTP_FROM", os.getenv("SMTP_USER")),
         },
         "telegram": {
             'bot_token':      os.getenv("TELEGRAM_BOT_TOKEN"),

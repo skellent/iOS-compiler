@@ -26,7 +26,7 @@ def _build_message(recipient: str, subject: str, template: str, context: dict) -
 
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = _credentials['user']
+    message["From"] = _credentials['from']
     message["To"] = recipient
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")
