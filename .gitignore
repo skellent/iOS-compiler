@@ -1,12 +1,3 @@
-TASK.md
-NGINX.md
-.directory
-
-# app/ is now tracked directly (its own .gitignore, plus
-# app/android/.gitignore and app/ios/.gitignore, handle build artifacts
-# under app/). These extra rules are a second line of defense in case a
-# broad `git add` runs before those nested files are on disk (e.g. right
-# after a fresh checkout).
 app/node_modules/
 app/www/js/
 app/bun.lock
@@ -20,3 +11,5 @@ app/ios/App/Pods/
 app/ios/App/output/
 app/ios/DerivedData/
 app/ios/xcuserdata/
+.claude/
+*.pem

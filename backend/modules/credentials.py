@@ -3,7 +3,12 @@ from dotenv import load_dotenv
 
 
 def get_credentials() -> dict:
-    load_dotenv()
+    # override=True matters on Windows specifically: the OS already predefines
+    # a USERNAME environment variable (the logged-in user), and load_dotenv()
+    # leaves existing environment variables alone by default — without this,
+    # .env's own USERNAME (the MariaDB user) would silently lose to whichever
+    # Windows account is running the process.
+    load_dotenv(override=True)
 
     return {
         "database": {

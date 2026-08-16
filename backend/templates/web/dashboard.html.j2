@@ -10,7 +10,7 @@
   <body>
     <div class="wrap">
       <div class="brand">
-        <span class="brand-mark">SOS</span>
+        <img class="brand-mark" src="/static/img/brand-mark.png" alt="" />
         <span class="brand-name">PANIC BUTTON</span>
       </div>
 
@@ -76,6 +76,12 @@
         <div id="alerts-list"></div>
       </div>
     </div>
+
+    <footer class="dash-footer">
+      <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+      <span class="dash-footer-sep">&middot;</span>
+      <a href="https://keycodelogics.com/" target="_blank" rel="noopener">About us</a>
+    </footer>
 
     <script src="/static/js/dashboard.js"></script>
   </body>

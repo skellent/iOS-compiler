@@ -3,20 +3,148 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Panic Button</title>
+    <title>Panic Button — Download the app</title>
+    <meta name="description" content="Press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most." />
     <link rel="icon" type="image/png" href="/static/img/favicon.png" />
     <link rel="stylesheet" href="/static/css/landing.css" />
   </head>
   <body>
-    <div class="hero">
-      <div class="brand-mark">SOS</div>
-      <h1>Panic Button</h1>
-      <p class="tagline">Press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most.</p>
-      <a class="btn" href="/dashboard">
-        Open Dashboard
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-      </a>
-      <p class="footnote">PANIC BUTTON &middot; Emergency alert system</p>
-    </div>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/">
+          <img class="brand-mark" src="/static/img/brand-mark.png" alt="" />
+          <span class="brand-name">Panic Button</span>
+        </a>
+        <div class="topbar-actions">
+          <button class="settings-btn" id="settings-btn" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z"/></svg>
+          </button>
+          <a class="dashboard-link" href="/dashboard" data-i18n="nav.dashboard">Dashboard</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1 data-i18n="hero.title">Help, one press away.</h1>
+        <p class="tagline" data-i18n="hero.tagline">Press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most.</p>
+
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/static/downloads/panic-button.apk" download>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.36-.61-2.83-.93-4.47-.93s-3.11.32-4.47.93L5.65 5.67c-.19-.29-.55-.38-.83-.22-.31.15-.43.53-.26.85l1.84 3.18C3.55 11.15 1.5 14.31 1.5 18h21c0-3.69-2.05-6.85-5.06-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>
+            <span class="btn-text">
+              <span class="btn-label" data-i18n="cta.download">Download APK</span>
+              <span class="btn-sub" data-i18n="cta.downloadSub">Android &middot; ~4.5 MB</span>
+            </span>
+          </a>
+          <span class="btn btn-disabled" aria-disabled="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-7.81L6.05 21.34l8.49-4.79 2.27-2.86zM20.16 10.81c.44.32.71.83.71 1.19s-.27.87-.71 1.19l-2.6 1.55-2.5-3.06L16.5 8l2.6 1.55zM6.05 2.66l10.76 6.65-2.27 2.86-9.85-9.85.84-.35c.16-.08.34-.13.52-.13.16 0 .34.04.52.13-.16-.08-.16-.08 0 0z"/></svg>
+            <span class="btn-text">
+              <span class="btn-label" data-i18n="cta.play">Google Play</span>
+              <span class="btn-sub" data-i18n="cta.playSub">Coming soon</span>
+            </span>
+          </span>
+        </div>
+
+        <p class="cta-note" data-i18n="cta.note">Direct download &middot; no store account needed &middot; install from an unknown source when prompted.</p>
+      </section>
+
+      <section class="features">
+        <div class="feature-card feature-card-primary">
+          <div class="feature-icon feature-icon-lg">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+          </div>
+          <div>
+            <h2 data-i18n="feature.hold.title">Hold to alert</h2>
+            <p data-i18n="feature.hold.body">One button on the home screen. Press and hold for a couple of seconds to send a panic alert — no menus to hunt through when it matters.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <h3 data-i18n="feature.gps.title">Live GPS location</h3>
+          <p data-i18n="feature.gps.body">Every alert carries your exact coordinates, so contacts know where to find you, not just that something's wrong.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <h3 data-i18n="feature.channels.title">Email &amp; Telegram</h3>
+          <p data-i18n="feature.channels.body">Confirmed contacts are notified on both channels in parallel, so a missed email doesn't mean a missed alert.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <h3 data-i18n="feature.contacts.title">Up to 4 contacts</h3>
+          <p data-i18n="feature.contacts.body">Add emergency contacts by hand or straight from your address book — each one confirms by email before they can be alerted.</p>
+        </div>
+      </section>
+
+      <section class="steps">
+        <h2 class="steps-title" data-i18n="steps.title">Set up in three steps</h2>
+        <ol class="steps-list">
+          <li>
+            <span class="step-num">1</span>
+            <div>
+              <h3 data-i18n="steps.1.title">Install &amp; create an account</h3>
+              <p data-i18n="steps.1.body">Download the APK above, install it, and register with your email.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">2</span>
+            <div>
+              <h3 data-i18n="steps.2.title">Add your contacts</h3>
+              <p data-i18n="steps.2.body">Add up to 4 emergency contacts. Each one confirms by email before they can be alerted.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">3</span>
+            <div>
+              <h3 data-i18n="steps.3.title">You're covered</h3>
+              <p data-i18n="steps.3.body">Hold the panic button any time you need help — your confirmed contacts get your location instantly.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <img class="brand-mark brand-mark-sm" src="/static/img/brand-mark.png" alt="" />
+      <p class="footnote" data-i18n="footer.tagline">PANIC BUTTON &middot; Emergency alert system</p>
+      <a class="footer-link" href="/dashboard" data-i18n="footer.dashboard">Already have an account? Open the dashboard →</a>
+
+      <div class="footer-contact">
+        <span class="footer-contact-title" data-i18n="footer.contactTitle">Contact us</span>
+        <a class="footer-contact-link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+        <a class="footer-contact-link" href="https://keycodelogics.com/" target="_blank" rel="noopener" data-i18n="footer.about">About us</a>
+      </div>
+    </footer>
+
+    <dialog class="settings-dialog" id="settings-dialog">
+      <form method="dialog">
+        <div class="settings-dialog-inner">
+          <div class="settings-dialog-header">
+            <h2 data-i18n="settings.title">Settings</h2>
+            <button class="dialog-close" type="submit" aria-label="Close">&times;</button>
+          </div>
+          <div class="settings-group">
+            <span class="settings-label" data-i18n="settings.theme">Theme</span>
+            <select class="settings-select" id="theme-select">
+              <option value="auto" data-i18n="settings.theme.auto">Auto</option>
+              <option value="light" data-i18n="settings.theme.light">Light</option>
+              <option value="dark" data-i18n="settings.theme.dark">Dark</option>
+            </select>
+          </div>
+          <div class="settings-group">
+            <span class="settings-label" data-i18n="settings.language">Language</span>
+            <select class="settings-select" id="lang-select"></select>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="/static/js/landing.js"></script>
   </body>
 </html>

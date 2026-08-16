@@ -8,6 +8,7 @@ It's the API's entry point: this is where the FastAPI application is instantiate
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from modules.app_assets  import APP_WWW_DIR, get_manifest
 from modules.credentials import get_credentials
 from modules.logs        import get_logger
 from modules.pages       import Pages
@@ -16,7 +17,7 @@ from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import HTMLResponse
+from fastapi.responses        import HTMLResponse, Response
 from fastapi.staticfiles      import StaticFiles
 
 
@@ -125,6 +126,8 @@ Every client that existed before the `app/` Capacitor app (`curl`, `requests`, t
 
 `allow_origins` lists Capacitor's own fixed WebView origins instead of `["*"]`: `capacitor://localhost` for iOS, `https://localhost` for Android's default `androidScheme`, and `http://localhost` as a fallback for testing the same `www/` folder in a desktop browser during development. These don't change per install or per device — every copy of the app, on every phone, presents one of these same three origins — so there's no reason to open this up to arbitrary origins just to cover a set that's actually fixed and known in advance.
 
+These origins predate `/app` (below): the app's WebView now navigates directly to this backend's own origin instead of loading a locally-bundled `www/`, which makes its `fetch()` calls to this same API same-origin rather than cross-origin — CORS no longer actually gates a normal install (see `docs/app/architecture.md`'s CORS section). The three origins above were left in place rather than removed, since they're harmless to keep and still apply if `www/` is ever loaded standalone in a desktop browser during development.
+
 ## `/static`: CSS/JS/images for the server-rendered pages
 
 ```python
@@ -133,9 +136,34 @@ app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "st
 
 The three pages this backend renders itself — `landing`, `dashboard`, `confirmation_result` (see `pages.md`) — used to carry their CSS and JS as `<style>`/`<script>` blocks baked directly into the `.html.j2` file, plus the favicon as an inline `data:` URI. That worked, but none of it could be cached by a browser independently of the HTML (a repeat visit to `/dashboard` re-downloaded the same CSS every time, embedded in the response), and editing styles meant scrolling through a wall of Jinja. `StaticFiles` is Starlette's (and therefore FastAPI's) built-in `ASGI` app for exactly this: point it at a directory, mount it under a prefix, and every file under `backend/static/` becomes downloadable at `/static/<same path>` — `backend/static/css/dashboard.css` is `GET /static/css/dashboard.css`, with a real `Content-Type` (`text/css`, `text/javascript`, `image/png`) instead of everything being `text/html`.
 
-This isn't related to the mobile app's own static assets — those are a separate `www/` folder bundled *inside* the Capacitor build (see `docs/app/architecture.md`) and never touch this server. `/static` here only serves the three server-rendered pages above.
+This isn't related to the mobile app's own static assets — those are served separately under `/app`, described next.
 
 One template needed an actual behavior change to make this split possible, not just a cut-and-paste: `confirmation_result.html.j2`'s icon color used to depend on `success` directly inside the `<style>` block (`background: {{ "var(--primario)" if success else "var(--primario-oscuro)" }};`), which only works when Jinja renders the CSS — a plain `.css` file served by `StaticFiles` has no access to template variables at all. It's now two static classes, `.icon-success`/`.icon-error`, and the template just picks which one to put on the element (`class="icon {{ 'icon-success' if success else 'icon-error' }}"`) — the same visual result, but the conditional lives in the one-line template instead of the stylesheet.
+
+## `/app`: serving the mobile app's own UI
+
+```python
+class _NoCacheStaticFiles(StaticFiles):
+    def file_response(self, *args, **kwargs) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+@app.get("/app/manifest")
+def app_manifest():
+    return get_manifest()
+
+app.mount("/app", _NoCacheStaticFiles(directory=APP_WWW_DIR, html=True), name="app")
+```
+
+The Capacitor app (`app/`, see `docs/app/architecture.md`) used to bundle its entire UI (`app/www/`) inside the native binary, the same idea as `/static` above but shipped in the app package instead of served over HTTP. It doesn't anymore: `app/capacitor.config.js` points the WebView's `server.url` straight at this backend's `/app` route, so the "mobile app" is really this backend's own web page, opened in a native shell — the same pattern an Electron app uses to point a `BrowserWindow` at a URL instead of packaging a copy of it.
+
+`APP_WWW_DIR` (`modules/app_assets.py`) points at `app/www` — the exact same directory `bun run build` (see `docs/app/architecture.md`) produces, one level up from `backend/`, since this is one repository serving both halves of one deployment. `GET /app/manifest` returns `{"version": "<sha256>"}`, a hash of every file's path and contents under `app/www`, recomputed on every request by `modules/app_assets.py:get_manifest()` — cheap for a UI this size, and it means there's no version number anyone has to remember to bump on deploy; the hash simply changes when the files do. `app/src/lib/appUpdate.js` polls this on boot and on resuming from background, and reloads the WebView when the hash it gets back doesn't match the one it saw last time.
+
+`_NoCacheStaticFiles` is Starlette's `StaticFiles` with one line added: every response (including `index.html`, since `html=True` makes `StaticFiles` serve it for `/app/` itself) carries `Cache-Control: no-cache`. Without that, a browser engine is free to serve a previously-fetched copy straight from its own disk cache without even asking the server whether it's still current — which would silently defeat the whole point of `appUpdate.js` deciding a reload is needed: the reload would just replay the same stale files. `no-cache` (not `no-store`) still lets the WebView send a conditional request (`If-None-Match`) and get back a cheap `304` when a file genuinely hasn't changed — it only forces that check to happen every time instead of being skipped.
+
+`GET /app/manifest` is registered *before* `app.mount("/app", ...)` deliberately: Starlette's router tries routes in the order they were added, so the exact-path route matches first for that one path, and the mount (matched by prefix) only ever gets requests that route didn't already claim — `/app/manifest` never gets treated as "a file named `manifest` under `app/www`" by the `StaticFiles` app, even though both are reachable under the same `/app` prefix.
 
 ## Module diagram
 
@@ -164,9 +192,11 @@ flowchart TD
     CURSOR["modules/cursor.py<br/>Cursor / Queries"]
     CRED["modules/credentials.py"]
     LOGS["modules/logs.py (logs.md)"]
+    ASSETS["modules/app_assets.py<br/>APP_WWW_DIR, get_manifest()"]
     MARIADB[(MariaDB)]
     SMTP[(smtp.gmail.com)]
     TGAPI[(api.telegram.org)]
+    WWW[(app/www, built by bun run build)]
 
     APP --> AUTH
     APP --> USR
@@ -178,6 +208,8 @@ flowchart TD
     APP --> CRED
     APP --> TG
     APP --> LOGS
+    APP --> ASSETS
+    ASSETS --> WWW
 
     AUTH --> GUARD
     AUTH --> TOKEN
@@ -217,7 +249,7 @@ flowchart TD
     TG --> LOGS
 ```
 
-This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, SMTP, or the Telegram Bot API directly — it only needs to know about the seven routers, mount them, read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs, configure logging once via `modules/logs.py`, and call `Telegram.SetWebhook` once at startup.
+This diagram is, at bottom, the module dependency map the backend currently has. It's useful to keep in mind because it shows at a glance why `main.py` imports what it imports and nothing more: it doesn't need to know anything about `mariadb`, JWT, bcrypt, SMTP, or the Telegram Bot API directly — it only needs to know about the seven routers, mount them, read `app_mode` from `modules/credentials.py` to decide whether to expose its own docs, configure logging once via `modules/logs.py`, call `Telegram.SetWebhook` once at startup, and — since the mobile app's UI (`/app`, see above) has no router of its own — call `modules/app_assets.py:get_manifest()` directly from a route defined in this file.
 
 ## Module-level initialization
 

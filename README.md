@@ -121,6 +121,8 @@ With the server running, the API exposes registration and login routes (`/auth`)
 
 The mobile client lives in [`app/`](app), built with [Capacitor](https://capacitorjs.com/) and plain HTML/CSS/JavaScript (no frontend framework) — Android and iOS from the same codebase. It's a client of the backend above: registration, login, the panic button (captures GPS and hits `POST /alerts`), and managing emergency contacts (including picking them straight from the phone's address book). See [`app/README.md`](app/README.md) for setup instructions and [`docs/app/`](docs/app) for the design decisions behind how it's built.
 
+The app's own UI isn't bundled into the native binary anymore — the WebView navigates straight to this backend's `/app` route and loads it live (see `docs/app/architecture.md`'s "Why the app loads its UI from the backend instead of bundling it"), the same idea as Electron pointing a window at a URL. That means **the backend needs `app/www` built before it can serve the app at all**: run `bun run build` inside `app/` (step 3 of `app/README.md`) before starting the backend, or after any change under `app/src/`. The app checks a content-hash manifest at `/app/manifest` on launch and when resuming from the background, and reloads itself automatically when it detects the backend's files changed — no separate "push an update" step needed beyond redeploying the backend with a fresh `app/www`.
+
 # Commit History
 
 ```mermaid

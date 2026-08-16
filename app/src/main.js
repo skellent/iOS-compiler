@@ -1,7 +1,10 @@
+import { SplashScreen } from "@capacitor/splash-screen";
+
 import { getToken, clearToken, getUser, setUser } from "./lib/session.js";
 import { Api } from "./lib/api.js";
 import { loadLanguage, setLanguage, getLanguage, t } from "./lib/i18n.js";
 import { loadAccentColor, setAccentColor, getAccentColor, loadTheme, setTheme, getTheme } from "./lib/theme.js";
+import { initAppUpdates } from "./lib/appUpdate.js";
 
 import { renderLogin } from "./views/login.js";
 import { renderRegister } from "./views/register.js";
@@ -113,6 +116,8 @@ window.addEventListener("hashchange", renderCurrentRoute);
 navTabs.forEach((tab) => tab.addEventListener("click", () => navigate(tab.dataset.route)));
 
 async function boot() {
+  initAppUpdates();
+
   await loadLanguage();
   await loadTheme();
   await loadAccentColor();
@@ -127,6 +132,7 @@ async function boot() {
     }
   }
   await renderCurrentRoute();
+  await SplashScreen.hide();
 }
 
 boot();

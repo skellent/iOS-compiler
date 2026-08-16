@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from modules.app_assets  import APP_WWW_DIR, get_manifest
 from modules.credentials import get_credentials
 from modules.logs        import get_logger
 from modules.pages       import Pages
@@ -9,7 +10,7 @@ from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import HTMLResponse
+from fastapi.responses        import HTMLResponse, Response
 from fastapi.staticfiles      import StaticFiles
 
 
@@ -56,13 +57,39 @@ app.add_middleware(
 # CSS/JS for the server-rendered web pages (landing, dashboard, confirmation
 # result) — kept out of the Jinja templates themselves so they're plain,
 # cacheable, browser-devtools-editable assets instead of strings baked into
-# an HTML response every time. Not related to the app's own static assets
-# (those ship inside the Capacitor build, see docs/app/architecture.md).
+# an HTML response every time. Not related to the app's own static assets,
+# served separately below under /app.
 app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 def root():
-    return Pages.Render("landing", {})
+    return Pages.Render("landing", {"contact_email": _credentials['email']['from']})
+
+
+class _NoCacheStaticFiles(StaticFiles):
+    def file_response(self, *args, **kwargs) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+# The Capacitor app's WebView (see docs/app/architecture.md) navigates
+# straight to this URL instead of loading a bundle shipped inside the native
+# binary — the mobile "app" is really this backend's own web page, the same
+# way an Electron shell just points a window at a URL. /app/manifest has to
+# be registered before the /app mount below: Starlette matches routes in
+# registration order, so the exact-path route wins over the mount for that
+# one path, and everything else under /app/* falls through to the static
+# files. Cache-Control: no-cache on every file (index.html included) forces
+# a conditional revalidation on every request instead of letting the WebView
+# serve a stale copy straight from its disk cache — see modules/app_assets.py
+# and app/src/lib/appUpdate.js for the other half of this (the app noticing
+# a new version and forcing a reload after being resumed from background).
+@app.get("/app/manifest")
+def app_manifest():
+    return get_manifest()
+
+app.mount("/app", _NoCacheStaticFiles(directory=APP_WWW_DIR, html=True), name="app")
 
 
 app.include_router(auth.router)

@@ -2,6 +2,8 @@
 
 A [Capacitor](https://capacitorjs.com/) app (Android + iOS) built with vanilla HTML/CSS/JavaScript that consumes the [`backend/`](../backend) API: register, log in, hold the panic button to send an alert with your GPS location, and manage your emergency contacts. See [`docs/app/`](../docs/app) for the design decisions behind how it's built.
 
+**This isn't a self-contained native app** — the WebView navigates straight to the backend's own `/app` route and loads its UI from there live, the same way an Electron window can point at a URL instead of shipping a local copy of the page. `backend/` has to be running and reachable at `API_BASE_URL`, with `www/` already built (step 3 below), for there to be anything to load at all; there's no offline/bundled fallback. The app checks for a new version on launch and whenever it's resumed from the background, and reloads itself automatically when the backend's files have changed — see `docs/app/architecture.md`.
+
 ## 1. Install dependencies
 
 This project uses [Bun](https://bun.sh/) — both as the package manager and as the bundler that resolves the Capacitor plugins' npm imports into a browser-loadable file (see `docs/app/architecture.md`).
@@ -24,13 +26,15 @@ Edit `.env` and set `API_BASE_URL` to wherever the backend (`backend/`, see the 
 - **A physical device** on the same Wi-Fi as the backend: the development machine's LAN IP, e.g. `http://192.168.1.50:8000`.
 - **Production**: the real domain behind nginx (see root `NGINX.md`).
 
+This same value now also decides where the app's WebView itself navigates (`capacitor.config.js`'s `server.url`, see `docs/app/architecture.md`), not just where `fetch()` calls go — get it wrong and the app has nothing to load at all, rather than just failing individual requests. `bunx cap sync`/`bun run android`/`bun run ios` (step 4) all read this same `.env`, so it only has to be set once here.
+
 ## 3. Build the web assets
 
 ```bash
 bun run build
 ```
 
-Bundles `src/main.js` (and everything it imports) into `www/js/main.js`, with `API_BASE_URL` baked in from `.env`. Run this again any time you change anything under `src/`.
+Bundles `src/main.js` (and everything it imports) into `www/js/main.js`, with `API_BASE_URL` baked in from `.env`. Run this again any time you change anything under `src/` — this is no longer just a step before packaging a native build: `backend/main.py` serves this same `www/` directory directly at `/app` (see `docs/backend/main.md`), so the backend has nothing to serve until this has been run at least once, and needs it re-run (and the backend restarted or just left running, since it's served from disk on every request) after any `src/` change to actually reach a device.
 
 ## 4. Native platforms
 

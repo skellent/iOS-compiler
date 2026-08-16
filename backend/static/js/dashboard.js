@@ -1,8 +1,11 @@
 // --- Theme + accent color (localStorage-backed; not tied to the
 // logged-in account, same as the app's Profile screen, see
 // app/src/lib/theme.js — this is the plain-JS equivalent for a
-// page with no build step and no Capacitor Preferences plugin). ---
-const THEME_KEY = "panicbutton.dashboard.theme";
+// page with no build step and no Capacitor Preferences plugin).
+// THEME_KEY is shared with static/js/landing.js (same origin, same key)
+// so a Light/Dark/Auto choice made on either page applies on both;
+// accent color stays dashboard-only, landing.css has no color picker. ---
+const THEME_KEY = "panicbutton.site.theme";
 const COLOR_KEY = "panicbutton.dashboard.accentColor";
 const DEFAULT_ACCENT = "#ea2052";
 const COLOR_PRESETS = ["#ea2052", "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
