@@ -1,10 +1,3 @@
-// --- Theme + accent color (localStorage-backed; not tied to the
-// logged-in account, same as the app's Profile screen, see
-// app/src/lib/theme.js — this is the plain-JS equivalent for a
-// page with no build step and no Capacitor Preferences plugin).
-// THEME_KEY is shared with static/js/landing.js (same origin, same key)
-// so a Light/Dark/Auto choice made on either page applies on both;
-// accent color stays dashboard-only, landing.css has no color picker. ---
 const THEME_KEY = "panicbutton.site.theme";
 const COLOR_KEY = "panicbutton.dashboard.accentColor";
 const DEFAULT_ACCENT = "#ea2052";
@@ -132,16 +125,9 @@ function initSettings() {
   });
 
   if (media) {
-    // Hue/saturation stay put across a live system switch, but the
-    // 400/glow shades need recomputing for the new scheme — same
-    // reasoning as app/src/lib/theme.js.
     media.addEventListener("change", () => applyAccentColor(currentAccent));
   }
 
-  // The dialog's own close button submits `<form method="dialog">`,
-  // which closes it natively — no JS needed for that direction. Escape
-  // also closes it natively. Only opening it, and closing on a
-  // backdrop click, need wiring up by hand.
   const settingsDialog = document.getElementById("settings-dialog");
   document.getElementById("settings-btn").addEventListener("click", () => settingsDialog.showModal());
   settingsDialog.addEventListener("click", (event) => {
@@ -151,7 +137,6 @@ function initSettings() {
 
 initSettings();
 
-// --- Login / alerts dashboard ---
 let token = sessionStorage.getItem("pb_token");
 
 const loginView = document.getElementById("login-view");

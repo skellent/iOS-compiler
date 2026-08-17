@@ -156,6 +156,5 @@ async function loadStatusChip(chip) {
         : `${Icon.contacts()} ${t("home.statusNone")}`;
     chip.classList.add("home-status-visible");
   } catch {
-    // Silently skip the chip if contacts can't be loaded — the panic button still works.
   }
 }

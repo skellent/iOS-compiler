@@ -32,11 +32,6 @@ def _view_url(notification_id: int) -> str:
 
 
 async def _notify_by_mail(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
-    # BackgroundTasks runs its queued tasks in order and stops at the first
-    # exception, so letting MailNotSentError (already logged by Mail.SendBulk)
-    # propagate here would silently skip the Telegram.SendBulk task queued
-    # right after it — during an actual panic alert, a broken mailbox must
-    # never be the reason a contact who only has Telegram never hears about it.
     try:
         await Mail.SendBulk(subject, template, recipients)
     except MailNotSentError:
@@ -62,12 +57,6 @@ def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = 
         "longitude":  data.longitude,
     }
 
-    # Email and Telegram are independent, parallel channels — a contact who
-    # only linked Telegram (and never confirmed by email, or has no email at
-    # all) still needs to hear about this, and vice versa. Each recipient
-    # gets its own alert_notifications row (and therefore its own map_url,
-    # see _view_url) so a click on that specific link can be attributed to
-    # that specific contact and channel — see docs/backend/routers.md.
     mail_recipients: list[tuple[str, dict]] = []
     telegram_recipients: list[tuple[int, dict]] = []
 

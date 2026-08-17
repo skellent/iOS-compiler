@@ -3,11 +3,6 @@ from dotenv import load_dotenv
 
 
 def get_credentials() -> dict:
-    # override=True matters on Windows specifically: the OS already predefines
-    # a USERNAME environment variable (the logged-in user), and load_dotenv()
-    # leaves existing environment variables alone by default — without this,
-    # .env's own USERNAME (the MariaDB user) would silently lose to whichever
-    # Windows account is running the process.
     load_dotenv(override=True)
 
     return {
@@ -18,7 +13,7 @@ def get_credentials() -> dict:
             'port':     int(os.getenv("PORT")),
             'database': os.getenv("DATABASE")
         },
-        "api": { # Coming soon: reading the credentials for the third-party API that dispatches alerts
+        "api": {
             'Auth': None,
             'Key':  None,
         },

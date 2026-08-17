@@ -36,20 +36,12 @@ async def _handle_update(update: dict) -> None:
 
 @router.post("/webhook")
 async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: str | None = Header(default=None)):
-    # Telegram doesn't sign requests — this shared secret (set once via
-    # Telegram.SetWebhook and echoed back on every call) is what tells a
-    # genuine update apart from anyone who finds this URL and posts a forged
-    # one. Only skipped if no secret is configured at all (local dev without
-    # a real bot).
     if _WEBHOOK_SECRET and x_telegram_bot_api_secret_token != _WEBHOOK_SECRET:
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
     try:
         await _handle_update(await request.json())
     except Exception as e:
-        # Telegram retries aggressively on anything but a 2xx response.
-        # Whatever went wrong here, acknowledging the update is safer than
-        # risking a retry storm over something a retry won't fix anyway.
         _logger.exception(f"Error handling Telegram webhook: {e}")
 
     return {"ok": True}

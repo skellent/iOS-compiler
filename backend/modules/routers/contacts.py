@@ -17,8 +17,6 @@ from modules.types        import Contact, ContactUpdate
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
-# Keeps a single panic alert from having to fan out to an unbounded number of
-# recipients, and keeps the app's contacts list on one screen. Client-picked.
 MAX_CONTACTS: int = 4
 
 _URL_BASE: str = get_credentials()['api_base_url']
@@ -126,10 +124,6 @@ def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
 
 @router.post("/{contact_id}/telegram/enable")
 def enable_contact_telegram(contact_id: int, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
-    # Not a JWT like Token.CreateContactConfirmation: Telegram's deep-link
-    # `start` parameter only allows [A-Za-z0-9_-], which a dot-separated JWT
-    # can't satisfy. An opaque, DB-backed token also means it can be (and is)
-    # invalidated after first use — unlike the still-stateless email token.
     link_token: str = secrets.token_urlsafe(24)
     expires_at: datetime = datetime.now() + LINK_EXPIRATION
 
@@ -156,12 +150,8 @@ def enable_contact_telegram(contact_id: int, background_tasks: BackgroundTasks, 
                 "telegram_link_url": telegram_link_url,
             },
         )
-        # The contact has an email on file: they get the link there, same as
-        # the existing confirmation flow, so the app doesn't need to show it.
         return {"telegram_link_url": None}
 
-    # No email to send it to — hand the link back so the app can offer it to
-    # share manually (copy/share sheet) instead of silently doing nothing.
     return {"telegram_link_url": telegram_link_url}
 
 

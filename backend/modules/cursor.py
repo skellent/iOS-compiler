@@ -19,9 +19,6 @@ class Queries:
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
     COUNT_CONTACTS_BY_USER: str = "SELECT COUNT(*) AS total FROM contacts WHERE user_id = %s;"
     SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked FROM contacts WHERE user_id = %s;"
-    # A contact is notified over email when `confirmed`, over Telegram when
-    # `telegram_chat_id` is set — the two channels are independent, not
-    # sequential, so either one alone is enough to appear here.
     SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
     DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
@@ -73,15 +70,7 @@ class Cursor:
                 host        = self._host,
                 port        = self._port,
                 database    = self._database,
-                # Without this, UPDATEs that match a row but don't change its
-                # value report rowcount=0, indistinguishable from "no such
-                # row" — every existence/ownership check in this codebase
-                # relies on rowcount actually meaning "rows matched".
                 client_flag = CLIENT.FOUND_ROWS,
-                # Every write already calls commit() explicitly; this just
-                # guarantees a stray write on a code path that forgets to
-                # (or a plain SELECT, which still opens a transaction) can't
-                # leave a row locked indefinitely on this shared connection.
                 autocommit  = True,
             )
         except mariadb.Error as e:
@@ -96,8 +85,6 @@ class Cursor:
         except mariadb.IntegrityError as e:
             raise DuplicateRecordError(str(e)) from e
         except mariadb.InterfaceError:
-            # The idle connection was closed server-side (e.g. wait_timeout).
-            # Reconnect and retry the query once before giving up.
             _logger.warning("MariaDB connection was stale, reconnecting")
             self._connect()
             self.cursor.execute(query, params)

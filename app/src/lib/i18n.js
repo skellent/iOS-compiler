@@ -2,7 +2,6 @@ import { Preferences } from "@capacitor/preferences";
 
 const LANG_KEY = "panicbutton.lang";
 
-// Native-name/English-name pairs, in display order for the language dropdown.
 export const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "es", label: "Español" },

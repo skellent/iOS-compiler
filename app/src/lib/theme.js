@@ -6,12 +6,6 @@ export const DEFAULT_ACCENT = "#ea2052";
 export const DEFAULT_THEME = "auto";
 export const THEMES = ["auto", "light", "dark"];
 
-// Relative lightness for each --primary-XXX shade, derived from the chosen
-// hue/saturation instead of storing a fixed palette per color. Dark and light
-// themes need different curves for 400/300 specifically (those are used as
-// text/icon colors — bright works on a dark background, but needs to be much
-// darker to stay readable on white), mirroring the light-theme override that
-// used to be hardcoded for the default red in styles.css.
 const SHADE_LIGHTNESS = {
   dark:  { 900: 0.3, 800: 0.38, 700: 0.45, 600: 0.5, 500: 0.55, 400: 0.65, 300: 0.78 },
   light: { 900: 0.3, 800: 0.38, 700: 0.45, 600: 0.5, 500: 0.55, 400: 0.46, 300: 0.4 },
@@ -83,8 +77,6 @@ function toHex(r, g, b) {
   return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
-// The resolved light/dark scheme actually in effect: the user's manual
-// choice if they picked one, otherwise whatever the system prefers.
 function scheme() {
   if (currentTheme === "light" || currentTheme === "dark") return currentTheme;
   return _media && !_media.matches ? "light" : "dark";
@@ -120,14 +112,9 @@ export function getAccentColor() {
   return currentAccent;
 }
 
-// "auto" leaves color-scheme resolution to the `@media (prefers-color-scheme)`
-// rules in styles.css; "light"/"dark" set data-theme so the CSS can force a
-// scheme regardless of what the system prefers, see styles.css.
 export function applyTheme(theme) {
   currentTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME;
   document.documentElement.dataset.theme = currentTheme;
-  // The accent color's 400/300/glow shades depend on which scheme is
-  // actually in effect, so they need recomputing whenever that changes.
   applyAccentColor(currentAccent);
 }
 
@@ -147,9 +134,5 @@ export function getTheme() {
 }
 
 if (_media) {
-  // The chosen accent's hue/saturation stay the same across a live system
-  // theme switch, but 400/300/glow need different lightness/alpha per scheme
-  // — recompute them instead of leaving stale dark-mode values applied
-  // after the user flips to light (or vice versa) without reloading.
   _media.addEventListener("change", () => applyAccentColor(currentAccent));
 }

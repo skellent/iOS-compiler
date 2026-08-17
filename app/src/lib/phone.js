@@ -1,7 +1,5 @@
 export const DEFAULT_COUNTRY_CODE = "+1";
 
-// Ordered roughly by how likely this app's audience is to need them —
-// Spanish-speaking countries first, then a handful of other common ones.
 export const COUNTRY_CODES = [
   { code: "+1", country: "US/CA" },
   { code: "+34", country: "ES" },
@@ -34,9 +32,6 @@ export function sanitizePhoneDigits(value) {
   return value.replace(/\D/g, "");
 }
 
-// Splits a stored phone (e.g. "+34612345678") back into a country code the
-// <select> can preselect and the plain digits for the number input — needed
-// whenever a contact/user with an existing phone is loaded into the form.
 export function splitPhone(fullPhone) {
   const value = (fullPhone ?? "").trim();
   const match = _codesByLength.find((entry) => value.startsWith(entry.code));
@@ -54,8 +49,6 @@ export function buildCountryCodeOptions(selectedCode) {
   ).join("");
 }
 
-// Strips anything that isn't a digit as the user types, so pasted or
-// hand-typed numbers with spaces/dashes/parentheses never reach the API.
 export function attachPhoneSanitizer(input) {
   input.addEventListener("input", () => {
     const digitsOnly = sanitizePhoneDigits(input.value);

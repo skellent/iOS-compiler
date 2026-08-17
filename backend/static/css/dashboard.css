@@ -25,10 +25,6 @@
   --font-mono: ui-monospace, "SFMono-Regular", "Roboto Mono", Menlo, Consolas, monospace;
 }
 
-/* Light theme, same pattern as app/www/css/styles.css: applies
-   automatically when the system prefers light (unless the user forced
-   Dark), or unconditionally when the user forced Light via the Theme
-   selector in the settings dialog (data-theme, set by dashboard.js). */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not([data-theme="light"]) {
     color-scheme: light;
@@ -105,9 +101,6 @@ body {
   font-size: 15px;
 }
 
-/* Settings gear + dialog (theme + accent color) — reachable from both
-   the login card and the dashboard, since neither preference is tied
-   to being logged in (stored in localStorage, not on the account). */
 .settings-fab {
   position: fixed;
   top: 18px;
@@ -235,7 +228,6 @@ body {
   cursor: pointer;
 }
 
-/* Login card */
 .card {
   max-width: 360px;
   margin: 0 auto;
@@ -317,7 +309,6 @@ body {
   text-align: center;
 }
 
-/* Dashboard */
 .dash-header {
   display: flex;
   align-items: center;

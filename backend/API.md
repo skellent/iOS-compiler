@@ -1,6 +1,6 @@
 # PanicButton API — Usage guide
 
-This document explains how to consume the API from an external client (in particular, with the future Capacitor application in mind), with equivalent examples in Python and JavaScript. To understand *why* the API is built the way it is (design decisions, security, internal structure), see `docs/backend/` — this file focuses only on *how to use it* from the outside.
+This document explains how to consume the API from an external client (in particular, the Capacitor mobile app, see `app/`), with equivalent examples in Python and JavaScript. To understand *why* the API is built the way it is (design decisions, security, internal structure), see [`docs/en/backend/`](../docs/en/backend/) ([Spanish](../docs/es/backend/)) — this file focuses only on *how to use it* from the outside.
 
 ## Before you start
 
@@ -29,7 +29,7 @@ sequenceDiagram
     API-->>App: 201 Created
 ```
 
-In short: **you register once**, **you log in** to get a token, and **you resend that token** on every request that needs to know who you are. The token isn't stored on the server (see `docs/backend/token.md`) — whoever loses it has to log in again to get a new one, there's no "recover session" on the backend side.
+In short: **you register once**, **you log in** to get a token, and **you resend that token** on every request that needs to know who you are. The token isn't stored on the server (see `docs/en/backend/auth.md`) — whoever loses it has to log in again to get a new one, there's no "recover session" on the backend side.
 
 ## Authentication
 
@@ -80,7 +80,7 @@ Verifies the credentials and returns a token.
 }
 ```
 
-If the email doesn't exist or the password doesn't match, the response is `401 Unauthorized` with a generic message ("Incorrect email or password") — on purpose it doesn't distinguish which of the two failed, so as not to reveal which emails are registered (see `docs/backend/routers.md`).
+If the email doesn't exist or the password doesn't match, the response is `401 Unauthorized` with a generic message ("Incorrect email or password") — on purpose it doesn't distinguish which of the two failed, so as not to reveal which emails are registered (see `docs/en/backend/api.md`).
 
 ### How to use the token
 
@@ -90,13 +90,13 @@ Every route described below, except the two under `/auth`, requires sending the 
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-If the header is missing, malformed, or the token has expired or is invalid, the API responds `401 Unauthorized` before running any business logic (see `docs/backend/dependencies.md`). The token expires 30 days after being issued (see `docs/backend/token.md`); after that, you have to log in again — there's no (yet) automatic refresh mechanism.
+If the header is missing, malformed, or the token has expired or is invalid, the API responds `401 Unauthorized` before running any business logic (see `docs/en/backend/auth.md`). The token expires 30 days after being issued (see `docs/en/backend/auth.md`); after that, you have to log in again — there's no (yet) automatic refresh mechanism.
 
 ## User endpoints
 
 ### `GET /users/me`
 
-Returns the data of the user who owns the token. Takes no parameters: "whose data is this" is decided by the token, never a URL with an `id` (see `docs/backend/routers.md`).
+Returns the data of the user who owns the token. Takes no parameters: "whose data is this" is decided by the token, never a URL with an `id` (see `docs/en/backend/api.md`).
 
 **Response (`200`):**
 
@@ -152,7 +152,7 @@ Creates a new emergency contact.
 
 A user can have at most 4 emergency contacts. Trying to add a 5th returns `400` with `{"detail": "You can have at most 4 emergency contacts"}` — the app is expected to stop offering the "add contact" action once `GET /contacts` (see below) returns 4 rows, so hitting this in practice means the app's own count is stale.
 
-If `email` is sent, the API fires off a confirmation email to that address in the background (it doesn't block the `201` response, see `docs/backend/mail.md`), with a link to `GET /contacts/confirm/{token}`. Until the contact confirms by clicking that link, `confirmed` stays `false` in `GET /contacts` (see below). If `email` isn't sent, there's currently no way to confirm it and it stays `false` indefinitely.
+If `email` is sent, the API fires off a confirmation email to that address in the background (it doesn't block the `201` response, see `docs/en/backend/notifications.md`), with a link to `GET /contacts/confirm/{token}`. Until the contact confirms by clicking that link, `confirmed` stays `false` in `GET /contacts` (see below). If `email` isn't sent, there's currently no way to confirm it and it stays `false` indefinitely.
 
 ### `GET /contacts`
 
@@ -203,7 +203,7 @@ Edits an existing contact, identified by its `id` (the same one returned by `GET
 |--------|----------------|
 | `200`  | Update succeeded; returns the full updated contact. |
 | `400`  | The body carried no field to update. |
-| `404`  | No contact with that `id` **belonging to the authenticated user** exists (includes the case where the `id` exists but belongs to another account — deliberately not distinguished, see `docs/backend/routers.md`). |
+| `404`  | No contact with that `id` **belonging to the authenticated user** exists (includes the case where the `id` exists but belongs to another account — deliberately not distinguished, see `docs/en/backend/api.md`). |
 | `401`  | Token missing, invalid, or expired. |
 
 ### `POST /contacts/{id}/telegram/enable`
@@ -216,7 +216,7 @@ Starts (or restarts) the Telegram-linking process for a contact: generates a fre
 { "telegram_link_url": null }
 ```
 
-- If the contact has an `email` on file, the API emails them the deep link in the background (same pattern as `POST /contacts`, see `docs/backend/telegram.md`) and `telegram_link_url` comes back `null` — there's nothing for the app to do besides let the user know an email was sent.
+- If the contact has an `email` on file, the API emails them the deep link in the background (same pattern as `POST /contacts`, see `docs/en/backend/notifications.md`) and `telegram_link_url` comes back `null` — there's nothing for the app to do besides let the user know an email was sent.
 - If the contact has **no** `email`, there's no address to send it to, so the API returns the link directly: `{ "telegram_link_url": "https://t.me/SomeBot?start=..." }`. The app is expected to offer that link to be shared manually (copy to clipboard, native share sheet, etc.).
 
 Calling this again for the same contact invalidates any link generated by a previous call — only the most recent one still works.
@@ -256,7 +256,7 @@ Logs the panic button being triggered: saves the authenticated user's location a
 
 | Code | When it happens |
 |--------|----------------|
-| `201`  | Alert logged. Email and Telegram notifications each fire in their own background task (neither blocks this response, see `docs/backend/mail.md`, `docs/backend/telegram.md`) — a `201` doesn't guarantee either has already been delivered, only that the alert was saved. |
+| `201`  | Alert logged. Email and Telegram notifications each fire in their own background task (neither blocks this response, see `docs/en/backend/notifications.md`, `docs/en/backend/notifications.md`) — a `201` doesn't guarantee either has already been delivered, only that the alert was saved. |
 | `401`  | Token missing, invalid, or expired. |
 | `422`  | `latitude` or `longitude` is missing, or isn't a number. |
 
@@ -283,7 +283,7 @@ Lists the authenticated user's own alert history, most recent first, including w
 ]
 ```
 
-A contact confirmed by both email and Telegram appears twice in `notifications` for the same alert — one entry per channel, each with its own independent `viewed_at` (`null` until that specific link has been opened at least once). There's no `GET /alerts/{id}` for a single alert; the full list is small enough (see `docs/backend/routers.md`) that this one endpoint covers both the dashboard's list view and any future per-alert detail view.
+A contact confirmed by both email and Telegram appears twice in `notifications` for the same alert — one entry per channel, each with its own independent `viewed_at` (`null` until that specific link has been opened at least once). There's no `GET /alerts/{id}` for a single alert; the full list is small enough (see `docs/en/backend/api.md`) that this one endpoint covers both the dashboard's list view and any future per-alert detail view.
 
 | Code | When it happens |
 |--------|----------------|
@@ -292,7 +292,7 @@ A contact confirmed by both email and Telegram appears twice in `notifications` 
 
 ### `GET /alerts/view/{token}`
 
-Not meant to be called from application code — this is the link embedded as `map_url` inside every panic-alert email and Telegram message a contact receives (see `docs/backend/mail.md`, `docs/backend/telegram.md`). Opening it marks that specific notification as viewed (reflected the next time the alerting user checks `GET /alerts` or the dashboard) and redirects to Google Maps with the alert's coordinates. Unlike every other `{token}` in this API, this one **never expires**.
+Not meant to be called from application code — this is the link embedded as `map_url` inside every panic-alert email and Telegram message a contact receives (see `docs/en/backend/notifications.md`, `docs/en/backend/notifications.md`). Opening it marks that specific notification as viewed (reflected the next time the alerting user checks `GET /alerts` or the dashboard) and redirects to Google Maps with the alert's coordinates. Unlike every other `{token}` in this API, this one **never expires**.
 
 | Code | When it happens |
 |--------|----------------|

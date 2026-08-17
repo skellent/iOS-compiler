@@ -15,10 +15,6 @@
   --scan-color: rgba(var(--primary-rgb), 0.16);
   --scrim: rgba(4, 3, 6, 0.6);
 
-  /* r, g, b components of --primary-500, kept in sync by theme.js so every
-     rgba(var(--primary-rgb), alpha) rule below (glow, background FX, radar
-     rings, etc.) follows the user's chosen accent color, not just the named
-     --primary-XXX shades. */
   --primary-rgb: 234, 32, 82;
   --primary-900: #8c1331;
   --primary-800: #af183d;
@@ -45,12 +41,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Light theme — same tech language (grid, glow, glass), swapped for a bright
-   surface. Applies automatically when the system prefers light AND the user
-   hasn't forced a theme via the Profile screen's Light/Dark/Auto selector
-   (theme.js sets data-theme="light"/"dark"/"auto" on <html>); the explicit
-   [data-theme="light"] rule below covers the forced case regardless of what
-   the system prefers. */
+
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not([data-theme="light"]) {
     color-scheme: light;
@@ -83,10 +74,7 @@
   }
 }
 
-/* Same values, applied unconditionally when the user forces Light regardless
-   of what the system prefers (data-theme="light", see theme.js) — the block
-   above only fires inside the `prefers-color-scheme: light` media query, so
-   it can't cover a system-dark device with Light forced on. */
+
 :root[data-theme="light"] {
   color-scheme: light;
 
@@ -144,7 +132,7 @@ button {
   font-family: inherit;
 }
 
-/* Background FX — grid, glow blobs and a slow scanline for a technical feel */
+
 
 #bg-fx {
   position: fixed;
@@ -189,7 +177,7 @@ button {
   }
 }
 
-/* Icons */
+
 
 .icon {
   width: 1em;
@@ -200,7 +188,7 @@ button {
   flex-shrink: 0;
 }
 
-/* View container */
+
 
 .view {
   flex: 1;
@@ -216,9 +204,7 @@ button {
   transform: translateY(0);
 }
 
-/* Bottom nav — a floating pill; whichever tab is selected gets its icon
-   raised into a glowing circular badge that pokes above the bar (reference:
-   app/assets/navbar referencia.jpg), not just a fixed tab. */
+
 
 #bottom-nav {
   position: relative;
@@ -276,12 +262,7 @@ button {
   color: var(--primary-400);
 }
 
-/* The selected tab's icon lifts into a filled circular badge that pokes
-   above the bar — whichever of the three tabs is active, not just Home.
-   Kept in normal flow the whole time (never position: absolute) and driven
-   purely by transform/opacity, so it fades and rises in place instead of
-   snapping between a static and an absolute layout. The badge itself is a
-   ::before so its fade-in doesn't fight the icon glyph's own transform. */
+
 
 .nav-tab-icon::before {
   content: "";
@@ -307,7 +288,7 @@ button {
   transform: scale(1);
 }
 
-/* Forms */
+
 
 .form {
   display: flex;
@@ -360,7 +341,7 @@ button {
   line-height: 1.5;
 }
 
-/* Phone country code + number, and email domain quick-picks (contact form) */
+
 
 .phone-field {
   display: flex;
@@ -414,7 +395,7 @@ button {
   color: var(--primary-400);
 }
 
-/* Buttons */
+
 
 .btn {
   border: none;
@@ -491,7 +472,7 @@ button {
   }
 }
 
-/* Ripple */
+
 
 .btn::after {
   content: "";
@@ -521,7 +502,7 @@ button {
   }
 }
 
-/* Shake feedback */
+
 
 .shake {
   animation: shake 0.4s ease;
@@ -547,7 +528,7 @@ button {
   }
 }
 
-/* Auth screens */
+
 
 .auth-screen {
   padding: calc(48px + var(--safe-top)) 28px 32px 28px;
@@ -599,7 +580,7 @@ button {
   text-decoration: none;
 }
 
-/* Toasts */
+
 
 .toast-container {
   position: fixed;
@@ -647,7 +628,7 @@ button {
   box-shadow: 0 6px 24px rgba(var(--primary-rgb), 0.3);
 }
 
-/* Sheet / modal */
+
 
 .sheet-backdrop {
   position: fixed;
@@ -699,7 +680,7 @@ button {
   gap: 12px;
 }
 
-/* Home screen */
+
 
 .home-screen {
   height: 100%;
@@ -777,7 +758,7 @@ button {
   animation: idle-pulse 2.4s ease-in-out infinite;
 }
 
-/* Radar rings — pure CSS, orbiting the panic button for a scanner effect */
+
 
 .panic-btn::before,
 .panic-btn::after {
@@ -805,9 +786,7 @@ button {
   }
 }
 
-/* Two staggered rings within one cycle (the second starts as the first is
-   already fading) plus a very slight breathing scale, for a livelier "sonar
-   ping" than a single expanding ring. */
+
 @keyframes idle-pulse {
   0% {
     transform: scale(1);
@@ -827,8 +806,7 @@ button {
   }
 }
 
-/* Breathing glow on the wordmark itself, offset from the ring pulse above
-   so the whole button never looks static even before it's touched. */
+
 @keyframes icon-glow {
   0%,
   100% {
@@ -852,9 +830,6 @@ button {
 .panic-btn-holding {
   animation: none;
   transform: scale(0.98);
-  /* --hold (0 → 1) is written from home.js on every animation frame of the
-     hold, so the glow visibly builds as the ring fills instead of just
-     jumping between fixed idle/busy states. */
   box-shadow: 0 0 calc(20px + var(--hold, 0) * 50px) calc(2px + var(--hold, 0) * 10px) rgba(var(--primary-rgb), calc(0.35 + var(--hold, 0) * 0.4)),
     0 20px 60px rgba(var(--primary-rgb), 0.25);
 }
@@ -910,9 +885,7 @@ button {
   }
 }
 
-/* Combined with .shake (already applied to the button on failure) so the
-   positional wiggle and the red glow pulse run together instead of one
-   `animation` shorthand silently overriding the other. */
+
 .panic-btn-error.shake {
   animation: error-flash 0.5s ease-in-out 3, shake 0.4s ease;
 }
@@ -980,9 +953,6 @@ button {
   line-height: 1.4;
   color: var(--text-500);
   text-align: center;
-  /* Reserved for two lines at this size, so switching between a short
-     status ("Sending alert...") and a longer one that wraps doesn't change
-     .panic-wrap's height and nudge the button above it. */
   min-height: 38px;
   display: flex;
   align-items: center;
@@ -990,7 +960,7 @@ button {
   padding: 0 32px;
 }
 
-/* Contacts screen */
+
 
 .contacts-screen {
   position: relative;
@@ -1106,10 +1076,7 @@ button {
   opacity: 0.8;
 }
 
-/* Per-channel status icons — one per notification channel (email, and
-   Telegram when the deployment supports it), lit up individually instead of
-   a single confirmed/pending pill, so which specific channel is active is
-   visible at a glance. */
+
 
 .contact-channels {
   flex-shrink: 0;
@@ -1211,7 +1178,7 @@ button {
   box-shadow: none;
 }
 
-/* Profile screen */
+
 
 .profile-screen {
   padding: calc(32px + var(--safe-top)) 24px 40px 24px;
@@ -1240,7 +1207,7 @@ button {
   width: 100%;
 }
 
-/* Language switcher */
+
 
 .lang-switcher {
   width: 100%;
@@ -1286,7 +1253,7 @@ button {
   text-overflow: ellipsis;
 }
 
-/* Accent color picker */
+
 
 .color-switcher {
   width: 100%;
@@ -1341,7 +1308,7 @@ button {
   cursor: pointer;
 }
 
-/* Danger buttons */
+
 
 .btn-danger-outline {
   background: rgba(140, 19, 49, 0.1);
@@ -1354,7 +1321,7 @@ button {
   border-color: var(--primary-700);
 }
 
-/* Small circular icon buttons (used inline, e.g. in a contact row) */
+
 
 .icon-btn {
   width: 36px;
@@ -1384,7 +1351,7 @@ button {
   background: rgba(var(--primary-rgb), 0.15);
 }
 
-/* Swipe-to-delete contact row */
+
 
 .swipe-row {
   position: relative;
@@ -1420,7 +1387,7 @@ button {
   transform: translateX(-76px);
 }
 
-/* About / Help screens */
+
 
 .info-screen {
   padding: calc(20px + var(--safe-top)) 24px 40px 24px;
@@ -1499,7 +1466,7 @@ button {
   font-weight: 700;
 }
 
-/* Confirm-your-email screen (post-registration) */
+
 
 .confirm-mail-screen {
   padding: calc(56px + var(--safe-top)) 28px 32px 28px;
@@ -1538,7 +1505,7 @@ button {
   margin-top: 8px;
 }
 
-/* Respect reduced-motion preferences */
+
 
 @media (prefers-reduced-motion: reduce) {
   #bg-fx::after,

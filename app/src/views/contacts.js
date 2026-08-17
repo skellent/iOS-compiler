@@ -9,9 +9,6 @@ import { t } from "../lib/i18n.js";
 import { attachPhoneSanitizer, buildCountryCodeOptions, combinePhone, splitPhone } from "../lib/phone.js";
 
 const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
-// Mirrors MAX_CONTACTS in backend/modules/routers/contacts.py — the backend
-// is the source of truth (and rejects a 5th contact with 400 regardless),
-// this just lets the app stop offering "add" before that round-trip happens.
 const MAX_CONTACTS = 4;
 
 function insertEmailDomain(input, domain) {
@@ -34,8 +31,6 @@ export async function renderContacts(container) {
   const fab = container.querySelector("#add-contact-fab");
 
   renderSkeleton(list);
-  // Fetched once per screen (and cached beyond that, see features.js) so
-  // every row/sheet below can ask "is Telegram on" without its own request.
   const features = await getFeatures();
   await loadContacts(list, fab, features);
 
@@ -270,8 +265,6 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
             try {
               await navigator.clipboard.writeText(result.telegram_link_url);
             } catch {
-              // Clipboard access can be denied/unavailable; the toast below
-              // still tells the user a link exists even if the copy failed.
             }
             showToast(t("contacts.telegramLinkReady"), "success");
           } else {

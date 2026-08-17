@@ -72,14 +72,6 @@ class Mail:
                         _logger.error(f"Could not send '{template}' email to {recipient}: {e}")
                         failed.append(recipient)
         except aiosmtplib.SMTPException as e:
-            # Connecting/logging in happens in __aenter__, before the
-            # per-recipient loop above even starts — a bad password fails
-            # here, not inside the loop's try/except, so without this it
-            # would escape as a raw aiosmtplib exception instead of the
-            # MailNotSentError every caller of SendBulk expects. Concretely:
-            # alerts.py relies on SendBulk only ever raising MailNotSentError
-            # to keep a broken mailbox from also skipping the Telegram
-            # background task queued right after it (see routers.md).
             _logger.error(f"Could not send '{template}' bulk email: {e}")
             raise MailNotSentError(str(e)) from e
 

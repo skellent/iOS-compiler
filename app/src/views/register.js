@@ -82,9 +82,6 @@ export async function renderRegister(container, { navigate }) {
     setLoading(button, true);
     try {
       await Api.register(data);
-      // Login is blocked until the account is confirmed, so there's nothing
-      // to log into yet — show the confirmation screen instead of trying
-      // (and failing) to start a session.
       renderConfirmEmail(container, data.email, navigate);
     } catch (error) {
       shake(form);

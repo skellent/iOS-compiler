@@ -22,9 +22,6 @@ _logger = get_logger(__name__)
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
-    # Best-effort and non-blocking on failure: a backend with no Telegram bot
-    # configured (local dev, or before the client sets one up) should still
-    # boot normally, just without this feature wired up.
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
@@ -42,11 +39,6 @@ app = FastAPI(
     lifespan=_lifespan,
 )
 
-# The mobile app's WebView loads the UI from a local origin, not from this API's
-# own origin, so the browser engine inside it enforces CORS on every request it
-# makes here. These are Capacitor's own fixed WebView origins (iOS uses the
-# capacitor:// scheme, Android's default androidScheme is https) — not a
-# wildcard, since the app never changes what origin it runs from.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["capacitor://localhost", "http://localhost", "https://localhost"],
@@ -54,11 +46,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# CSS/JS for the server-rendered web pages (landing, dashboard, confirmation
-# result) — kept out of the Jinja templates themselves so they're plain,
-# cacheable, browser-devtools-editable assets instead of strings baked into
-# an HTML response every time. Not related to the app's own static assets,
-# served separately below under /app.
 app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
@@ -66,25 +53,19 @@ def root():
     return Pages.Render("landing", {"contact_email": _credentials['email']['from']})
 
 
+_LONG_CACHE_SUFFIXES = {".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp"}
+
+
 class _NoCacheStaticFiles(StaticFiles):
-    def file_response(self, *args, **kwargs) -> Response:
-        response = super().file_response(*args, **kwargs)
-        response.headers["Cache-Control"] = "no-cache"
+    def file_response(self, full_path, stat_result, scope, status_code=200) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        if Path(full_path).suffix in _LONG_CACHE_SUFFIXES:
+            response.headers["Cache-Control"] = "public, max-age=604800"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
         return response
 
 
-# The Capacitor app's WebView (see docs/app/architecture.md) navigates
-# straight to this URL instead of loading a bundle shipped inside the native
-# binary — the mobile "app" is really this backend's own web page, the same
-# way an Electron shell just points a window at a URL. /app/manifest has to
-# be registered before the /app mount below: Starlette matches routes in
-# registration order, so the exact-path route wins over the mount for that
-# one path, and everything else under /app/* falls through to the static
-# files. Cache-Control: no-cache on every file (index.html included) forces
-# a conditional revalidation on every request instead of letting the WebView
-# serve a stale copy straight from its disk cache — see modules/app_assets.py
-# and app/src/lib/appUpdate.js for the other half of this (the app noticing
-# a new version and forcing a reload after being resumed from background).
 @app.get("/app/manifest")
 def app_manifest():
     return get_manifest()

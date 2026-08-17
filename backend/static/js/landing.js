@@ -1,13 +1,6 @@
-// Theme (localStorage-backed, same key as dashboard.js so a choice made on
-// either page applies on both — they're the same origin) + language (same
-// detection logic as app/src/lib/i18n.js, reimplemented here since this page
-// has no build step and no @capacitor/preferences plugin).
 const THEME_KEY = "panicbutton.site.theme";
 const LANG_KEY = "panicbutton.landing.lang";
 
-// Native-name/English-name pairs, same list and order as app/src/lib/i18n.js's
-// LANGUAGES export, so a visitor sees the same language choices here as in
-// the app itself.
 const LANGUAGES = [
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
@@ -447,12 +440,10 @@ const STRINGS = {
   },
 };
 
-// --- Theme ---
 function applyTheme(theme) {
   document.documentElement.dataset.theme = ["auto", "light", "dark"].includes(theme) ? theme : "auto";
 }
 
-// --- Language ---
 function detectLanguage() {
   const nav = (typeof navigator !== "undefined" ? navigator.language : "en") || "en";
   const lower = nav.toLowerCase();

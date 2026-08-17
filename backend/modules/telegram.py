@@ -10,10 +10,6 @@ from modules.logs        import get_logger
 _credentials: dict = get_credentials()['telegram']
 _logger = get_logger(__name__)
 
-# How long a POST /contacts/{id}/telegram/enable link stays valid before the
-# contact has to be re-sent a fresh one. Same order of magnitude as
-# Token.USER_CONFIRMATION_EXPIRATION — long enough for someone to notice the
-# email, short enough that a leaked link doesn't stay exploitable for long.
 LINK_EXPIRATION: timedelta = timedelta(hours=24)
 
 _jinja_env: Environment = Environment(
