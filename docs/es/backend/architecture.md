@@ -43,7 +43,7 @@ sequenceDiagram
     participant Token as token.py
     participant DB as Cursor
 
-    Cliente->>Router: petición + Authorization: Bearer <jwt>
+    Cliente->>Router: petición + Authorization Bearer JWT
     Router->>Dep: Depends(current_user)
     Dep->>Token: Token.Validate(jwt)
     Token-->>Dep: payload o None

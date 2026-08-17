@@ -4,19 +4,19 @@ Seven screens, one hash router (`src/main.js`), no shared state beyond "who's lo
 
 ```mermaid
 flowchart LR
-    login["Login\n#/login"] <--> register["Register\n#/register"]
-    register --> confirmMail["\"Check your email\"\n(not a route)"]
+    login["Login (/login)"] <--> register["Register (/register)"]
+    register --> confirmMail["Check your email (not a route)"]
 
-    login -- "on success" --> home["Home\n#/home"]
+    login -- "on success" --> home["Home (/home)"]
 
-    subgraph "Bottom nav (logged in)"
+    subgraph nav["Bottom nav (logged in)"]
         home
-        contacts["Contacts\n#/contacts"]
-        profile["Profile\n#/profile"]
+        contacts["Contacts (/contacts)"]
+        profile["Profile (/profile)"]
     end
 
-    profile --> about["About\n#/about"]
-    profile --> help["Help\n#/help"]
+    profile --> about["About (/about)"]
+    profile --> help["Help (/help)"]
     profile -- "logout" --> login
 ```
 

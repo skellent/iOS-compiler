@@ -50,7 +50,7 @@ sequenceDiagram
     participant Guard
     participant DB
 
-    App->>Auth: {email, password}
+    App->>Auth: email + password
     Auth->>DB: SELECT ... WHERE email = ?
     DB-->>Auth: row (password_hash, confirmed)
     Auth->>Guard: Verify(password, password_hash)
@@ -60,7 +60,7 @@ sequenceDiagram
         Auth-->>App: 403
     else ok
         Auth->>Auth: Token.Create(user_id)
-        Auth-->>App: {access_token, token_type: bearer}
+        Auth-->>App: access_token
     end
 ```
 

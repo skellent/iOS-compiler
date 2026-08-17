@@ -50,7 +50,7 @@ sequenceDiagram
 
     App->>Update: initAppUpdates()
     Update->>Backend: fetch manifest (cache: no-store)
-    Backend-->>Update: {version: sha256(...)}
+    Backend-->>Update: version (hash sha256)
     Update->>Prefs: obtiene la última versión conocida
     alt primera corrida
         Update->>Prefs: guarda la versión

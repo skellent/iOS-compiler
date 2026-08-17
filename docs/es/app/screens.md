@@ -4,19 +4,19 @@ Siete pantallas, un router por hash (`src/main.js`), sin estado compartido más 
 
 ```mermaid
 flowchart LR
-    login["Login\n#/login"] <--> register["Registro\n#/register"]
-    register --> confirmMail["\"Revisa tu correo\"\n(no es una ruta)"]
+    login["Login (/login)"] <--> register["Registro (/register)"]
+    register --> confirmMail["Revisa tu correo (no es una ruta)"]
 
-    login -- "al tener éxito" --> home["Home\n#/home"]
+    login -- "al tener éxito" --> home["Home (/home)"]
 
-    subgraph "Nav inferior (con sesión iniciada)"
+    subgraph nav["Nav inferior (con sesión iniciada)"]
         home
-        contacts["Contactos\n#/contacts"]
-        profile["Perfil\n#/profile"]
+        contacts["Contactos (/contacts)"]
+        profile["Perfil (/profile)"]
     end
 
-    profile --> about["Acerca de\n#/about"]
-    profile --> help["Ayuda\n#/help"]
+    profile --> about["Acerca de (/about)"]
+    profile --> help["Ayuda (/help)"]
     profile -- "cerrar sesión" --> login
 ```
 

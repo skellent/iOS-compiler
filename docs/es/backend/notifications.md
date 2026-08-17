@@ -38,7 +38,7 @@ sequenceDiagram
     participant Mail
     participant TG as Telegram
 
-    App->>Alerts: {latitude, longitude} + JWT
+    App->>Alerts: latitude, longitude + JWT
     Alerts->>DB: INSERT INTO alerts
     Alerts->>DB: SELECT contactos confirmados (email O telegram_chat_id)
     loop cada contacto
@@ -63,7 +63,7 @@ sequenceDiagram
     participant API as POST /contacts
     participant Mail
     participant Contacto
-    participant Confirm as GET /contacts/confirm/{token}
+    participant Confirm as GET /contacts/confirm/:token
 
     Usuario->>API: agrega contacto (con email)
     API->>Mail: envía contact_confirmation (tarea de fondo)
@@ -82,7 +82,7 @@ El parámetro `start` de los deep links propios de Telegram solo permite `[A-Za-
 ```mermaid
 sequenceDiagram
     participant Usuario as Usuario de la app
-    participant API as POST /contacts/{id}/telegram/enable
+    participant API as POST /contacts/:id/telegram/enable
     participant DB
     participant Contacto
     participant Bot as Bot de Telegram
@@ -91,8 +91,8 @@ sequenceDiagram
     Usuario->>API: activa Telegram para un contacto
     API->>DB: UPDATE contacts SET telegram_link_token, telegram_link_expires_at
     API-->>Usuario: URL del enlace (enviada por correo al contacto, o devuelta para compartir manualmente)
-    Contacto->>Bot: abre t.me/<bot>?start=<token>
-    Bot->>Webhook: update {message: {text: "/start <token>", chat: {id}}}
+    Contacto->>Bot: abre t.me/BOT_USERNAME, start = token del enlace
+    Bot->>Webhook: update - texto del mensaje "/start TOKEN", chat id
     Webhook->>DB: busca el contacto por token (no debe estar expirado)
     Webhook->>DB: UPDATE contacts SET telegram_chat_id, limpia el token
     Webhook-->>Bot: mensaje de confirmación al contacto
