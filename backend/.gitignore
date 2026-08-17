@@ -5,7 +5,3 @@
 uv.lock
 __pycache__
 logs/
-
-# Built app binaries served for direct download (see /static/downloads) —
-# regenerated per release from app/android, not source.
-static/downloads/

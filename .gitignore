@@ -1,5 +1,4 @@
 app/node_modules/
-app/www/js/
 app/bun.lock
 app/.env
 app/android/.gradle/
