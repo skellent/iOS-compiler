@@ -59,6 +59,8 @@ export const Api = {
   resendContactConfirmation: (id) => request(`/contacts/${id}/confirm/resend`, { method: "POST", auth: true }),
   enableContactTelegram: (id) => request(`/contacts/${id}/telegram/enable`, { method: "POST", auth: true }),
   disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
+  enableContactWhatsapp: (id) => request(`/contacts/${id}/whatsapp/enable`, { method: "POST", auth: true }),
+  disableContactWhatsapp: (id) => request(`/contacts/${id}/whatsapp`, { method: "DELETE", auth: true }),
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
 

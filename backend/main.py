@@ -8,7 +8,7 @@ from modules.db          import cursor
 from modules.limiter     import limiter
 from modules.logs        import get_logger, reset_request_id, set_request_id
 from modules.pages       import Pages
-from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, dashboard
+from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, whatsapp as whatsapp_router, dashboard
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI, Request
@@ -139,4 +139,5 @@ app.include_router(contacts.router)
 app.include_router(alerts.router)
 app.include_router(features.router)
 app.include_router(telegram_router.router)
+app.include_router(whatsapp_router.router)
 app.include_router(dashboard.router)

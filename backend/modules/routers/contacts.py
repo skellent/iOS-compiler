@@ -1,4 +1,5 @@
 import secrets
+from urllib.parse import quote
 
 from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -15,7 +16,7 @@ from modules.logs         import get_logger
 from modules.pages        import Pages
 from modules.telegram     import LINK_EXPIRATION
 from modules.token        import Token
-from modules.types        import Contact, ContactPublic, ContactUpdate, TelegramLink
+from modules.types        import Contact, ContactPublic, ContactUpdate, TelegramLink, WhatsAppEnable
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
@@ -23,8 +24,19 @@ MAX_CONTACTS: int = 4
 
 _URL_BASE: str = get_credentials()['api_base_url']
 _TELEGRAM_BOT_USERNAME: str | None = get_credentials()['telegram']['bot_username']
+_WHATSAPP: dict = get_credentials()['whatsapp']
 _LINK_EXPIRATION_HOURS: int = int(LINK_EXPIRATION.total_seconds() // 3600)
 _logger = get_logger(__name__)
+
+
+def _whatsapp_join_url() -> str | None:
+    sender: str | None = _WHATSAPP['from']
+    if not sender:
+        return None
+    digits: str = "".join(ch for ch in sender if ch.isdigit())
+    keyword: str | None = _WHATSAPP['join_keyword']
+    text: str = f"join {keyword}" if keyword else "Hi, I want to receive Panic Button alerts"
+    return f"https://wa.me/{digits}?text={quote(text)}"
 
 _COLUMN_BY_FIELD: dict[str, str] = {
     "name":  "name",
@@ -269,3 +281,30 @@ def disable_contact_telegram(contact_id: int, user_id: int = Depends(current_use
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
     _logger.info(f"User {user_id} disconnected Telegram for contact {contact_id}")
+
+
+@router.post("/{contact_id}/whatsapp/enable", response_model=WhatsAppEnable)
+def enable_contact_whatsapp(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.SET_CONTACT_WHATSAPP_ENABLED, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
+
+    rows: list[dict] = cursor.execute(Queries.SELECT_CONTACT_BY_ID, (contact_id, user_id))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    _logger.info(f"User {user_id} enabled WhatsApp for contact {contact_id}")
+    return {
+        "whatsapp_enabled": True,
+        "whatsapp_confirmed": bool(rows[0]["whatsapp_confirmed"]),
+        "join_url": _whatsapp_join_url(),
+    }
+
+
+@router.delete("/{contact_id}/whatsapp", status_code=204)
+def disable_contact_whatsapp(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.CLEAR_CONTACT_WHATSAPP, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
+    _logger.info(f"User {user_id} disabled WhatsApp for contact {contact_id}")

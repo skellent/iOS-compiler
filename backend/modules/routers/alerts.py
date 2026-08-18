@@ -14,6 +14,7 @@ from modules.pages        import Pages
 from modules.telegram     import Telegram, TelegramNotSentError
 from modules.token        import Token
 from modules.types        import Alert, AlertCreated
+from modules.whatsapp     import WhatsApp, WhatsAppNotSentError
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -49,6 +50,13 @@ async def _notify_by_telegram(template: str, recipients: list[tuple[int, dict]])
         pass
 
 
+async def _notify_by_whatsapp(template: str, recipients: list[tuple[str, dict]]) -> None:
+    try:
+        await WhatsApp.SendBulk(template, recipients)
+    except WhatsAppNotSentError:
+        pass
+
+
 @router.post("", status_code=201, response_model=AlertCreated)
 @limiter.limit("12/hour", key_func=user_or_ip)
 def create_alert(request: Request, data: Alert, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
@@ -76,6 +84,7 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
 
     mail_recipients: list[tuple[str, dict]] = []
     telegram_recipients: list[tuple[int, dict]] = []
+    whatsapp_recipients: list[tuple[str, dict]] = []
 
     for contact in contacts:
         # A contact is selected if EITHER channel is active, so the email branch must
@@ -95,6 +104,13 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
                 "map_url": _view_url(notification_id),
                 **base_context,
             }))
+        if contact["whatsapp_enabled"] and contact["whatsapp_confirmed"]:
+            notification_id: int = _create_notification(alert_id, contact["id"], "whatsapp")
+            whatsapp_recipients.append((contact["phone"], {
+                "contact_name": contact["name"],
+                "map_url": _view_url(notification_id),
+                **base_context,
+            }))
 
     if mail_recipients:
         background_tasks.add_task(
@@ -107,16 +123,23 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
     if telegram_recipients:
         background_tasks.add_task(_notify_by_telegram, "panic_alert", telegram_recipients)
 
+    if whatsapp_recipients:
+        background_tasks.add_task(_notify_by_whatsapp, "panic_alert", whatsapp_recipients)
+
     _logger.info(
         f"Alert {alert_id}: notifying {len(mail_recipients)} contact(s) by email, "
-        f"{len(telegram_recipients)} by Telegram"
+        f"{len(telegram_recipients)} by Telegram, {len(whatsapp_recipients)} by WhatsApp"
     )
 
     return {
         "id": alert_id,
         "created_at": datetime.now(),
         "notified_contacts": len(contacts),
-        "channels": {"email": len(mail_recipients), "telegram": len(telegram_recipients)},
+        "channels": {
+            "email": len(mail_recipients),
+            "telegram": len(telegram_recipients),
+            "whatsapp": len(whatsapp_recipients),
+        },
     }
 
 

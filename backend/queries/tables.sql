@@ -20,6 +20,8 @@ CREATE TABLE contacts (
     telegram_chat_id          BIGINT,
     telegram_link_token       VARCHAR(64),
     telegram_link_expires_at  DATETIME,
+    whatsapp_enabled          BOOLEAN      NOT NULL DEFAULT FALSE,
+    whatsapp_confirmed        BOOLEAN      NOT NULL DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE INDEX idx_contacts_telegram_link_token (telegram_link_token)
 );
@@ -39,7 +41,7 @@ CREATE TABLE alert_notifications (
     id         INT                       AUTO_INCREMENT PRIMARY KEY,
     alert_id   INT                       NOT NULL,
     contact_id INT                       NOT NULL,
-    channel    ENUM('email', 'telegram') NOT NULL,
+    channel    ENUM('email', 'telegram', 'whatsapp') NOT NULL,
     viewed_at  DATETIME,
     FOREIGN KEY (alert_id) REFERENCES alerts(id),
     FOREIGN KEY (contact_id) REFERENCES contacts(id)

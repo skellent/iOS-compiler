@@ -4,7 +4,7 @@ let cached = null;
 
 export function getFeatures() {
   if (!cached) {
-    cached = Api.getFeatures().catch(() => ({ telegram: false }));
+    cached = Api.getFeatures().catch(() => ({ telegram: false, whatsapp: false }));
   }
   return cached;
 }

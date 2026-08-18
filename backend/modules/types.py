@@ -77,12 +77,14 @@ class ContactUpdate(BaseModel):
 
 
 class ContactPublic(BaseModel):
-    id:               int
-    name:             str
-    phone:            str
-    email:            str | None = None
-    confirmed:        bool = False
-    telegram_linked:  bool = False
+    id:                 int
+    name:               str
+    phone:              str
+    email:              str | None = None
+    confirmed:          bool = False
+    telegram_linked:    bool = False
+    whatsapp_enabled:   bool = False
+    whatsapp_confirmed: bool = False
 
 
 class Alert(BaseModel):
@@ -99,3 +101,9 @@ class AlertCreated(BaseModel):
 
 class TelegramLink(BaseModel):
     telegram_link_url: str | None = None
+
+
+class WhatsAppEnable(BaseModel):
+    whatsapp_enabled:   bool
+    whatsapp_confirmed: bool
+    join_url:           str | None = None

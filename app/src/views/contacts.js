@@ -101,6 +101,13 @@ function renderContactRows(list, fab, contacts, features) {
                        aria-label="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}">${Icon.telegram()}</span>`
               : ""
           }
+          ${
+            features.whatsapp
+              ? `<span class="channel-icon channel-whatsapp ${contact.whatsapp_enabled && contact.whatsapp_confirmed ? "channel-active" : "channel-inactive"}"
+                       title="${contact.whatsapp_enabled && contact.whatsapp_confirmed ? t("contacts.whatsappLinked") : t("contacts.whatsappNotLinked")}"
+                       aria-label="${contact.whatsapp_enabled && contact.whatsapp_confirmed ? t("contacts.whatsappLinked") : t("contacts.whatsappNotLinked")}">${Icon.whatsapp()}</span>`
+              : ""
+          }
         </span>
       </button>
     `
@@ -195,6 +202,15 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
           ? `<button type="button" class="btn btn-outline btn-block" id="telegram-toggle">
               ${Icon.telegram()}
               <span class="btn-label">${contact.telegram_linked ? t("contacts.telegramDisconnect") : t("contacts.telegramConnect")}</span>
+              <span class="btn-spinner" hidden></span>
+            </button>`
+          : ""
+      }
+      ${
+        isEdit && features.whatsapp
+          ? `<button type="button" class="btn btn-outline btn-block" id="whatsapp-toggle">
+              ${Icon.whatsapp()}
+              <span class="btn-label">${contact.whatsapp_enabled ? t("contacts.whatsappDisconnect") : t("contacts.whatsappConnect")}</span>
               <span class="btn-spinner" hidden></span>
             </button>`
           : ""
@@ -301,6 +317,35 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
       } finally {
         setLoading(telegramButton, false);
+      }
+    });
+
+    const whatsappButton = body.querySelector("#whatsapp-toggle");
+    whatsappButton?.addEventListener("click", async () => {
+      setLoading(whatsappButton, true);
+      try {
+        if (contact.whatsapp_enabled) {
+          await Api.disableContactWhatsapp(contact.id);
+          showToast(t("contacts.whatsappDisconnected"), "success");
+        } else {
+          const result = await Api.enableContactWhatsapp(contact.id);
+          if (result.join_url) {
+            try {
+              await navigator.clipboard.writeText(result.join_url);
+            } catch {
+            }
+            showToast(t("contacts.whatsappLinkReady"), "success");
+          } else {
+            showToast(t("contacts.whatsappEnabled"), "success");
+          }
+        }
+        close();
+        onSaved();
+      } catch (error) {
+        const fallbackKey = contact.whatsapp_enabled ? "contacts.whatsappDisableError" : "contacts.whatsappEnableError";
+        showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
+      } finally {
+        setLoading(whatsappButton, false);
       }
     });
 

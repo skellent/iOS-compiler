@@ -899,6 +899,15 @@ var STRINGS = {
     "contacts.telegramDisconnected": "Telegram disconnected.",
     "contacts.telegramEnableError": "Couldn't start the Telegram link.",
     "contacts.telegramDisableError": "Couldn't disconnect Telegram.",
+    "contacts.whatsappLinked": "WhatsApp linked",
+    "contacts.whatsappNotLinked": "WhatsApp not linked",
+    "contacts.whatsappConnect": "Connect WhatsApp",
+    "contacts.whatsappDisconnect": "Disconnect WhatsApp",
+    "contacts.whatsappLinkReady": "WhatsApp link ready — copied, share it with your contact so they can opt in.",
+    "contacts.whatsappEnabled": "WhatsApp enabled.",
+    "contacts.whatsappDisconnected": "WhatsApp disconnected.",
+    "contacts.whatsappEnableError": "Couldn't enable WhatsApp.",
+    "contacts.whatsappDisableError": "Couldn't disable WhatsApp.",
     "profile.name": "Name",
     "profile.phone": "Phone",
     "profile.email": "Email",
@@ -1017,6 +1026,15 @@ var STRINGS = {
     "contacts.telegramDisconnected": "Telegram desconectado.",
     "contacts.telegramEnableError": "No se pudo iniciar la vinculación de Telegram.",
     "contacts.telegramDisableError": "No se pudo desconectar Telegram.",
+    "contacts.whatsappLinked": "WhatsApp vinculado",
+    "contacts.whatsappNotLinked": "WhatsApp no vinculado",
+    "contacts.whatsappConnect": "Conectar WhatsApp",
+    "contacts.whatsappDisconnect": "Desconectar WhatsApp",
+    "contacts.whatsappLinkReady": "Enlace de WhatsApp listo — copiado, compártelo con tu contacto para que se una.",
+    "contacts.whatsappEnabled": "WhatsApp activado.",
+    "contacts.whatsappDisconnected": "WhatsApp desconectado.",
+    "contacts.whatsappEnableError": "No se pudo activar WhatsApp.",
+    "contacts.whatsappDisableError": "No se pudo desactivar WhatsApp.",
     "profile.name": "Nombre",
     "profile.phone": "Teléfono",
     "profile.email": "Correo electrónico",
@@ -2252,6 +2270,8 @@ var Api = {
   resendContactConfirmation: (id) => request(`/contacts/${id}/confirm/resend`, { method: "POST", auth: true }),
   enableContactTelegram: (id) => request(`/contacts/${id}/telegram/enable`, { method: "POST", auth: true }),
   disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
+  enableContactWhatsapp: (id) => request(`/contacts/${id}/whatsapp/enable`, { method: "POST", auth: true }),
+  disableContactWhatsapp: (id) => request(`/contacts/${id}/whatsapp`, { method: "DELETE", auth: true }),
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
   getFeatures: () => request("/features")
 };
@@ -2526,6 +2546,7 @@ var Icon = {
   theme: () => icon("M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z"),
   palette: () => icon("M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"),
   telegram: () => icon("M248 8C111 8 0 119 0 256S111 504 248 504 496 393 496 256 385 8 248 8zM362 176.7c-3.7 39.2-19.9 134.4-28.1 178.3-3.5 18.6-10.4 24.8-17 25.4-14.4 1.3-25.3-9.5-39.3-18.7-21.8-14.3-34.2-23.2-55.3-37.2-24.5-16.1-8.6-25 5.3-39.5 3.7-3.8 67.1-61.5 68.3-66.7 .2-.7 .3-3.1-1.2-4.4s-3.6-.8-5.1-.5q-3.3 .7-104.6 69.1-14.8 10.2-26.9 9.9c-8.9-.2-25.9-5-38.6-9.1-15.5-5-27.9-7.7-26.8-16.3q.8-6.7 18.5-13.7 108.4-47.2 144.6-62.3c68.9-28.6 83.2-33.6 92.5-33.8 2.1 0 6.6 .5 9.6 2.9a10.5 10.5 0 0 1 3.5 6.7A43.8 43.8 0 0 1 362 176.7z", "0 0 496 512"),
+  whatsapp: () => icon("M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z", "0 0 448 512"),
   info: () => icon("M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"),
   help: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z")
 };
@@ -2888,7 +2909,7 @@ async function loadStatusChip(chip, onCount) {
 var cached = null;
 function getFeatures() {
   if (!cached) {
-    cached = Api.getFeatures().catch(() => ({ telegram: false }));
+    cached = Api.getFeatures().catch(() => ({ telegram: false, whatsapp: false }));
   }
   return cached;
 }
@@ -3045,6 +3066,9 @@ function renderContactRows(list, fab, contacts, features) {
           ${features.telegram ? `<span class="channel-icon channel-telegram ${contact.telegram_linked ? "channel-active" : "channel-inactive"}"
                        title="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}"
                        aria-label="${contact.telegram_linked ? t("contacts.telegramLinked") : t("contacts.telegramNotLinked")}">${Icon.telegram()}</span>` : ""}
+          ${features.whatsapp ? `<span class="channel-icon channel-whatsapp ${contact.whatsapp_enabled && contact.whatsapp_confirmed ? "channel-active" : "channel-inactive"}"
+                       title="${contact.whatsapp_enabled && contact.whatsapp_confirmed ? t("contacts.whatsappLinked") : t("contacts.whatsappNotLinked")}"
+                       aria-label="${contact.whatsapp_enabled && contact.whatsapp_confirmed ? t("contacts.whatsappLinked") : t("contacts.whatsappNotLinked")}">${Icon.whatsapp()}</span>` : ""}
         </span>
       </button>
     `).join("");
@@ -3124,6 +3148,11 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
       ${isEdit && features.telegram ? `<button type="button" class="btn btn-outline btn-block" id="telegram-toggle">
               ${Icon.telegram()}
               <span class="btn-label">${contact.telegram_linked ? t("contacts.telegramDisconnect") : t("contacts.telegramConnect")}</span>
+              <span class="btn-spinner" hidden></span>
+            </button>` : ""}
+      ${isEdit && features.whatsapp ? `<button type="button" class="btn btn-outline btn-block" id="whatsapp-toggle">
+              ${Icon.whatsapp()}
+              <span class="btn-label">${contact.whatsapp_enabled ? t("contacts.whatsappDisconnect") : t("contacts.whatsappConnect")}</span>
               <span class="btn-spinner" hidden></span>
             </button>` : ""}
       ${isEdit ? `<button type="button" class="btn btn-danger-outline btn-block" id="delete-contact">
@@ -3216,6 +3245,33 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
       } finally {
         setLoading(telegramButton, false);
+      }
+    });
+    const whatsappButton = body.querySelector("#whatsapp-toggle");
+    whatsappButton?.addEventListener("click", async () => {
+      setLoading(whatsappButton, true);
+      try {
+        if (contact.whatsapp_enabled) {
+          await Api.disableContactWhatsapp(contact.id);
+          showToast(t("contacts.whatsappDisconnected"), "success");
+        } else {
+          const result = await Api.enableContactWhatsapp(contact.id);
+          if (result.join_url) {
+            try {
+              await navigator.clipboard.writeText(result.join_url);
+            } catch {}
+            showToast(t("contacts.whatsappLinkReady"), "success");
+          } else {
+            showToast(t("contacts.whatsappEnabled"), "success");
+          }
+        }
+        close();
+        onSaved();
+      } catch (error) {
+        const fallbackKey = contact.whatsapp_enabled ? "contacts.whatsappDisableError" : "contacts.whatsappEnableError";
+        showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
+      } finally {
+        setLoading(whatsappButton, false);
       }
     });
     const deleteButton = body.querySelector("#delete-contact");
