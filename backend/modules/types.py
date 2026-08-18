@@ -85,6 +85,7 @@ class ContactPublic(BaseModel):
     telegram_linked:    bool = False
     whatsapp_enabled:   bool = False
     whatsapp_confirmed: bool = False
+    sms_enabled:        bool = False
 
 
 class Alert(BaseModel):

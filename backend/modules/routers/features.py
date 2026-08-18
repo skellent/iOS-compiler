@@ -15,6 +15,9 @@ def get_features():
         "whatsapp": bool(_credentials['whatsapp']['account_sid'])
                     and bool(_credentials['whatsapp']['auth_token'])
                     and bool(_credentials['whatsapp']['from']),
+        "sms": bool(_credentials['sms']['account_sid'])
+               and bool(_credentials['sms']['auth_token'])
+               and bool(_credentials['sms']['from']),
         # Served rather than hardcoded a second time in the app, so the client's
         # "add" button and the backend's cap can't drift apart.
         "max_contacts": MAX_CONTACTS,
