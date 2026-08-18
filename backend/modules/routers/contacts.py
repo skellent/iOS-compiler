@@ -1,7 +1,9 @@
 import secrets
 
-from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi           import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
+
+from modules.limiter      import limiter
 
 from modules.mail         import Mail
 from modules.credentials  import get_credentials
@@ -178,6 +180,27 @@ def update_contact(contact_id: int, data: ContactUpdate, background_tasks: Backg
     if not rows:
         raise HTTPException(status_code=404, detail="Contact not found")
     return rows[0]
+
+
+@router.post("/{contact_id}/confirm/resend")
+@limiter.limit("4/hour")
+def resend_contact_confirmation(request: Request, contact_id: int, background_tasks: BackgroundTasks,
+                                user_id: int = Depends(current_user)):
+    """Re-send the confirmation email for a contact that has one but hasn't confirmed
+    yet — for when the first email was lost, without forcing a fake email edit."""
+    rows: list[dict] = cursor.execute(Queries.SELECT_CONTACT_BY_ID, (contact_id, user_id))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    contact: dict = rows[0]
+
+    if not contact["email"]:
+        raise HTTPException(status_code=400, detail="This contact has no email address")
+    if contact["confirmed"]:
+        raise HTTPException(status_code=400, detail="This contact is already confirmed")
+
+    _queue_contact_confirmation(background_tasks, user_id, contact_id, contact["name"], contact["email"])
+    _logger.info(f"User {user_id} re-sent confirmation for contact {contact_id}")
+    return {"sent": True}
 
 
 @router.delete("/{contact_id}", status_code=204)

@@ -100,6 +100,8 @@ const STRINGS = {
 
     "contacts.telegramLinked": "Telegram linked",
     "contacts.telegramNotLinked": "Telegram not linked",
+    "contacts.resendConfirmation": "Resend confirmation email",
+    "contacts.resendConfirmationSent": "Confirmation email sent again.",
     "contacts.telegramConnect": "Connect Telegram",
     "contacts.telegramDisconnect": "Disconnect Telegram",
     "contacts.telegramEmailSent": "Telegram link sent to their email.",
@@ -237,6 +239,8 @@ const STRINGS = {
 
     "contacts.telegramLinked": "Telegram vinculado",
     "contacts.telegramNotLinked": "Telegram no vinculado",
+    "contacts.resendConfirmation": "Reenviar correo de confirmación",
+    "contacts.resendConfirmationSent": "Correo de confirmación reenviado.",
     "contacts.telegramConnect": "Conectar Telegram",
     "contacts.telegramDisconnect": "Desconectar Telegram",
     "contacts.telegramEmailSent": "Enlace de Telegram enviado a su correo.",

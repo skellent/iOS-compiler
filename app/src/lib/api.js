@@ -56,6 +56,7 @@ export const Api = {
   updateContact: (id, data) => request(`/contacts/${id}`, { method: "PUT", body: data, auth: true }),
   deleteContact: (id) => request(`/contacts/${id}`, { method: "DELETE", auth: true }),
 
+  resendContactConfirmation: (id) => request(`/contacts/${id}/confirm/resend`, { method: "POST", auth: true }),
   enableContactTelegram: (id) => request(`/contacts/${id}/telegram/enable`, { method: "POST", auth: true }),
   disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
 

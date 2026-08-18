@@ -182,6 +182,15 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         <span class="btn-spinner" hidden></span>
       </button>
       ${
+        isEdit && contact.email && !contact.confirmed
+          ? `<button type="button" class="btn btn-outline btn-block" id="resend-confirmation">
+              ${Icon.mail()}
+              <span class="btn-label">${t("contacts.resendConfirmation")}</span>
+              <span class="btn-spinner" hidden></span>
+            </button>`
+          : ""
+      }
+      ${
         isEdit && features.telegram
           ? `<button type="button" class="btn btn-outline btn-block" id="telegram-toggle">
               ${Icon.telegram()}
@@ -252,6 +261,20 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
   });
 
   if (isEdit) {
+    const resendButton = body.querySelector("#resend-confirmation");
+    resendButton?.addEventListener("click", async () => {
+      setLoading(resendButton, true);
+      try {
+        await Api.resendContactConfirmation(contact.id);
+        showToast(t("contacts.resendConfirmationSent"), "success");
+        close();
+      } catch (error) {
+        showToast(error instanceof ApiError ? error.message : t("errors.generic"), "error");
+      } finally {
+        setLoading(resendButton, false);
+      }
+    });
+
     const telegramButton = body.querySelector("#telegram-toggle");
     telegramButton?.addEventListener("click", async () => {
       setLoading(telegramButton, true);

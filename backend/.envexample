@@ -9,6 +9,10 @@ SMTP_PASSWORD=''
 SMTP_HOST='smtp.gmail.com'
 SMTP_PORT=587
 SMTP_FROM=''
+# Set to false in local development to log outgoing mail instead of sending it.
+SMTP_ENABLED='true'
+# Set to false only for offline development where DNS lookups can't be made.
+SMTP_VERIFY_DELIVERABILITY='true'
 TELEGRAM_BOT_TOKEN=''
 TELEGRAM_BOT_USERNAME=''
 TELEGRAM_WEBHOOK_SECRET=''

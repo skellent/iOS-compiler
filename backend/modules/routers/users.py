@@ -1,15 +1,40 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from modules.cursor       import Queries, DuplicateRecordError
+from modules.credentials  import get_credentials
 from modules.db           import cursor
 from modules.dependencies import current_user
 from modules.email_check  import UndeliverableEmailError, assert_deliverable
 from modules.guard        import Guard
 from modules.logs         import get_logger
+from modules.mail         import Mail
 from modules.types        import UserPublic, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 _logger = get_logger(__name__)
+_CONTACT_EMAIL: str = get_credentials()['email']['from']
+
+
+def _notify_security_change(background_tasks, recipient: str, user_name: str, change_label: str) -> None:
+    """Tell the account owner (at the address on file *before* the change) that a
+    sensitive change happened — so an attacker who swaps the email can't do it
+    silently."""
+    if not recipient:
+        return
+    background_tasks.add_task(
+        Mail.Send,
+        recipient,
+        "Your Panic Button account was changed",
+        "security_alert",
+        {
+            "user_name":     user_name,
+            "change_label":  change_label,
+            "timestamp":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "contact_email": _CONTACT_EMAIL,
+        },
+    )
 
 _COLUMN_BY_FIELD: dict[str, str] = {
     "name":     "name",
@@ -32,7 +57,8 @@ def get_current_user(user_id: int = Depends(current_user)):
 
 
 @router.put("/me", response_model=UserPublic)
-def update_current_user(data: UserUpdate, user_id: int = Depends(current_user)):
+def update_current_user(data: UserUpdate, background_tasks: BackgroundTasks,
+                        user_id: int = Depends(current_user)):
     fields: dict = data.model_dump(exclude_none=True)
     current_password: str | None = fields.pop("current_password", None)
     if not fields:
@@ -60,6 +86,14 @@ def update_current_user(data: UserUpdate, user_id: int = Depends(current_user)):
         except UndeliverableEmailError as e:
             raise HTTPException(status_code=422, detail=str(e))
 
+    # Capture the pre-change email/name so the security notice reaches the address
+    # that owned the account *before* an email swap, not the attacker's new one.
+    before: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
+    if not before:
+        raise HTTPException(status_code=404, detail="User not found")
+    old_email: str = before[0]["email"]
+    user_name: str = before[0]["name"]
+
     if "password" in fields:
         fields["password"] = Guard.Hash(fields["password"])
 
@@ -72,6 +106,11 @@ def update_current_user(data: UserUpdate, user_id: int = Depends(current_user)):
         raise HTTPException(status_code=409, detail="Phone or email already registered")
     cursor.commit()
     _logger.info(f"User {user_id} updated fields: {', '.join(fields.keys())}")
+
+    if "password" in fields:
+        _notify_security_change(background_tasks, old_email, user_name, "password")
+    if "email" in fields:
+        _notify_security_change(background_tasks, old_email, user_name, "email address")
 
     rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
     if not rows:

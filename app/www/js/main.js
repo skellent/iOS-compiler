@@ -890,6 +890,8 @@ var STRINGS = {
     "contacts.pickError": "Couldn't access your contacts.",
     "contacts.telegramLinked": "Telegram linked",
     "contacts.telegramNotLinked": "Telegram not linked",
+    "contacts.resendConfirmation": "Resend confirmation email",
+    "contacts.resendConfirmationSent": "Confirmation email sent again.",
     "contacts.telegramConnect": "Connect Telegram",
     "contacts.telegramDisconnect": "Disconnect Telegram",
     "contacts.telegramEmailSent": "Telegram link sent to their email.",
@@ -1006,6 +1008,8 @@ var STRINGS = {
     "contacts.pickError": "No se pudo acceder a tus contactos.",
     "contacts.telegramLinked": "Telegram vinculado",
     "contacts.telegramNotLinked": "Telegram no vinculado",
+    "contacts.resendConfirmation": "Reenviar correo de confirmación",
+    "contacts.resendConfirmationSent": "Correo de confirmación reenviado.",
     "contacts.telegramConnect": "Conectar Telegram",
     "contacts.telegramDisconnect": "Desconectar Telegram",
     "contacts.telegramEmailSent": "Enlace de Telegram enviado a su correo.",
@@ -2245,6 +2249,7 @@ var Api = {
   createContact: (data) => request("/contacts", { method: "POST", body: data, auth: true }),
   updateContact: (id, data) => request(`/contacts/${id}`, { method: "PUT", body: data, auth: true }),
   deleteContact: (id) => request(`/contacts/${id}`, { method: "DELETE", auth: true }),
+  resendContactConfirmation: (id) => request(`/contacts/${id}/confirm/resend`, { method: "POST", auth: true }),
   enableContactTelegram: (id) => request(`/contacts/${id}/telegram/enable`, { method: "POST", auth: true }),
   disableContactTelegram: (id) => request(`/contacts/${id}/telegram`, { method: "DELETE", auth: true }),
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
@@ -3111,6 +3116,11 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         <span class="btn-label">${isEdit ? t("contacts.save") : t("contacts.add")}</span>
         <span class="btn-spinner" hidden></span>
       </button>
+      ${isEdit && contact.email && !contact.confirmed ? `<button type="button" class="btn btn-outline btn-block" id="resend-confirmation">
+              ${Icon.mail()}
+              <span class="btn-label">${t("contacts.resendConfirmation")}</span>
+              <span class="btn-spinner" hidden></span>
+            </button>` : ""}
       ${isEdit && features.telegram ? `<button type="button" class="btn btn-outline btn-block" id="telegram-toggle">
               ${Icon.telegram()}
               <span class="btn-label">${contact.telegram_linked ? t("contacts.telegramDisconnect") : t("contacts.telegramConnect")}</span>
@@ -3168,6 +3178,19 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
     }
   });
   if (isEdit) {
+    const resendButton = body.querySelector("#resend-confirmation");
+    resendButton?.addEventListener("click", async () => {
+      setLoading(resendButton, true);
+      try {
+        await Api.resendContactConfirmation(contact.id);
+        showToast(t("contacts.resendConfirmationSent"), "success");
+        close();
+      } catch (error) {
+        showToast(error instanceof ApiError ? error.message : t("errors.generic"), "error");
+      } finally {
+        setLoading(resendButton, false);
+      }
+    });
     const telegramButton = body.querySelector("#telegram-toggle");
     telegramButton?.addEventListener("click", async () => {
       setLoading(telegramButton, true);
