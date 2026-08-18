@@ -1,3 +1,4 @@
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 
@@ -94,3 +95,24 @@ class Telegram:
         if response.status_code != 200 or not response.json().get("ok", False):
             raise TelegramNotSentError(f"Telegram rejected getWebhookInfo: {response.text}")
         return response.json().get("result", {})
+
+    @staticmethod
+    async def EnsureWebhook(url: str, attempts: int = 3, delay: float = 3.0) -> dict:
+        last_error: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                await Telegram.SetWebhook(url)
+                info: dict = await Telegram.GetWebhookInfo()
+                if info.get("url") == url:
+                    _logger.info(f"Telegram webhook confirmed at {url} (attempt {attempt}/{attempts})")
+                    return info
+                last_error = TelegramNotSentError(
+                    f"webhook did not stick (expected {url}, got {info.get('url') or 'none'})"
+                )
+                _logger.warning(f"Telegram webhook attempt {attempt}/{attempts}: {last_error}")
+            except Exception as e:
+                last_error = e
+                _logger.warning(f"Telegram webhook attempt {attempt}/{attempts} failed: {e}")
+            if attempt < attempts:
+                await asyncio.sleep(delay)
+        raise last_error or TelegramNotSentError(f"Could not register webhook at {url}")

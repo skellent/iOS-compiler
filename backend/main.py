@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -26,6 +27,25 @@ _docs_enabled: bool = _credentials['app_mode'] != "Deploy"
 _logger = get_logger(__name__)
 
 
+_WEBHOOK_KEEPER_INTERVAL: float = 1800.0
+
+
+async def _telegram_webhook_keeper(url: str) -> None:
+    while True:
+        try:
+            await asyncio.sleep(_WEBHOOK_KEEPER_INTERVAL)
+            info: dict = await Telegram.GetWebhookInfo()
+            if info.get("url") != url:
+                _logger.warning(
+                    f"Telegram webhook drifted (found {info.get('url') or 'none'}, expected {url}); re-registering"
+                )
+                await Telegram.EnsureWebhook(url)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            _logger.warning(f"Telegram webhook keeper check failed: {e}")
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
@@ -38,16 +58,11 @@ async def _lifespan(app: FastAPI):
         _logger.critical(f"Could not reach the database: {e}")
         raise
 
+    keeper_task: asyncio.Task | None = None
     if _credentials['telegram']['bot_token']:
         webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
         try:
-            await Telegram.SetWebhook(webhook_url)
-            _logger.info(f"Telegram webhook registered at {webhook_url}")
-        except Exception as e:
-            _logger.error(f"Could not register Telegram webhook at {webhook_url}: {e}")
-
-        try:
-            info: dict = await Telegram.GetWebhookInfo()
+            info: dict = await Telegram.EnsureWebhook(webhook_url)
             _logger.info(
                 "Telegram webhook status: "
                 f"url={info.get('url') or '(none registered)'} "
@@ -55,8 +70,17 @@ async def _lifespan(app: FastAPI):
                 f"last_error={info.get('last_error_message') or 'none'}"
             )
         except Exception as e:
-            _logger.warning(f"Could not fetch Telegram webhook info: {e}")
+            _logger.error(f"Could not register Telegram webhook at {webhook_url}: {e}")
+        keeper_task = asyncio.create_task(_telegram_webhook_keeper(webhook_url))
+
     yield
+
+    if keeper_task is not None:
+        keeper_task.cancel()
+        try:
+            await keeper_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
