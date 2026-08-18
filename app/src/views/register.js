@@ -60,7 +60,7 @@ export async function renderRegister(container, { navigate }) {
   `;
 
   const form = container.querySelector("#register-form");
-  const button = form.querySelector("button");
+  const button = form.querySelector('button[type="submit"]');
 
   attachPhoneSanitizer(form.querySelector('input[name="phone_number"]'));
   const emailInput = form.querySelector('input[name="email"]');
@@ -79,8 +79,8 @@ export async function renderRegister(container, { navigate }) {
       return;
     }
 
-    setLoading(button, true);
     try {
+      setLoading(button, true);
       await Api.register(data);
       renderConfirmEmail(container, data.email, navigate);
     } catch (error) {

@@ -31,14 +31,14 @@ export async function renderLogin(container, { navigate, refreshUser }) {
   `;
 
   const form = container.querySelector("#login-form");
-  const button = form.querySelector("button");
+  const button = form.querySelector('button[type="submit"]');
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form));
 
-    setLoading(button, true);
     try {
+      setLoading(button, true);
       const { access_token } = await Api.login(data);
       await setToken(access_token);
       await refreshUser();

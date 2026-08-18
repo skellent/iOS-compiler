@@ -2469,12 +2469,12 @@ async function renderLogin(container2, { navigate, refreshUser }) {
     </div>
   `;
   const form = container2.querySelector("#login-form");
-  const button = form.querySelector("button");
+  const button = form.querySelector('button[type="submit"]');
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form));
-    setLoading(button, true);
     try {
+      setLoading(button, true);
       const { access_token } = await Api.login(data);
       await setToken(access_token);
       await refreshUser();
@@ -2620,7 +2620,7 @@ async function renderRegister(container2, { navigate }) {
     </div>
   `;
   const form = container2.querySelector("#register-form");
-  const button = form.querySelector("button");
+  const button = form.querySelector('button[type="submit"]');
   attachPhoneSanitizer(form.querySelector('input[name="phone_number"]'));
   const emailInput = form.querySelector('input[name="email"]');
   form.querySelectorAll(".email-domain-chip").forEach((chip) => {
@@ -2635,8 +2635,8 @@ async function renderRegister(container2, { navigate }) {
       showToast(t("register.passwordMismatch"), "error");
       return;
     }
-    setLoading(button, true);
     try {
+      setLoading(button, true);
       await Api.register(data);
       renderConfirmEmail(container2, data.email, navigate);
     } catch (error) {
