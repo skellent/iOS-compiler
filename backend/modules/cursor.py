@@ -26,9 +26,9 @@ class Queries:
     # for the same user run one after the other instead of both seeing "3 contacts".
     # Locks that user's row only — other users are unaffected.
     LOCK_USER: str = "SELECT id FROM users WHERE id = %s FOR UPDATE;"
-    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked, whatsapp_enabled, whatsapp_confirmed FROM contacts WHERE user_id = %s;"
-    SELECT_CONTACT_BY_ID: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked, whatsapp_enabled, whatsapp_confirmed FROM contacts WHERE id = %s AND user_id = %s;"
-    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, telegram_chat_id, whatsapp_enabled, whatsapp_confirmed FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL OR (whatsapp_enabled = TRUE AND whatsapp_confirmed = TRUE));"
+    SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked, whatsapp_enabled, whatsapp_confirmed, sms_enabled FROM contacts WHERE user_id = %s;"
+    SELECT_CONTACT_BY_ID: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked, whatsapp_enabled, whatsapp_confirmed, sms_enabled FROM contacts WHERE id = %s AND user_id = %s;"
+    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, telegram_chat_id, whatsapp_enabled, whatsapp_confirmed, sms_enabled FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL OR (whatsapp_enabled = TRUE AND whatsapp_confirmed = TRUE) OR sms_enabled = TRUE);"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
     SELECT_CONTACT_ID_FOR_USER: str = "SELECT id FROM contacts WHERE id = %s AND user_id = %s;"
     # alert_notifications.contact_id is a FK with no ON DELETE CASCADE, so a contact
@@ -50,6 +50,8 @@ class Queries:
 
     SET_CONTACT_WHATSAPP_ENABLED: str = "UPDATE contacts SET whatsapp_enabled = TRUE WHERE id = %s AND user_id = %s;"
     CLEAR_CONTACT_WHATSAPP: str = "UPDATE contacts SET whatsapp_enabled = FALSE, whatsapp_confirmed = FALSE WHERE id = %s AND user_id = %s;"
+    SET_CONTACT_SMS_ENABLED: str = "UPDATE contacts SET sms_enabled = TRUE WHERE id = %s AND user_id = %s;"
+    CLEAR_CONTACT_SMS: str = "UPDATE contacts SET sms_enabled = FALSE WHERE id = %s AND user_id = %s;"
     SELECT_WHATSAPP_ENABLED_CONTACTS_BY_PHONE: str = (
         "SELECT contacts.id, contacts.name AS contact_name, contacts.whatsapp_confirmed, users.name AS user_name "
         "FROM contacts JOIN users ON users.id = contacts.user_id "

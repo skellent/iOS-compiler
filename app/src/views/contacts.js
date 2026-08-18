@@ -108,6 +108,13 @@ function renderContactRows(list, fab, contacts, features) {
                        aria-label="${contact.whatsapp_enabled && contact.whatsapp_confirmed ? t("contacts.whatsappLinked") : t("contacts.whatsappNotLinked")}">${Icon.whatsapp()}</span>`
               : ""
           }
+          ${
+            features.sms
+              ? `<span class="channel-icon channel-sms ${contact.sms_enabled ? "channel-active" : "channel-inactive"}"
+                       title="${contact.sms_enabled ? t("contacts.smsEnabled") : t("contacts.smsDisabled")}"
+                       aria-label="${contact.sms_enabled ? t("contacts.smsEnabled") : t("contacts.smsDisabled")}">${Icon.sms()}</span>`
+              : ""
+          }
         </span>
       </button>
     `
@@ -211,6 +218,15 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
           ? `<button type="button" class="btn btn-outline btn-block" id="whatsapp-toggle">
               ${Icon.whatsapp()}
               <span class="btn-label">${contact.whatsapp_enabled ? t("contacts.whatsappDisconnect") : t("contacts.whatsappConnect")}</span>
+              <span class="btn-spinner" hidden></span>
+            </button>`
+          : ""
+      }
+      ${
+        isEdit && features.sms
+          ? `<button type="button" class="btn btn-outline btn-block" id="sms-toggle">
+              ${Icon.sms()}
+              <span class="btn-label">${contact.sms_enabled ? t("contacts.smsDisable") : t("contacts.smsEnable")}</span>
               <span class="btn-spinner" hidden></span>
             </button>`
           : ""
@@ -346,6 +362,27 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
       } finally {
         setLoading(whatsappButton, false);
+      }
+    });
+
+    const smsButton = body.querySelector("#sms-toggle");
+    smsButton?.addEventListener("click", async () => {
+      setLoading(smsButton, true);
+      try {
+        if (contact.sms_enabled) {
+          await Api.disableContactSms(contact.id);
+          showToast(t("contacts.smsDisabledToast"), "success");
+        } else {
+          await Api.enableContactSms(contact.id);
+          showToast(t("contacts.smsEnabledToast"), "success");
+        }
+        close();
+        onSaved();
+      } catch (error) {
+        const fallbackKey = contact.sms_enabled ? "contacts.smsDisableError" : "contacts.smsEnableError";
+        showToast(error instanceof ApiError ? error.message : t(fallbackKey), "error");
+      } finally {
+        setLoading(smsButton, false);
       }
     });
 

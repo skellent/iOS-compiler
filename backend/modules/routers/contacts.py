@@ -308,3 +308,25 @@ def disable_contact_whatsapp(contact_id: int, user_id: int = Depends(current_use
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
     _logger.info(f"User {user_id} disabled WhatsApp for contact {contact_id}")
+
+
+@router.post("/{contact_id}/sms/enable", response_model=ContactPublic)
+def enable_contact_sms(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.SET_CONTACT_SMS_ENABLED, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
+    rows: list[dict] = cursor.execute(Queries.SELECT_CONTACT_BY_ID, (contact_id, user_id))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    _logger.info(f"User {user_id} enabled SMS for contact {contact_id}")
+    return rows[0]
+
+
+@router.delete("/{contact_id}/sms", status_code=204)
+def disable_contact_sms(contact_id: int, user_id: int = Depends(current_user)):
+    cursor.execute(Queries.CLEAR_CONTACT_SMS, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
+    _logger.info(f"User {user_id} disabled SMS for contact {contact_id}")

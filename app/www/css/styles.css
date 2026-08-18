@@ -1132,6 +1132,11 @@ button {
   box-shadow: 0 0 12px rgba(37, 211, 102, 0.5);
 }
 
+.channel-icon.channel-sms.channel-active {
+  background: #7c4dff;
+  box-shadow: 0 0 12px rgba(124, 77, 255, 0.5);
+}
+
 .contacts-empty {
   text-align: center;
   color: var(--text-500);

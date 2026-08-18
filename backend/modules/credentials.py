@@ -77,6 +77,12 @@ def get_credentials() -> dict:
             'enabled':      os.getenv("TWILIO_WHATSAPP_ENABLED", "true").strip().lower() not in ("false", "0", "no"),
             'validate_signature': os.getenv("TWILIO_VALIDATE_SIGNATURE", "true").strip().lower() not in ("false", "0", "no"),
         },
+        "sms": {
+            'account_sid': os.getenv("TWILIO_ACCOUNT_SID"),
+            'auth_token':  os.getenv("TWILIO_AUTH_TOKEN"),
+            'from':        os.getenv("TWILIO_SMS_FROM"),
+            'enabled':     os.getenv("TWILIO_SMS_ENABLED", "true").strip().lower() not in ("false", "0", "no"),
+        },
         "api_base_url": os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/"),
         "app_mode": os.getenv("APP_MODE", "Debug"),
         "log_level": os.getenv("LOG_LEVEL", "INFO"),

@@ -41,6 +41,29 @@ def _content_variables(context: dict) -> str:
     })
 
 
+def _build_message_data(sender: str, phone: str, template: str, context: dict) -> dict:
+    data: dict = {"From": sender, "To": _to_address(phone)}
+    if _credentials['template_sid']:
+        data["ContentSid"] = _credentials['template_sid']
+        data["ContentVariables"] = _content_variables(context)
+    else:
+        data["Body"] = _render(template, context)
+    return data
+
+
+def _log_twilio_error(template: str, phone: str, response) -> None:
+    code: int | None = None
+    try:
+        code = response.json().get("code")
+    except Exception:
+        pass
+    hint: str = ""
+    if code == 21654 and not _credentials['template_sid']:
+        hint = (" — the 24h freeform window is closed; set TWILIO_WHATSAPP_TEMPLATE_SID "
+                "to an approved WhatsApp template so alerts send at any time")
+    _logger.error(f"Twilio rejected '{template}' to {phone} [code={code}]: {response.text}{hint}")
+
+
 def is_configured() -> bool:
     return bool(_credentials['account_sid'] and _credentials['auth_token'] and _credentials['from'])
 
@@ -74,22 +97,16 @@ class WhatsApp:
 
         account_sid: str = _credentials['account_sid']
         sender: str = _credentials['from']
-        template_sid: str | None = _credentials['template_sid']
         url: str = f"{_API_BASE}/Accounts/{account_sid}/Messages.json"
 
         failed: list[str] = []
         async with httpx.AsyncClient(timeout=10, auth=(account_sid, _credentials['auth_token'])) as client:
             for phone, context in recipients:
-                data: dict = {"From": sender, "To": _to_address(phone)}
-                if template_sid:
-                    data["ContentSid"] = template_sid
-                    data["ContentVariables"] = _content_variables(context)
-                else:
-                    data["Body"] = _render(template, context)
+                data: dict = _build_message_data(sender, phone, template, context)
                 try:
                     response = await client.post(url, data=data)
                     if response.status_code not in (200, 201):
-                        _logger.error(f"Twilio rejected '{template}' to {phone}: {response.text}")
+                        _log_twilio_error(template, phone, response)
                         failed.append(phone)
                 except httpx.HTTPError as e:
                     _logger.error(f"Could not reach Twilio for {phone}: {e}")

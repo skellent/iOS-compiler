@@ -25,6 +25,9 @@ TWILIO_WHATSAPP_TEMPLATE_SID=''
 TWILIO_WHATSAPP_ENABLED='true'
 # Set to false only for local development where Twilio can't sign the webhook.
 TWILIO_VALIDATE_SIGNATURE='true'
+TWILIO_SMS_FROM=''
+# Set to false in local development to log outgoing SMS instead of sending them.
+TWILIO_SMS_ENABLED='true'
 API_BASE_URL='http://127.0.0.1:8000'
 APP_MODE='Debug'
 LOG_LEVEL='INFO'
