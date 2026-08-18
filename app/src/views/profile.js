@@ -35,6 +35,11 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
           <span>${t("profile.newPassword")}</span>
           <input type="password" name="password" autocomplete="new-password" placeholder="${t("profile.newPasswordPlaceholder")}" />
         </label>
+        <label class="field">
+          <span>${t("profile.currentPassword")}</span>
+          <input type="password" name="current_password" autocomplete="current-password" placeholder="${t("profile.currentPasswordPlaceholder")}" />
+          <small class="field-hint">${t("profile.currentPasswordHint")}</small>
+        </label>
         <button type="submit" class="btn btn-primary btn-block">
           <span class="btn-label">${t("profile.save")}</span>
           <span class="btn-spinner" hidden></span>
@@ -139,11 +144,24 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
       return;
     }
 
+    // Changing email or password requires re-entering the current password, which
+    // the backend verifies. Ask up front rather than round-tripping to a 400.
+    const sensitive = "email" in changes || "password" in changes;
+    if (sensitive) {
+      if (!data.current_password) {
+        shake(form);
+        showToast(t("profile.currentPasswordRequired"), "error");
+        return;
+      }
+      changes.current_password = data.current_password;
+    }
+
     setLoading(button, true);
     try {
       await Api.updateMe(changes);
       await refreshUser();
       form.querySelector("input[name=password]").value = "";
+      form.querySelector("input[name=current_password]").value = "";
       showToast(t("profile.updated"), "success");
     } catch (error) {
       shake(form);

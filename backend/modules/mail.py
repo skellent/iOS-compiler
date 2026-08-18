@@ -38,6 +38,10 @@ class Mail:
     async def Send(recipient: str, subject: str, template: str, context: dict) -> None:
         message: EmailMessage = _build_message(recipient, subject, template, context)
 
+        if not _credentials['enabled']:
+            _logger.info(f"[mail dry-run] would send '{template}' to {recipient}")
+            return
+
         try:
             await aiosmtplib.send(
                 message,
@@ -55,6 +59,11 @@ class Mail:
     @staticmethod
     async def SendBulk(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
         failed: list[str] = []
+
+        if not _credentials['enabled']:
+            for recipient, _ in recipients:
+                _logger.info(f"[mail dry-run] would send '{template}' to {recipient}")
+            return
 
         try:
             async with aiosmtplib.SMTP(

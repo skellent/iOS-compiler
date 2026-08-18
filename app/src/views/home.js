@@ -45,7 +45,11 @@ export async function renderHome(container, { getUser }) {
   const status = container.querySelector("#panic-status");
   const statusChip = container.querySelector("#home-status-chip");
 
-  loadStatusChip(statusChip);
+  // null = not yet known / lookup failed. Only a hard 0 blocks the alert; if we
+  // can't determine it, we let the panic through — never block a panic on a failed
+  // background check.
+  let notifiableCount = null;
+  loadStatusChip(statusChip, (count) => { notifiableCount = count; });
 
   let holding = false;
   let busy = false;
@@ -87,6 +91,17 @@ export async function renderHome(container, { getUser }) {
   }
 
   async function sendAlert() {
+    // If we positively know there's nobody to notify, don't fire into the void —
+    // tell the user to confirm a contact first. Unknown count (null) still proceeds.
+    if (notifiableCount === 0) {
+      btn.classList.remove("panic-btn-holding");
+      setRingProgress(0);
+      status.textContent = t("home.idle");
+      showToast(t("home.noContacts"), "error");
+      shake(btn);
+      return;
+    }
+
     busy = true;
     btn.classList.remove("panic-btn-holding");
     btn.classList.add("panic-btn-busy");
@@ -146,15 +161,19 @@ export async function renderHome(container, { getUser }) {
   btn.addEventListener("pointerleave", resetTilt);
 }
 
-async function loadStatusChip(chip) {
+async function loadStatusChip(chip, onCount) {
   try {
     const contacts = await Api.listContacts();
-    const confirmedCount = contacts.filter((contact) => contact.confirmed).length;
+    // A contact is reachable by email (confirmed) OR by Telegram — matches the
+    // backend's own "who gets notified" rule, so the count doesn't understate it.
+    const notifiable = contacts.filter((contact) => contact.confirmed || contact.telegram_linked).length;
+    onCount(notifiable);
     chip.innerHTML =
-      confirmedCount > 0
-        ? `${Icon.contacts()} ${t(confirmedCount === 1 ? "home.statusReady" : "home.statusReadyPlural", { count: confirmedCount })}`
+      notifiable > 0
+        ? `${Icon.contacts()} ${t(notifiable === 1 ? "home.statusReady" : "home.statusReadyPlural", { count: notifiable })}`
         : `${Icon.contacts()} ${t("home.statusNone")}`;
     chip.classList.add("home-status-visible");
   } catch {
+    // Leave the count unknown so the panic button still works if this lookup failed.
   }
 }

@@ -4,6 +4,7 @@ from fastapi.responses  import HTMLResponse
 from modules.cursor       import Queries, DuplicateRecordError
 from modules.credentials  import get_credentials
 from modules.db           import cursor
+from modules.email_check  import UndeliverableEmailError, assert_deliverable
 from modules.guard        import Guard
 from modules.limiter      import limiter
 from modules.logs         import get_logger
@@ -21,6 +22,14 @@ _logger = get_logger(__name__)
 @router.post("/register", status_code=201)
 @limiter.limit("5/hour")
 def register(request: Request, data: User, background_tasks: BackgroundTasks):
+    # Reject an address whose domain can't receive mail before creating the account,
+    # so a typo'd email doesn't leave a user stuck with an account they can never
+    # confirm and can never re-register (the email UNIQUE constraint would block them).
+    try:
+        assert_deliverable(data.email)
+    except UndeliverableEmailError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
     password_hash: str = Guard.Hash(data.password)
     try:
         cursor.execute(Queries.INSERT_USER, (

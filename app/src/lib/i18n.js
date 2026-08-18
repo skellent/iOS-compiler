@@ -69,6 +69,7 @@ const STRINGS = {
     "home.statusReady": "{count} contact ready to be alerted",
     "home.statusReadyPlural": "{count} contacts ready to be alerted",
     "home.statusNone": "No confirmed contacts yet",
+    "home.noContacts": "No confirmed contacts yet — add and confirm a contact before sending an alert.",
 
     "contacts.empty":
       "No emergency contacts yet. Tap the + button to add someone who should be notified when you trigger a panic alert.",
@@ -112,6 +113,10 @@ const STRINGS = {
     "profile.email": "Email",
     "profile.newPassword": "New password (optional)",
     "profile.newPasswordPlaceholder": "Leave blank to keep current password",
+    "profile.currentPassword": "Current password",
+    "profile.currentPasswordPlaceholder": "Enter to change email or password",
+    "profile.currentPasswordHint": "Required only when changing your email or password.",
+    "profile.currentPasswordRequired": "Enter your current password to change your email or password.",
     "profile.save": "Save Changes",
     "profile.logout": "Log Out",
     "profile.noChanges": "No changes to save.",
@@ -201,6 +206,7 @@ const STRINGS = {
     "home.statusReady": "{count} contacto listo para ser alertado",
     "home.statusReadyPlural": "{count} contactos listos para ser alertados",
     "home.statusNone": "Aún no tienes contactos confirmados",
+    "home.noContacts": "Aún no tienes contactos confirmados — agrega y confirma un contacto antes de enviar una alerta.",
 
     "contacts.empty":
       "Todavía no tienes contactos de emergencia. Toca el botón + para agregar a alguien que deba ser notificado cuando actives una alerta de pánico.",
@@ -244,6 +250,10 @@ const STRINGS = {
     "profile.email": "Correo electrónico",
     "profile.newPassword": "Nueva contraseña (opcional)",
     "profile.newPasswordPlaceholder": "Déjalo en blanco para mantener tu contraseña actual",
+    "profile.currentPassword": "Contraseña actual",
+    "profile.currentPasswordPlaceholder": "Introdúcela para cambiar correo o contraseña",
+    "profile.currentPasswordHint": "Solo se necesita al cambiar tu correo o contraseña.",
+    "profile.currentPasswordRequired": "Introduce tu contraseña actual para cambiar tu correo o contraseña.",
     "profile.save": "Guardar Cambios",
     "profile.logout": "Cerrar Sesión",
     "profile.noChanges": "No hay cambios que guardar.",

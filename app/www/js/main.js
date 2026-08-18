@@ -863,6 +863,7 @@ var STRINGS = {
     "home.statusReady": "{count} contact ready to be alerted",
     "home.statusReadyPlural": "{count} contacts ready to be alerted",
     "home.statusNone": "No confirmed contacts yet",
+    "home.noContacts": "No confirmed contacts yet — add and confirm a contact before sending an alert.",
     "contacts.empty": "No emergency contacts yet. Tap the + button to add someone who should be notified when you trigger a panic alert.",
     "contacts.loadError": "Couldn't load your contacts. Pull down or reopen this tab to try again.",
     "contacts.loadErrorToast": "Couldn't load contacts.",
@@ -901,6 +902,10 @@ var STRINGS = {
     "profile.email": "Email",
     "profile.newPassword": "New password (optional)",
     "profile.newPasswordPlaceholder": "Leave blank to keep current password",
+    "profile.currentPassword": "Current password",
+    "profile.currentPasswordPlaceholder": "Enter to change email or password",
+    "profile.currentPasswordHint": "Required only when changing your email or password.",
+    "profile.currentPasswordRequired": "Enter your current password to change your email or password.",
     "profile.save": "Save Changes",
     "profile.logout": "Log Out",
     "profile.noChanges": "No changes to save.",
@@ -974,6 +979,7 @@ var STRINGS = {
     "home.statusReady": "{count} contacto listo para ser alertado",
     "home.statusReadyPlural": "{count} contactos listos para ser alertados",
     "home.statusNone": "Aún no tienes contactos confirmados",
+    "home.noContacts": "Aún no tienes contactos confirmados — agrega y confirma un contacto antes de enviar una alerta.",
     "contacts.empty": "Todavía no tienes contactos de emergencia. Toca el botón + para agregar a alguien que deba ser notificado cuando actives una alerta de pánico.",
     "contacts.loadError": "No se pudieron cargar tus contactos. Vuelve a intentarlo reabriendo esta pestaña.",
     "contacts.loadErrorToast": "No se pudieron cargar los contactos.",
@@ -1012,6 +1018,10 @@ var STRINGS = {
     "profile.email": "Correo electrónico",
     "profile.newPassword": "Nueva contraseña (opcional)",
     "profile.newPasswordPlaceholder": "Déjalo en blanco para mantener tu contraseña actual",
+    "profile.currentPassword": "Contraseña actual",
+    "profile.currentPasswordPlaceholder": "Introdúcela para cambiar correo o contraseña",
+    "profile.currentPasswordHint": "Solo se necesita al cambiar tu correo o contraseña.",
+    "profile.currentPasswordRequired": "Introduce tu contraseña actual para cambiar tu correo o contraseña.",
     "profile.save": "Guardar Cambios",
     "profile.logout": "Cerrar Sesión",
     "profile.noChanges": "No hay cambios que guardar.",
@@ -2758,7 +2768,10 @@ async function renderHome(container2, { getUser: getUser2 }) {
   const check = container2.querySelector("#panic-check");
   const status = container2.querySelector("#panic-status");
   const statusChip = container2.querySelector("#home-status-chip");
-  loadStatusChip(statusChip);
+  let notifiableCount = null;
+  loadStatusChip(statusChip, (count) => {
+    notifiableCount = count;
+  });
   let holding = false;
   let busy = false;
   let holdStart = 0;
@@ -2797,6 +2810,14 @@ async function renderHome(container2, { getUser: getUser2 }) {
     status.textContent = t("home.idle");
   }
   async function sendAlert() {
+    if (notifiableCount === 0) {
+      btn.classList.remove("panic-btn-holding");
+      setRingProgress(0);
+      status.textContent = t("home.idle");
+      showToast(t("home.noContacts"), "error");
+      shake(btn);
+      return;
+    }
     busy = true;
     btn.classList.remove("panic-btn-holding");
     btn.classList.add("panic-btn-busy");
@@ -2848,11 +2869,12 @@ async function renderHome(container2, { getUser: getUser2 }) {
   btn.addEventListener("pointermove", applyTilt);
   btn.addEventListener("pointerleave", resetTilt);
 }
-async function loadStatusChip(chip) {
+async function loadStatusChip(chip, onCount) {
   try {
     const contacts = await Api.listContacts();
-    const confirmedCount = contacts.filter((contact) => contact.confirmed).length;
-    chip.innerHTML = confirmedCount > 0 ? `${Icon.contacts()} ${t(confirmedCount === 1 ? "home.statusReady" : "home.statusReadyPlural", { count: confirmedCount })}` : `${Icon.contacts()} ${t("home.statusNone")}`;
+    const notifiable = contacts.filter((contact) => contact.confirmed || contact.telegram_linked).length;
+    onCount(notifiable);
+    chip.innerHTML = notifiable > 0 ? `${Icon.contacts()} ${t(notifiable === 1 ? "home.statusReady" : "home.statusReadyPlural", { count: notifiable })}` : `${Icon.contacts()} ${t("home.statusNone")}`;
     chip.classList.add("home-status-visible");
   } catch {}
 }
@@ -3230,6 +3252,11 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
           <span>${t("profile.newPassword")}</span>
           <input type="password" name="password" autocomplete="new-password" placeholder="${t("profile.newPasswordPlaceholder")}" />
         </label>
+        <label class="field">
+          <span>${t("profile.currentPassword")}</span>
+          <input type="password" name="current_password" autocomplete="current-password" placeholder="${t("profile.currentPasswordPlaceholder")}" />
+          <small class="field-hint">${t("profile.currentPasswordHint")}</small>
+        </label>
         <button type="submit" class="btn btn-primary btn-block">
           <span class="btn-label">${t("profile.save")}</span>
           <span class="btn-spinner" hidden></span>
@@ -3324,11 +3351,21 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
       showToast(t("profile.noChanges"), "info");
       return;
     }
+    const sensitive = "email" in changes || "password" in changes;
+    if (sensitive) {
+      if (!data.current_password) {
+        shake(form);
+        showToast(t("profile.currentPasswordRequired"), "error");
+        return;
+      }
+      changes.current_password = data.current_password;
+    }
     setLoading(button, true);
     try {
       await Api.updateMe(changes);
       await refreshUser();
       form.querySelector("input[name=password]").value = "";
+      form.querySelector("input[name=current_password]").value = "";
       showToast(t("profile.updated"), "success");
     } catch (error) {
       shake(form);

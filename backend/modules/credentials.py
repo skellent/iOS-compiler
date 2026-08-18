@@ -56,6 +56,12 @@ def get_credentials() -> dict:
             'host':     os.getenv("SMTP_HOST", "smtp.gmail.com"),
             'port':     _as_int("SMTP_PORT", 587),
             'from':     os.getenv("SMTP_FROM", os.getenv("SMTP_USER")),
+            # Set MAIL_ENABLED=false to log outgoing mail instead of sending it —
+            # for local development against a live SMTP account without spamming.
+            'enabled':  os.getenv("MAIL_ENABLED", "true").strip().lower() not in ("false", "0", "no"),
+            # Verify the recipient's domain can actually receive mail (MX/A lookup)
+            # before accepting an address. Off for offline dev where DNS may fail.
+            'verify_deliverability': os.getenv("MAIL_VERIFY_DELIVERABILITY", "true").strip().lower() not in ("false", "0", "no"),
         },
         "telegram": {
             'bot_token':      os.getenv("TELEGRAM_BOT_TOKEN"),

@@ -8,6 +8,7 @@ from modules.credentials  import get_credentials
 from modules.cursor       import Queries, DuplicateRecordError
 from modules.db           import cursor
 from modules.dependencies import current_user
+from modules.email_check  import UndeliverableEmailError, assert_deliverable
 from modules.logs         import get_logger
 from modules.pages        import Pages
 from modules.telegram     import LINK_EXPIRATION
@@ -30,8 +31,38 @@ _COLUMN_BY_FIELD: dict[str, str] = {
 }
 
 
+def _verify_email(email: str) -> None:
+    try:
+        assert_deliverable(email)
+    except UndeliverableEmailError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+def _queue_contact_confirmation(background_tasks, user_id: int, contact_id: int,
+                                contact_name: str, email: str) -> None:
+    """Send (or re-send) the confirmation email for a contact."""
+    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
+    if not rows:
+        return
+    token: str = Token.CreateContactConfirmation(contact_id)
+    background_tasks.add_task(
+        Mail.Send,
+        email,
+        "Confirm that you are an emergency contact",
+        "contact_confirmation",
+        {
+            "contact_name":     contact_name,
+            "user_name":        rows[0]["name"],
+            "confirmation_url": f"{_URL_BASE}/contacts/confirm/{token}",
+        },
+    )
+
+
 @router.post("", status_code=201, response_model=ContactPublic)
 def create_contact(data: Contact, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
+    if data.email:
+        _verify_email(data.email)
+
     # Count and insert happen inside one transaction, behind a row lock on this
     # user, so two concurrent requests can't both read "3 contacts" and both write.
     with cursor.transaction():
@@ -54,20 +85,7 @@ def create_contact(data: Contact, background_tasks: BackgroundTasks, user_id: in
     _logger.info(f"User {user_id} added contact {contact_id}")
 
     if data.email:
-        rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
-        if rows:
-            token: str = Token.CreateContactConfirmation(contact_id)
-            background_tasks.add_task(
-                Mail.Send,
-                data.email,
-                "Confirm that you are an emergency contact",
-                "contact_confirmation",
-                {
-                    "contact_name":     data.name,
-                    "user_name":        rows[0]["name"],
-                    "confirmation_url": f"{_URL_BASE}/contacts/confirm/{token}",
-                },
-            )
+        _queue_contact_confirmation(background_tasks, user_id, contact_id, data.name, data.email)
 
     created: list[dict] = cursor.execute(Queries.SELECT_CONTACT_BY_ID, (contact_id, user_id))
     return created[0]
@@ -113,15 +131,34 @@ def confirm_contact(token: str):
 
 
 @router.put("/{contact_id}", response_model=ContactPublic)
-def update_contact(contact_id: int, data: ContactUpdate, user_id: int = Depends(current_user)):
+def update_contact(contact_id: int, data: ContactUpdate, background_tasks: BackgroundTasks,
+                   user_id: int = Depends(current_user)):
     fields: dict = data.model_dump(exclude_none=True)
     if not fields:
         raise HTTPException(status_code=400, detail="No fields were provided to update")
 
+    # Find out whether the email is actually changing. If it is, the contact must
+    # re-confirm the new address — otherwise correcting a typo'd email would leave
+    # the contact "confirmed" against an address that never received anything, and
+    # they'd silently never be reachable. Fixes the reported case.
+    existing: list[dict] = cursor.execute(
+        "SELECT name, email FROM contacts WHERE id = %s AND user_id = %s;", (contact_id, user_id))
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    email_changed: bool = "email" in fields and fields["email"] != existing[0]["email"]
+    if email_changed:
+        _verify_email(fields["email"])
+
     # Column names come from a fixed map rather than straight from the payload keys,
     # matching users.py — Pydantic already constrains them, this makes it structural.
-    set_clause: str = ", ".join(f"{_COLUMN_BY_FIELD[field]} = %s" for field in fields)
-    values: tuple = tuple(str(value) for value in fields.values()) + (contact_id, user_id)
+    assignments: list[str] = [f"{_COLUMN_BY_FIELD[field]} = %s" for field in fields]
+    params: list = [str(value) for value in fields.values()]
+    if email_changed:
+        # A new address is unverified until its owner clicks the fresh link.
+        assignments.append("confirmed = FALSE")
+    set_clause: str = ", ".join(assignments)
+    values: tuple = tuple(params) + (contact_id, user_id)
 
     try:
         cursor.execute(f"UPDATE contacts SET {set_clause} WHERE id = %s AND user_id = %s;", values)
@@ -131,6 +168,11 @@ def update_contact(contact_id: int, data: ContactUpdate, user_id: int = Depends(
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail="Contact not found")
     cursor.commit()
+
+    if email_changed:
+        new_name: str = fields.get("name", existing[0]["name"])
+        _queue_contact_confirmation(background_tasks, user_id, contact_id, new_name, fields["email"])
+        _logger.info(f"Contact {contact_id} email changed; confirmation reset and re-sent")
 
     rows: list[dict] = cursor.execute(Queries.SELECT_CONTACT_BY_ID, (contact_id, user_id))
     if not rows:

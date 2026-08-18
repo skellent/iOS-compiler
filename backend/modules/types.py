@@ -41,6 +41,9 @@ class UserUpdate(BaseModel):
     phone:    str | None = Field(default=None, pattern=PHONE_PATTERN)
     email:    EmailStr | None = None
     password: str | None = Field(default=None, min_length=MIN_PASSWORD_LENGTH, max_length=MAX_PASSWORD_LENGTH)
+    # Required by the API only when changing email or password (re-authentication);
+    # ignored for name/phone edits.
+    current_password: str | None = None
 
     _clean_name = field_validator("name", mode="before")(_strip)
     _clean_phone = field_validator("phone", mode="before")(_strip)
