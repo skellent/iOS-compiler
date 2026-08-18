@@ -19,8 +19,10 @@ flowchart TD
     auth & users & contacts & alerts --> deps["dependencies.py\ncurrent_user"]
     deps --> token["token.py\nToken"]
     auth & users --> guard["guard.py\nGuard"]
+    auth & alerts --> limiter["limiter.py\nrate limits"]
     auth & users & contacts & alerts --> db["db.py / cursor.py\nCursor, Queries"]
     auth & contacts & alerts --> mail["mail.py\nMail"]
+    auth & users & contacts --> emailcheck["email_check.py\nassert_deliverable()"]
     alerts & contacts & telegramR --> telegram["telegram.py\nTelegram"]
     auth & contacts & alerts --> pages["pages.py\nPages.Render"]
     db --> credentials["credentials.py\nget_credentials()"]
@@ -70,6 +72,13 @@ app.add_middleware(
 )
 ```
 
+## Middleware: rate limiting, request context, security headers
+
+Beyond CORS, `main.py` wires two more middleware layers around every request:
+
+- **Rate limiting** (`slowapi`) caps `POST /auth/register`, `POST /auth/login` and `POST /alerts`; over the limit the request gets a `429` before its handler runs. Login and register are keyed by client address, `POST /alerts` by user id. See [`operations.md`](operations.md).
+- **Request context** assigns each request a short id, held in a `ContextVar` so every log line from that request — and the background tasks it spawns — carries it (see [`operations.md`](operations.md)). The same middleware sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy` on every response, and turns an unhandled exception into a clean `500` rather than leaking a traceback.
+
 ## `APP_MODE`: toggling the automatic docs
 
 ```python
@@ -85,11 +94,12 @@ app = FastAPI(
 
 `APP_MODE=Deploy` doesn't just hide `/docs`/`/redoc`/`/openapi.json` — passing `None` means FastAPI never registers those routes, so they return a plain `404`. Any other value (including unset, the default) leaves them enabled. Production should set `Deploy` so the API's full surface isn't exposed to anyone who can reach it.
 
-## Startup: registering the Telegram webhook
+## Startup: verifying the database and registering the Telegram webhook
 
 ```python
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    cursor.verify()  # fail the boot if the database is unreachable
     if _credentials['telegram']['bot_token']:
         try:
             await Telegram.SetWebhook(f"{_credentials['api_base_url']}/telegram/webhook")
@@ -98,7 +108,9 @@ async def _lifespan(app: FastAPI):
     yield
 ```
 
-Best-effort and non-blocking: a deployment with no Telegram bot configured still boots normally, just without that feature. This also means `API_BASE_URL` must be a real, publicly reachable `https://` URL for the registration to actually succeed — Telegram can't call back to `127.0.0.1`, so in local development this step logs an error and does nothing further, harmlessly (see [`notifications.md`](notifications.md)).
+The database is checked first: `cursor.verify()` opens a connection eagerly, so a misconfigured or unreachable database fails the boot immediately instead of surfacing on the first request that needs a row.
+
+Registering the webhook is best-effort and non-blocking by contrast: a deployment with no Telegram bot configured still boots normally, just without that feature. This also means `API_BASE_URL` must be a real, publicly reachable `https://` URL for the registration to actually succeed — Telegram can't call back to `127.0.0.1`, so in local development this step logs an error and does nothing further, harmlessly (see [`notifications.md`](notifications.md)).
 
 ## `/static` and `/app`: two unrelated static mounts
 

@@ -15,7 +15,7 @@ Quick reference for every route. Full request/response bodies and Python/JavaScr
 | Method & path | Auth | Purpose |
 |---|---|---|
 | `GET /users/me` | 🔒 | Current user's profile |
-| `PUT /users/me` | 🔒 | Partial update (name/phone/email/password) |
+| `PUT /users/me` | 🔒 | Partial update (name/phone/email/password) — changing email or password also requires `current_password` (see [`auth.md`](auth.md)) |
 
 ## `/contacts`
 
@@ -24,7 +24,8 @@ Quick reference for every route. Full request/response bodies and Python/JavaScr
 | `POST /contacts` | 🔒 | Add an emergency contact (max 4), emails a confirmation link if it has an email |
 | `GET /contacts` | 🔒 | List the current user's contacts, with `confirmed`/`telegram_linked` flags |
 | `GET /contacts/confirm/{token}` | — | Confirm a contact from the emailed link (HTML page) |
-| `PUT /contacts/{id}` | 🔒 | Partial update |
+| `PUT /contacts/{id}` | 🔒 | Partial update — changing the email re-sends confirmation and marks the contact unconfirmed again |
+| `POST /contacts/{id}/confirm/resend` | 🔒 | Re-send the confirmation email to an unconfirmed contact |
 | `DELETE /contacts/{id}` | 🔒 | Remove a contact |
 | `POST /contacts/{id}/telegram/enable` | 🔒 | Start a Telegram link (see [`notifications.md`](notifications.md)) |
 | `DELETE /contacts/{id}/telegram` | 🔒 | Unlink Telegram from a contact |
@@ -47,7 +48,15 @@ Quick reference for every route. Full request/response bodies and Python/JavaScr
 
 | Method & path | Auth | Purpose |
 |---|---|---|
-| `GET /features` | — | `{"telegram": bool}` — whether this deployment has a Telegram bot configured |
+| `GET /features` | — | `{"telegram": bool, "max_contacts": int}` — whether this deployment has a Telegram bot configured, and the emergency-contact cap the app should honour |
+
+## `/health`
+
+| Method & path | Auth | Purpose |
+|---|---|---|
+| `GET /health` | — | Liveness plus database reachability (`200` healthy, `503` if the database can't be reached) — for a process supervisor or uptime check |
+
+Registration, login and the panic alert are rate-limited per client; exceeding the limit returns `429`. See [`operations.md`](operations.md).
 
 ## Web pages (not JSON)
 

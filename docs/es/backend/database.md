@@ -53,21 +53,23 @@ erDiagram
 - **`contacts.confirmed`** y **`contacts.telegram_chat_id`** son dos canales de notificación independientes para el mismo contacto — una alerta de pánico los alcanza por el que esté activo (o ambos). `telegram_link_token`/`telegram_link_expires_at` son estado de un solo uso y con vencimiento para el enlace de vinculación (ver [`notifications.md`](notifications.md)); se limpian de vuelta a `NULL` una vez vinculado.
 - **`alert_notifications`** es una fila por `(alerta, contacto, canal)` — un contacto confirmado por email y por Telegram genera dos filas para la misma alerta. `viewed_at` se marca la primera vez que se abre ese enlace específico, que es cómo el dashboard muestra confirmación de entrega por contacto y por canal.
 
-## `Cursor`: una sola conexión, viva durante toda la vida del proceso
+## `Cursor`: una conexión por hilo
+
+FastAPI ejecuta las rutas `def` en un pool de hilos, así que puede haber varias peticiones a la vez. Cada hilo obtiene su propia conexión y cursor de MariaDB, creados en el primer uso y conservados para ese hilo — de modo que `cursor.execute(...)` seguido de `cursor.lastrowid` o `cursor.rowcount` siempre describe la sentencia que *este* hilo acaba de ejecutar, nunca la de otra petición. Las conexiones se guardan en `threading.local()`; el objeto `cursor` compartido que cada módulo importa es solo el despachador frente a ellas.
 
 ```python
 class Cursor:
-    def __init__(self, username, password, host, port, database):
-        self.conn = mariadb.connect(..., client_flag=CLIENT.FOUND_ROWS, autocommit=True)
-        self.cursor = self.conn.cursor(dictionary=True)
+    def _open(self):
+        conn = mariadb.connect(..., client_flag=CLIENT.FOUND_ROWS, autocommit=True)
+        return _Connection(conn, conn.cursor(dictionary=True))
 ```
 
 Dos flags de conexión no default, ambos corrigiendo bugs reales encontrados en producción:
 
 - **`CLIENT.FOUND_ROWS`** — sin esto, un `UPDATE` que encuentra una fila pero no cambia su valor reporta `rowcount = 0`, indistinguible de "ninguna fila coincidió". Cada verificación de existencia/pertenencia en este código (`if cursor.rowcount == 0: raise 404`) depende de que `rowcount` signifique "filas encontradas", no "filas modificadas" — un enlace de confirmación clickeado dos veces, o una edición que reenvía el mismo valor, no debe dar 404.
-- **`autocommit = True`** — cada escritura ya llama a `cursor.commit()` explícitamente; esto es un respaldo para que una escritura suelta en un camino que se olvida de hacerlo (o un simple `SELECT`, que igual abre una transacción bajo el nivel de aislamiento default de MariaDB) no deje una fila bloqueada indefinidamente en esta única conexión compartida.
+- **`autocommit = True`** — cada escritura ya llama a `cursor.commit()` explícitamente; esto es un respaldo para que una escritura suelta en un camino que se olvida de hacerlo (o un simple `SELECT`, que igual abre una transacción bajo el nivel de aislamiento default de MariaDB) no deje una fila bloqueada. Para los pocos lugares que deben leer y luego escribir de forma atómica, `cursor.transaction()` abre una transacción explícita en la conexión del hilo que llama — usada para hacer cumplir el tope de contactos de emergencia bajo un bloqueo de fila, de modo que dos altas simultáneas no puedan ambas saltarse el límite.
 
-`execute()` reintenta una vez ante `mariadb.InterfaceError` (el clásico "MariaDB server has gone away" de una conexión inactiva cerrada del lado del servidor tras `wait_timeout`) reconectando y reejecutando la query — como el proceso mantiene una sola conexión durante toda su vida en vez de usar un pool, esto es lo que evita que un backend inactivo toda la noche necesite un reinicio manual. Un `mariadb.IntegrityError` (violación de una restricción `UNIQUE` — teléfono/email duplicado, etc.) se traduce a `DuplicateRecordError`, que los routers capturan y convierten en un `409`.
+`execute()` reintenta una vez ante `mariadb.InterfaceError` (el clásico "MariaDB server has gone away" de una conexión inactiva cerrada del lado del servidor tras `wait_timeout`) reconectando y reejecutando la query, así un backend inactivo toda la noche se recupera en la siguiente petición en vez de necesitar un reinicio manual. Un `mariadb.IntegrityError` (violación de una restricción `UNIQUE` — teléfono/email duplicado, etc.) se traduce a `DuplicateRecordError`, que los routers capturan y convierten en un `409`. Al arrancar, `main.py` abre una conexión de inmediato (`cursor.verify()`) para que una base de datos mal configurada o inalcanzable haga fallar el arranque de forma ruidosa en vez de en la primera petición.
 
 ## `Queries`: todo el SQL, en un solo lugar
 

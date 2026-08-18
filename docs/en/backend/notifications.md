@@ -12,6 +12,8 @@ await Mail.SendBulk(subject, template, [(email, context), ...])
 
 A failure for one recipient inside `SendBulk` is logged and collected, not raised immediately — only after the whole batch does it raise `MailNotSentError` listing who failed, so one bad address doesn't stop the rest from being sent.
 
+When `SMTP_ENABLED` is off (see [`operations.md`](operations.md)) both `Send` and `SendBulk` log what they *would* have sent and return without opening a connection — for local development against a real SMTP account without delivering anything.
+
 ## `Telegram`
 
 HTTP calls to the Telegram Bot API (`httpx`), templates under `templates/telegram/*.txt.j2` (plain text only — Telegram has no HTML-email equivalent). Same `Send`/`SendBulk` shape as `Mail`, plus `SetWebhook` (called once at startup, see [`architecture.md`](architecture.md)).
@@ -74,6 +76,16 @@ sequenceDiagram
 ```
 
 A contact added *without* an email skips this step entirely — it only becomes eligible for alerts via Telegram instead.
+
+Editing a contact's email address (`PUT /contacts/{id}`) starts this flow over: the contact is marked unconfirmed again and a fresh confirmation email goes to the new address. Correcting a mistyped address therefore re-verifies it, rather than leaving the contact "confirmed" against an address that never actually received anything. `POST /contacts/{id}/confirm/resend` sends the same email again without any edit, for when the first one was lost — it applies only to a contact that has an email and hasn't confirmed yet.
+
+## Verifying an address can receive mail
+
+Before any address is accepted — a new account (`POST /auth/register`), a contact with an email, or an email change on either — its domain is checked for a mail server (an MX or A record). A typo like `gmial.com` or an invented domain is rejected with a `422` at that point, so the system never creates a record whose confirmation email could only ever bounce. This confirms the domain can receive mail, not that the specific mailbox exists; the confirmation link is still what proves the address is real and belongs to the right person. The check can be turned off (`SMTP_VERIFY_DELIVERABILITY`, see [`operations.md`](operations.md)) for offline development.
+
+## Account-change notifications
+
+Changing the account's email or password (see [`auth.md`](auth.md)) emails a security notice — the `security_alert` template — to the address on file *before* the change. If an email address is swapped, the previous owner still hears about it, so an account takeover can't happen silently.
 
 ## Telegram linking
 

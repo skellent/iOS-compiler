@@ -12,6 +12,8 @@ await Mail.SendBulk(subject, template, [(email, context), ...])
 
 Una falla para un destinatario dentro de `SendBulk` se registra en el log y se acumula, no se lanza de inmediato — solo después de todo el lote lanza `MailNotSentError` listando quién falló, así una dirección mala no detiene el envío al resto.
 
+Cuando `SMTP_ENABLED` está desactivado (ver [`operations.md`](operations.md)), tanto `Send` como `SendBulk` registran lo que *habrían* enviado y retornan sin abrir conexión — para desarrollo local contra una cuenta SMTP real sin entregar nada.
+
 ## `Telegram`
 
 Llamadas HTTP a la API de Bots de Telegram (`httpx`), plantillas bajo `templates/telegram/*.txt.j2` (solo texto plano — Telegram no tiene equivalente a un correo HTML). Misma forma `Send`/`SendBulk` que `Mail`, más `SetWebhook` (llamado una vez al arrancar, ver [`architecture.md`](architecture.md)).
@@ -74,6 +76,16 @@ sequenceDiagram
 ```
 
 Un contacto agregado *sin* email se salta este paso por completo — solo queda habilitado para alertas vía Telegram.
+
+Editar la dirección de email de un contacto (`PUT /contacts/{id}`) reinicia este flujo: el contacto vuelve a marcarse como no confirmado y sale un nuevo correo de confirmación a la nueva dirección. Corregir una dirección mal escrita, por tanto, la vuelve a verificar, en vez de dejar el contacto "confirmado" contra una dirección que en realidad nunca recibió nada. `POST /contacts/{id}/confirm/resend` envía el mismo correo de nuevo sin ninguna edición, para cuando el primero se perdió — solo aplica a un contacto que tiene email y aún no ha confirmado.
+
+## Verificar que una dirección puede recibir correo
+
+Antes de aceptar cualquier dirección — una cuenta nueva (`POST /auth/register`), un contacto con email, o un cambio de email en cualquiera de los dos — se comprueba que su dominio tenga un servidor de correo (un registro MX o A). Un error de tipeo como `gmial.com` o un dominio inventado se rechaza con un `422` en ese punto, así el sistema nunca crea un registro cuyo correo de confirmación solo podría rebotar. Esto confirma que el dominio puede recibir correo, no que el buzón concreto exista; el enlace de confirmación sigue siendo lo que prueba que la dirección es real y pertenece a la persona correcta. La comprobación puede desactivarse (`SMTP_VERIFY_DELIVERABILITY`, ver [`operations.md`](operations.md)) para desarrollo sin conexión.
+
+## Avisos de cambio de cuenta
+
+Cambiar el email o la contraseña de la cuenta (ver [`auth.md`](auth.md)) envía un aviso de seguridad — la plantilla `security_alert` — a la dirección que figuraba *antes* del cambio. Si se cambia una dirección de email, el dueño anterior igual se entera, así una apropiación de cuenta no puede ocurrir en silencio.
 
 ## Vinculación con Telegram
 

@@ -34,15 +34,15 @@ flowchart LR
 2. `Api.createAlert({ latitude, longitude })`
 3. Éxito → check + toast; falla → estado de error + animación de sacudida + toast con el mensaje de error específico
 
-Un chip de estado sobre el botón muestra cuántos contactos confirmados realmente serían notificados (`Api.listContacts()`, contado del lado del cliente) — feedback visible de que el botón no está por dispararse al vacío.
+Un chip de estado sobre el botón muestra cuántos contactos realmente serían notificados — los alcanzables por email (`confirmed`) *o* por Telegram (`telegram_linked`), contados del lado del cliente desde `Api.listContacts()`, igual que la regla del backend sobre quién recibe una alerta. Si ese conteo es un cero definitivo, la espera se rechaza con un toast que pide al usuario agregar y confirmar un contacto primero, en vez de dispararse al vacío. Si el conteo no se puede determinar (la consulta falló), la alerta igual se envía — un chequeo en segundo plano nunca debe bloquear una emergencia real.
 
 ## Contactos
 
-`contacts.js` — lista + agregar/editar en un bottom sheet (`lib/sheet.js`, un modal que se siente nativo, no una navegación completa). "Agregar" ofrece elegir desde la agenda del dispositivo (`lib/contactsPicker.js`, selector nativo — la app nunca obtiene acceso masivo a la agenda) o llenar el formulario a mano. El cliente aplica el mismo `MAX_CONTACTS = 4` que aplica el backend (`routers/contacts.py`) solo para que la UI deje de ofrecer "agregar" antes de que el round-trip devuelva un 400 — el backend sigue siendo la fuente de verdad real. Cada fila muestra dos íconos de estado de canal independientes (email `confirmed`, Telegram `telegram_linked`) cuando Telegram está habilitado para el despliegue (`lib/features.js`); editar un contacto puede activar/desactivar su vínculo de Telegram directamente.
+`contacts.js` — lista + agregar/editar en un bottom sheet (`lib/sheet.js`, un modal que se siente nativo, no una navegación completa). "Agregar" ofrece elegir desde la agenda del dispositivo (`lib/contactsPicker.js`, selector nativo — la app nunca obtiene acceso masivo a la agenda) o llenar el formulario a mano. El cliente aplica el mismo `MAX_CONTACTS = 4` que aplica el backend (`routers/contacts.py`) solo para que la UI deje de ofrecer "agregar" antes de que el round-trip devuelva un 400 — el backend sigue siendo la fuente de verdad real. Cada fila muestra dos íconos de estado de canal independientes (email `confirmed`, Telegram `telegram_linked`) cuando Telegram está habilitado para el despliegue (`lib/features.js`); editar un contacto puede activar/desactivar su vínculo de Telegram directamente. Un contacto que tiene email pero aún no lo ha confirmado ofrece además una acción de "reenviar correo de confirmación" en su hoja de edición, para cuando el primer correo se perdió.
 
 ## Perfil
 
-`profile.js` — editar nombre/teléfono/email/contraseña (solo se envían los campos cambiados, mediante una comparación tipo `diffFields`), más tres controles de preferencias que persisten vía `@capacitor/preferences` y aplican de inmediato sin recargar la página:
+`profile.js` — editar nombre/teléfono/email/contraseña (solo se envían los campos cambiados, mediante una comparación tipo `diffFields`). Cambiar el email o la contraseña pide además la contraseña actual, que el backend verifica antes de aplicar el cambio (ver [`../backend/auth.md`](../backend/auth.md)); editar solo el nombre o el teléfono no la pide. Debajo hay tres controles de preferencias que persisten vía `@capacitor/preferences` y aplican de inmediato sin recargar la página:
 
 - **Idioma** — `LANGUAGES` de `lib/i18n.js` (12 idiomas), `changeLanguage()` vuelve a renderizar la pantalla actual
 - **Tema** — Auto/Claro/Oscuro, `lib/theme.js`

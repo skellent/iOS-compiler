@@ -34,15 +34,15 @@ flowchart LR
 2. `Api.createAlert({ latitude, longitude })`
 3. Success → checkmark + toast; failure → error state + shake animation + toast with the specific error message
 
-A status chip above the button shows how many confirmed contacts would actually be notified (`Api.listContacts()`, counted client-side) — visible feedback that the button isn't about to fire into a void.
+A status chip above the button shows how many contacts would actually be notified — those reachable by email (`confirmed`) *or* Telegram (`telegram_linked`), counted client-side from `Api.listContacts()`, matching the backend's own rule for who gets an alert. If that count is a definite zero, the hold is refused with a toast asking the user to add and confirm a contact first, rather than firing into a void. If the count can't be determined (the lookup failed), the alert still goes through — a background check must never block a real emergency.
 
 ## Contacts
 
-`contacts.js` — list + add/edit in a bottom sheet (`lib/sheet.js`, a native-feeling modal, not a full navigation). "Add" offers picking from the device's address book (`lib/contactsPicker.js`, native picker UI — the app never gets bulk address-book access) or filling the form manually. Client-side enforces the same `MAX_CONTACTS = 4` the backend enforces (`routers/contacts.py`) purely so the UI can stop offering "add" before the round-trip 400s — the backend is still the actual source of truth. Each row shows two independent channel-status icons (email `confirmed`, Telegram `telegram_linked`) when Telegram is enabled for the deployment (`lib/features.js`); editing a contact can enable/disable its Telegram link inline.
+`contacts.js` — list + add/edit in a bottom sheet (`lib/sheet.js`, a native-feeling modal, not a full navigation). "Add" offers picking from the device's address book (`lib/contactsPicker.js`, native picker UI — the app never gets bulk address-book access) or filling the form manually. Client-side enforces the same `MAX_CONTACTS = 4` the backend enforces (`routers/contacts.py`) purely so the UI can stop offering "add" before the round-trip 400s — the backend is still the actual source of truth. Each row shows two independent channel-status icons (email `confirmed`, Telegram `telegram_linked`) when Telegram is enabled for the deployment (`lib/features.js`); editing a contact can enable/disable its Telegram link inline. A contact that has an email but hasn't confirmed it yet also gets a "resend confirmation email" action in its edit sheet, for when the first email was missed.
 
 ## Profile
 
-`profile.js` — edit name/phone/email/password (only changed fields are sent, via a `diffFields`-style comparison), plus three preference controls that all persist via `@capacitor/preferences` and apply immediately without a page reload:
+`profile.js` — edit name/phone/email/password (only changed fields are sent, via a `diffFields`-style comparison). Changing the email or password also asks for the current password, which the backend verifies before applying the change (see [`../backend/auth.md`](../backend/auth.md)); editing only the name or phone doesn't. Below that are three preference controls that all persist via `@capacitor/preferences` and apply immediately without a page reload:
 
 - **Language** — `LANGUAGES` from `lib/i18n.js` (12 languages), `changeLanguage()` re-renders the current screen
 - **Theme** — Auto/Light/Dark, `lib/theme.js`

@@ -45,6 +45,8 @@ SMTP_PASSWORD=''
 SMTP_HOST='smtp.gmail.com'
 SMTP_PORT=587
 SMTP_FROM=''
+SMTP_ENABLED='true'
+SMTP_VERIFY_DELIVERABILITY='true'
 TELEGRAM_BOT_TOKEN=''
 TELEGRAM_BOT_USERNAME=''
 TELEGRAM_WEBHOOK_SECRET=''
@@ -58,6 +60,8 @@ LOG_LEVEL='INFO'
 `SMTP_USER`/`SMTP_PASSWORD` are the Google Workspace account emails confirming emergency contacts are sent from, and `SMTP_PASSWORD` is specifically a 16-character **app password** (`myaccount.google.com/apppasswords`), not the account's real password — Google hasn't accepted basic SMTP authentication on Workspace accounts since March 2025. It requires 2-Step Verification active on that account and the Workspace administrator allowing app passwords to be created. See [`docs/en/backend/notifications.md`](docs/en/backend/notifications.md) for the full flow. `API_BASE_URL` is the public URL the API uses to build the confirmation link that travels in those emails — in production, the real domain behind whatever reverse proxy sits in front of the API.
 
 `SMTP_FROM` is optional and defaults to `SMTP_USER` — it only needs to be set when the address emails should appear to come **from** isn't the same as the account SMTP authenticates **as**, which happens when that address lives on a domain alias rather than an independently-licensed account (for example, authenticating as `soporte@keycodelogics.com` while sending as `support@panicbutton.me`, if `panicbutton.me` is attached to the Workspace as a domain alias of the primary domain). `SMTP_USER`/`SMTP_PASSWORD` keep authenticating exactly as before either way — this only changes the `From:` header. The Workspace side (making the desired address an alias *of the authenticating account*, not just of the domain) has to be configured correctly first, or Gmail silently reverts `From:` back to `SMTP_USER`.
+
+`SMTP_ENABLED` and `SMTP_VERIFY_DELIVERABILITY` both default to `true` and production leaves them there. Set `SMTP_ENABLED='false'` in local development to log outgoing mail instead of sending it (useful when pointing at a real SMTP account), and `SMTP_VERIFY_DELIVERABILITY='false'` to skip the recipient-domain check when working offline where DNS isn't available. See [`docs/en/backend/operations.md`](docs/en/backend/operations.md).
 
 `TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME` come from a bot registered with Telegram's own **@BotFather** (see the step-by-step below); `TELEGRAM_WEBHOOK_SECRET`, like `JWT_SECRET_KEY`, isn't issued by anyone — it's a random string this deployment makes up and registers with Telegram, used to verify that a call to `POST /telegram/webhook` genuinely came from Telegram and not from anyone who found the URL. All three are optional: without a `TELEGRAM_BOT_TOKEN`, the backend boots normally and simply never registers a webhook or sends Telegram messages — see [`docs/en/backend/notifications.md`](docs/en/backend/notifications.md) for the full flow.
 
