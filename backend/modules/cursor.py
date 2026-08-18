@@ -28,8 +28,12 @@ class Queries:
     LOCK_USER: str = "SELECT id FROM users WHERE id = %s FOR UPDATE;"
     SELECT_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked FROM contacts WHERE user_id = %s;"
     SELECT_CONTACT_BY_ID: str = "SELECT id, name, phone, email, confirmed, (telegram_chat_id IS NOT NULL) AS telegram_linked FROM contacts WHERE id = %s AND user_id = %s;"
-    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
+    SELECT_CONFIRMED_CONTACTS_BY_USER: str = "SELECT id, name, phone, email, confirmed, telegram_chat_id FROM contacts WHERE user_id = %s AND (confirmed = TRUE OR telegram_chat_id IS NOT NULL);"
     CONFIRM_CONTACT: str = "UPDATE contacts SET confirmed = TRUE WHERE id = %s;"
+    SELECT_CONTACT_ID_FOR_USER: str = "SELECT id FROM contacts WHERE id = %s AND user_id = %s;"
+    # alert_notifications.contact_id is a FK with no ON DELETE CASCADE, so a contact
+    # that was ever notified can't be deleted until its notification rows are gone.
+    DELETE_ALERT_NOTIFICATIONS_BY_CONTACT: str = "DELETE FROM alert_notifications WHERE contact_id = %s;"
     DELETE_CONTACT: str = "DELETE FROM contacts WHERE id = %s AND user_id = %s;"
 
     SET_CONTACT_TELEGRAM_LINK_TOKEN: str = (

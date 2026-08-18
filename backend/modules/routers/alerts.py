@@ -78,7 +78,10 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
     telegram_recipients: list[tuple[int, dict]] = []
 
     for contact in contacts:
-        if contact["email"]:
+        # A contact is selected if EITHER channel is active, so the email branch must
+        # re-check confirmed on its own: a Telegram-linked contact whose email is
+        # unconfirmed (e.g. just edited, which resets confirmed) must not be emailed.
+        if contact["email"] and contact["confirmed"]:
             notification_id: int = _create_notification(alert_id, contact["id"], "email")
             mail_recipients.append((contact["email"], {
                 "contact_name": contact["name"],
