@@ -1,10 +1,11 @@
-from fastapi            import APIRouter, BackgroundTasks, HTTPException
+from fastapi            import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses  import HTMLResponse
 
 from modules.cursor       import Queries, DuplicateRecordError
 from modules.credentials  import get_credentials
 from modules.db           import cursor
 from modules.guard        import Guard
+from modules.limiter      import limiter
 from modules.logs         import get_logger
 from modules.mail         import Mail
 from modules.pages        import Pages
@@ -18,7 +19,8 @@ _logger = get_logger(__name__)
 
 
 @router.post("/register", status_code=201)
-def register(data: User, background_tasks: BackgroundTasks):
+@limiter.limit("5/hour")
+def register(request: Request, data: User, background_tasks: BackgroundTasks):
     password_hash: str = Guard.Hash(data.password)
     try:
         cursor.execute(Queries.INSERT_USER, (
@@ -45,11 +47,12 @@ def register(data: User, background_tasks: BackgroundTasks):
         },
     )
 
-    return {"Skellent": "Success!"}
+    return {"id": user_id, "email": data.email, "confirmation_email_sent": True}
 
 
 @router.post("/login")
-def login(data: UserLogin):
+@limiter.limit("10/minute")
+def login(request: Request, data: UserLogin):
     rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_EMAIL, (data.email,))
     if not rows or not Guard.Verify(data.password, rows[0]["password_hash"]):
         _logger.warning(f"Failed login attempt for {data.email}")

@@ -1,27 +1,43 @@
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from modules.app_assets  import APP_WWW_DIR, get_manifest
 from modules.credentials import get_credentials
-from modules.logs        import get_logger
+from modules.db          import cursor
+from modules.limiter     import limiter
+from modules.logs        import get_logger, reset_request_id, set_request_id
 from modules.pages       import Pages
 from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, dashboard
 from modules.telegram    import Telegram
 
-from fastapi                  import FastAPI
+from fastapi                  import FastAPI, Request
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import HTMLResponse, Response
+from fastapi.responses        import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles      import StaticFiles
 
+from slowapi          import _rate_limit_exceeded_handler
+from slowapi.errors   import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
-_docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
+
 _credentials: dict = get_credentials()
+_docs_enabled: bool = _credentials['app_mode'] != "Deploy"
 _logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     _logger.info(f"Starting Panic Button API (app_mode={_credentials['app_mode']})")
+
+    # Fail loudly at startup rather than on the first request that needs a row.
+    try:
+        cursor.verify()
+        _logger.info("Database connection verified")
+    except Exception as e:
+        _logger.critical(f"Could not reach the database: {e}")
+        raise
+
     if _credentials['telegram']['bot_token']:
         try:
             webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
@@ -39,6 +55,10 @@ app = FastAPI(
     lifespan=_lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["capacitor://localhost", "http://localhost", "https://localhost"],
@@ -46,11 +66,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+_SECURITY_HEADERS: dict[str, str] = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
+
+
+@app.middleware("http")
+async def _request_context(request: Request, call_next):
+    """Tag every log line from one request with the same id, and set security headers."""
+    request_id: str = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+    token = set_request_id(request_id)
+    try:
+        try:
+            response: Response = await call_next(request)
+        except Exception:
+            _logger.exception(f"Unhandled error on {request.method} {request.url.path}")
+            response = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    finally:
+        reset_request_id(token)
+
+    for header, value in _SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
 app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 def root():
     return Pages.Render("landing", {"contact_email": _credentials['email']['from']})
+
+
+@app.get("/health")
+def health():
+    """Liveness + database reachability, for a process supervisor or uptime check."""
+    try:
+        cursor.execute("SELECT 1 AS ok;")
+    except Exception as e:
+        _logger.error(f"Health check failed: {e}")
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "database": False})
+    return {"status": "ok", "database": True}
 
 
 _LONG_CACHE_SUFFIXES = {".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp"}

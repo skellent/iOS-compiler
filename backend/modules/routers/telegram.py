@@ -1,3 +1,5 @@
+import secrets as _secrets
+
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from modules.credentials import get_credentials
@@ -36,7 +38,9 @@ async def _handle_update(update: dict) -> None:
 
 @router.post("/webhook")
 async def telegram_webhook(request: Request, x_telegram_bot_api_secret_token: str | None = Header(default=None)):
-    if _WEBHOOK_SECRET and x_telegram_bot_api_secret_token != _WEBHOOK_SECRET:
+    if _WEBHOOK_SECRET and not _secrets.compare_digest(
+        x_telegram_bot_api_secret_token or "", _WEBHOOK_SECRET
+    ):
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
     try:

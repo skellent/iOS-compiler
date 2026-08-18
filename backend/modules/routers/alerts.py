@@ -1,18 +1,19 @@
 from datetime import datetime
 
-from fastapi            import APIRouter, BackgroundTasks, Depends
+from fastapi            import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses  import HTMLResponse, RedirectResponse
 
 from modules.credentials  import get_credentials
+from modules.limiter      import limiter, user_or_ip
 from modules.mail         import Mail, MailNotSentError
 from modules.cursor       import Queries
 from modules.db           import cursor
 from modules.dependencies import current_user
 from modules.logs         import get_logger
 from modules.pages        import Pages
-from modules.telegram     import Telegram
+from modules.telegram     import Telegram, TelegramNotSentError
 from modules.token        import Token
-from modules.types        import Alert
+from modules.types        import Alert, AlertCreated
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -31,6 +32,9 @@ def _view_url(notification_id: int) -> str:
     return f"{_URL_BASE}/alerts/view/{token}"
 
 
+# BackgroundTasks stops at the first exception, so a failure in one channel must not
+# prevent the other from running. Both channels are wrapped for that reason — the
+# mail one always was; the Telegram one used to raise straight out of the task.
 async def _notify_by_mail(subject: str, template: str, recipients: list[tuple[str, dict]]) -> None:
     try:
         await Mail.SendBulk(subject, template, recipients)
@@ -38,20 +42,33 @@ async def _notify_by_mail(subject: str, template: str, recipients: list[tuple[st
         pass
 
 
-@router.post("", status_code=201)
-def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
+async def _notify_by_telegram(template: str, recipients: list[tuple[int, dict]]) -> None:
+    try:
+        await Telegram.SendBulk(template, recipients)
+    except TelegramNotSentError:
+        pass
+
+
+@router.post("", status_code=201, response_model=AlertCreated)
+@limiter.limit("12/hour", key_func=user_or_ip)
+def create_alert(request: Request, data: Alert, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
+    user_rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
+    if not user_rows:
+        # A still-valid token for a deleted account, rather than an IndexError -> 500.
+        raise HTTPException(status_code=404, detail="User not found")
+    user: dict = user_rows[0]
+
     cursor.execute(Queries.INSERT_ALERT, (user_id, data.latitude, data.longitude))
     cursor.commit()
     alert_id: int = cursor.lastrowid
     _logger.warning(f"Panic alert {alert_id} triggered by user {user_id} at {data.latitude},{data.longitude}")
 
-    user_rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
     contacts: list[dict] = cursor.execute(Queries.SELECT_CONFIRMED_CONTACTS_BY_USER, (user_id,))
 
     base_context: dict = {
-        "user_name":  user_rows[0]["name"],
-        "user_phone": user_rows[0]["phone"],
-        "user_email": user_rows[0]["email"],
+        "user_name":  user["name"],
+        "user_phone": user["phone"],
+        "user_email": user["email"],
         "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "latitude":   data.latitude,
         "longitude":  data.longitude,
@@ -79,27 +96,41 @@ def create_alert(data: Alert, background_tasks: BackgroundTasks, user_id: int = 
     if mail_recipients:
         background_tasks.add_task(
             _notify_by_mail,
-            f"Panic alert from {user_rows[0]['name']}",
+            f"Panic alert from {user['name']}",
             "panic_alert",
             mail_recipients,
         )
 
     if telegram_recipients:
-        background_tasks.add_task(Telegram.SendBulk, "panic_alert", telegram_recipients)
+        background_tasks.add_task(_notify_by_telegram, "panic_alert", telegram_recipients)
 
     _logger.info(
         f"Alert {alert_id}: notifying {len(mail_recipients)} contact(s) by email, "
         f"{len(telegram_recipients)} by Telegram"
     )
 
-    return {"Skellent": "Success!"}
+    return {
+        "id": alert_id,
+        "created_at": datetime.now(),
+        "notified_contacts": len(contacts),
+        "channels": {"email": len(mail_recipients), "telegram": len(telegram_recipients)},
+    }
 
 
 @router.get("")
 def list_alerts(user_id: int = Depends(current_user)):
     alerts: list[dict] = cursor.execute(Queries.SELECT_ALERTS_BY_USER, (user_id,))
+    if not alerts:
+        return []
+
+    # Two queries total instead of one per alert.
+    notifications: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATIONS_BY_USER, (user_id,))
+    by_alert: dict[int, list[dict]] = {}
+    for notification in notifications:
+        by_alert.setdefault(notification.pop("alert_id"), []).append(notification)
+
     for alert in alerts:
-        alert["notifications"] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATIONS_BY_ALERT, (alert["id"],))
+        alert["notifications"] = by_alert.get(alert["id"], [])
     return alerts
 
 
@@ -111,7 +142,7 @@ def view_alert_notification(token: str):
         return HTMLResponse(
             Pages.Render("confirmation_result", {
                 "success": False,
-                "message": "This link is invalid.",
+                "message": "This link is invalid or has expired.",
             }),
             status_code=401,
         )

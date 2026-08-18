@@ -8,6 +8,9 @@ ALGORITHM: str = "HS256"
 EXPIRATION: timedelta = timedelta(days=30)
 CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
 USER_CONFIRMATION_EXPIRATION: timedelta = timedelta(hours=24)
+ALERT_VIEW_EXPIRATION: timedelta = timedelta(days=30)
+
+SESSION_TYPE: str = "session"
 
 _secret: str = get_credentials()['jwt']['secret_key']
 
@@ -16,6 +19,7 @@ class Token:
     def Create(user_id: int) -> str:
         payload: dict = {
             "sub": str(user_id),
+            "type": SESSION_TYPE,
             "exp": datetime.now(timezone.utc) + EXPIRATION,
         }
         return jwt.encode(payload, _secret, algorithm=ALGORITHM)
@@ -25,6 +29,19 @@ class Token:
         try:
             return jwt.decode(token, _secret, algorithms=[ALGORITHM])
         except jwt.InvalidTokenError:
+            return None
+
+    @staticmethod
+    def ValidateSession(token: str) -> int | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != SESSION_TYPE:
+            return None
+        subject = payload.get("sub")
+        if subject is None:
+            return None
+        try:
+            return int(subject)
+        except (TypeError, ValueError):
             return None
 
     @staticmethod
@@ -41,7 +58,7 @@ class Token:
         payload: dict | None = Token.Validate(token)
         if payload is None or payload.get("type") != "contact_confirmation":
             return None
-        return int(payload["contact_id"])
+        return _as_id(payload.get("contact_id"))
 
     @staticmethod
     def CreateUserConfirmation(user_id: int) -> str:
@@ -57,13 +74,14 @@ class Token:
         payload: dict | None = Token.Validate(token)
         if payload is None or payload.get("type") != "user_confirmation":
             return None
-        return int(payload["user_id"])
+        return _as_id(payload.get("user_id"))
 
     @staticmethod
     def CreateAlertNotificationView(notification_id: int) -> str:
         payload: dict = {
             "notification_id": notification_id,
             "type": "alert_notification_view",
+            "exp": datetime.now(timezone.utc) + ALERT_VIEW_EXPIRATION,
         }
         return jwt.encode(payload, _secret, algorithm=ALGORITHM)
 
@@ -72,4 +90,12 @@ class Token:
         payload: dict | None = Token.Validate(token)
         if payload is None or payload.get("type") != "alert_notification_view":
             return None
-        return int(payload["notification_id"])
+        return _as_id(payload.get("notification_id"))
+
+
+def _as_id(value) -> int | None:
+    """A well-formed token with a junk id must fail validation, not raise."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None

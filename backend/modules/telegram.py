@@ -67,10 +67,21 @@ class Telegram:
 
     @staticmethod
     async def SetWebhook(url: str) -> None:
+        # Registering a null secret leaves the webhook unauthenticated, because the
+        # endpoint skips the header check when no secret is configured. Refuse
+        # instead of silently exposing it.
+        secret: str | None = _credentials['webhook_secret']
+        if not secret:
+            raise TelegramNotSentError(
+                "TELEGRAM_WEBHOOK_SECRET is not set. Set it, or unset TELEGRAM_BOT_TOKEN "
+                "to run without Telegram — registering a webhook without a secret would "
+                "leave POST /telegram/webhook open to anyone who finds the URL."
+            )
+
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
                 _url("setWebhook"),
-                json={"url": url, "secret_token": _credentials['webhook_secret']},
+                json={"url": url, "secret_token": secret},
             )
         if response.status_code != 200 or not response.json().get("ok", False):
             _logger.error(f"Telegram rejected setWebhook for {url}: {response.text}")
