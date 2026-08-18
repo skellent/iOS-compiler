@@ -39,12 +39,23 @@ async def _lifespan(app: FastAPI):
         raise
 
     if _credentials['telegram']['bot_token']:
+        webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
         try:
-            webhook_url: str = f"{_credentials['api_base_url']}/telegram/webhook"
             await Telegram.SetWebhook(webhook_url)
             _logger.info(f"Telegram webhook registered at {webhook_url}")
         except Exception as e:
-            _logger.error(f"Could not register Telegram webhook: {e}")
+            _logger.error(f"Could not register Telegram webhook at {webhook_url}: {e}")
+
+        try:
+            info: dict = await Telegram.GetWebhookInfo()
+            _logger.info(
+                "Telegram webhook status: "
+                f"url={info.get('url') or '(none registered)'} "
+                f"pending_updates={info.get('pending_update_count')} "
+                f"last_error={info.get('last_error_message') or 'none'}"
+            )
+        except Exception as e:
+            _logger.warning(f"Could not fetch Telegram webhook info: {e}")
     yield
 
 

@@ -86,3 +86,11 @@ class Telegram:
         if response.status_code != 200 or not response.json().get("ok", False):
             _logger.error(f"Telegram rejected setWebhook for {url}: {response.text}")
             raise TelegramNotSentError(f"Telegram rejected setWebhook: {response.text}")
+
+    @staticmethod
+    async def GetWebhookInfo() -> dict:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(_url("getWebhookInfo"))
+        if response.status_code != 200 or not response.json().get("ok", False):
+            raise TelegramNotSentError(f"Telegram rejected getWebhookInfo: {response.text}")
+        return response.json().get("result", {})
