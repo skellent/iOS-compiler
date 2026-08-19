@@ -85,7 +85,7 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
         "user_name":  user["name"],
         "user_phone": user["phone"],
         "user_email": user["email"],
-        "timestamp":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp":  datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
         "latitude":   data.latitude,
         "longitude":  data.longitude,
     }
