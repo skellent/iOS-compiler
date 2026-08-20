@@ -1,66 +1,36 @@
-# Pantallas
+# Pantallas de la app
 
-Siete pantallas, un router por hash (`src/main.js`), sin estado compartido más allá de "quién tiene sesión iniciada" (`src/lib/session.js`, cacheado en memoria + `@capacitor/preferences`).
+Tres pestañas principales — Inicio, Contactos, Perfil — más login y registro.
 
-```mermaid
-flowchart LR
-    login["Login (/login)"] <--> register["Registro (/register)"]
-    register --> confirmMail["Revisa tu correo (no es una ruta)"]
+## Login y registro
 
-    login -- "al tener éxito" --> home["Home (/home)"]
+Email + contraseña. El registro verifica el dominio del email en el servidor y envía un enlace de confirmación; el login está bloqueado (`403`) hasta que la cuenta se confirma. El botón de enviar apunta explícitamente al control de submit del formulario y muestra un estado de carga.
 
-    subgraph nav["Nav inferior (con sesión iniciada)"]
-        home
-        contacts["Contactos (/contacts)"]
-        profile["Perfil (/profile)"]
-    end
+## Inicio — el botón de pánico
 
-    profile --> about["Acerca de (/about)"]
-    profile --> help["Ayuda (/help)"]
-    profile -- "cerrar sesión" --> login
-```
+Un único botón de mantener-para-alertar. Mantenerlo un par de segundos captura la ubicación GPS del dispositivo y llama a `POST /alerts`, que reparte la alerta a cada canal confirmado de cada contacto.
 
-`ROUTES` en `main.js` marca cada ruta como `public` (login/register — redirige a home a quien ya tiene sesión) o no (redirige a login a quien no la tiene); `about`/`help` no están en la nav inferior, solo se llega desde Perfil.
-
-## Login / Registro
-
-`login.js`, `register.js` — formularios simples, `Api.login`/`Api.register`. El registro no inicia sesión automáticamente después (el backend igual bloquea el login antes de confirmar, ver [`../backend/auth.md`](../backend/auth.md)) — muestra una pantalla de "revisa tu correo" en su lugar. Ambas usan el `<select>` de código de país de `phone.js` + un input de solo dígitos, combinados en un string tipo E.164 (`combinePhone`) antes de llamar a la API.
-
-## Home — el botón de pánico
-
-`home.js`. Un gesto de mantener presionado (`HOLD_DURATION_MS = 1400`), rastreado con `requestAnimationFrame` que llena un anillo SVG alrededor del botón en vez de un timer plano; soltar antes cancela. Al completar la espera:
-
-1. `getCurrentCoordinates()` (`lib/geolocation.js`, envuelve `@capacitor/geolocation`) — fix de GPS, timeout de 15s
-2. `Api.createAlert({ latitude, longitude })`
-3. Éxito → check + toast; falla → estado de error + animación de sacudida + toast con el mensaje de error específico
-
-Un chip de estado sobre el botón muestra cuántos contactos realmente serían notificados — los alcanzables por email (`confirmed`) *o* por Telegram (`telegram_linked`), contados del lado del cliente desde `Api.listContacts()`, igual que la regla del backend sobre quién recibe una alerta. Si ese conteo es un cero definitivo, la espera se rechaza con un toast que pide al usuario agregar y confirmar un contacto primero, en vez de dispararse al vacío. Si el conteo no se puede determinar (la consulta falló), la alerta igual se envía — un chequeo en segundo plano nunca debe bloquear una emergencia real.
+**Guarda.** Antes de enviar, la app comprueba que al menos un contacto sea alcanzable — cuenta los contactos que estén `confirmed` (email) **o** vinculados a Telegram **o** confirmados en WhatsApp **o** con SMS activado. Si no hay ninguno, muestra un toast en vez de disparar una alerta inútil. El conteo falla-abierto (si el chequeo mismo falla, el botón igual funciona) para que nada bloquee una emergencia real.
 
 ## Contactos
 
-`contacts.js` — lista + agregar/editar en un bottom sheet (`lib/sheet.js`, un modal que se siente nativo, no una navegación completa). "Agregar" ofrece elegir desde la agenda del dispositivo (`lib/contactsPicker.js`, selector nativo — la app nunca obtiene acceso masivo a la agenda) o llenar el formulario a mano. El cliente aplica el mismo `MAX_CONTACTS = 4` que aplica el backend (`routers/contacts.py`) solo para que la UI deje de ofrecer "agregar" antes de que el round-trip devuelva un 400 — el backend sigue siendo la fuente de verdad real. Cada fila muestra dos íconos de estado de canal independientes (email `confirmed`, Telegram `telegram_linked`) cuando Telegram está habilitado para el despliegue (`lib/features.js`); editar un contacto puede activar/desactivar su vínculo de Telegram directamente. Un contacto que tiene email pero aún no lo ha confirmado ofrece además una acción de "reenviar correo de confirmación" en su hoja de edición, para cuando el primer correo se perdió.
+Agrega hasta `max_contacts` (servido por `/features`) contactos, a mano o desde la agenda del dispositivo. Cada fila de contacto muestra una tira de estado de canales, y editar un contacto abre un sheet con un toggle por cada canal que el despliegue tenga configurado:
+
+| Canal | Cómo se vuelve alcanzable el contacto |
+|---|---|
+| **Email** | Confirma con el enlace enviado por correo. Aparece un botón "reenviar confirmación" mientras esté sin confirmar. |
+| **Telegram** | "Conectar Telegram" entrega un enlace `t.me` (copiado o por correo); el contacto lo abre y envía `/start`. |
+| **WhatsApp** | "Conectar WhatsApp" lo activa y copia un enlace `wa.me` para compartir; el contacto envía el mensaje para hacer opt-in. |
+| **SMS** | Un simple toggle de activar/desactivar — sin opt-in. |
+
+Los íconos de canal solo se muestran para los canales que el despliegue tiene habilitados (según `/features`); un punto de estado indica vinculado/activo vs. pendiente.
+
+Editar el email de un contacto vuelve a disparar la confirmación (el contacto queda sin confirmar hasta verificar la nueva dirección). Borrar un contacto conserva el historial de las alertas pasadas en el panel.
 
 ## Perfil
 
-`profile.js` — editar nombre/teléfono/email/contraseña (solo se envían los campos cambiados, mediante una comparación tipo `diffFields`). Cambiar el email o la contraseña pide además la contraseña actual, que el backend verifica antes de aplicar el cambio (ver [`../backend/auth.md`](../backend/auth.md)); editar solo el nombre o el teléfono no la pide. Debajo hay tres controles de preferencias que persisten vía `@capacitor/preferences` y aplican de inmediato sin recargar la página:
+Ver y editar la cuenta (nombre, teléfono, email, contraseña). Cambiar el **email o la contraseña** requiere la **contraseña actual** en el mismo formulario (reautenticación); nombre/teléfono no. Se envía un aviso de seguridad a la dirección anterior cuando cambia un campo sensible.
 
-- **Idioma** — `LANGUAGES` de `lib/i18n.js` (12 idiomas), `changeLanguage()` vuelve a renderizar la pantalla actual
-- **Tema** — Auto/Claro/Oscuro, `lib/theme.js`
-- **Color de acento** — seis presets más un `<input type="color">` nativo para un hex personalizado; `theme.js` deriva toda la escala de tonos `--primary-900`…`--primary-300` a partir solo del tono/saturación vía matemática HSL, con distintas curvas de luminosidad para claro vs. oscuro (así, por ejemplo, `--primary-400` se mantiene legible como texto tanto sobre fondo oscuro como sobre blanco)
+## Ajustes
 
-Cerrar sesión, y enlaces a Acerca de/Ayuda.
-
-## Acerca de / Ayuda
-
-`about.js`, `help.js` — pantallas informativas estáticas, ambas usando el layout compartido `.info-screen` con un botón de volver a Perfil. Ayuda es una lista fija de secciones tipo preguntas y respuestas (`account`, `panic`, `contacts`, `channels`, `profile`), todo strings traducidos — sin contenido dinámico.
-
-## Piezas compartidas
-
-| Módulo | Propósito |
-|---|---|
-| `lib/api.js` | Wrapper de `fetch` — agrega `Authorization` cuando `auth: true`, extrae un mensaje de error legible del formato de error del backend, lanza `ApiError` |
-| `lib/dom.js` | `escapeHtml`, `setLoading` (estado de spinner en botones), `shake` (animación de error en formularios) |
-| `lib/toast.js` | Notificaciones transitorias de éxito/error/info |
-| `lib/sheet.js` | Modal de bottom sheet usado por los formularios de agregar/editar de Contactos |
-| `lib/icons.js` | Set de íconos SVG inline estilo Material |
-| `lib/features.js` | Cachea `GET /features` durante la sesión de la app — ver [`../backend/operations.md`](../backend/operations.md) |
+Tema (auto/claro/oscuro), color de acento e idioma. La app trae muchos locales; las cadenas caen a inglés para cualquier clave que falte en un locale.

@@ -1,121 +1,83 @@
-# Notifications: email + Telegram
+# Notifications — four channels
 
-Two independent, parallel delivery channels for the same events (contact confirmation, panic alerts): `mail.py` (`Mail`) and `telegram.py` (`Telegram`). Neither knows about the other — routers decide who gets notified on which channel(s) and call both.
+Four independent delivery channels for the same events (contact confirmation, panic alerts): **email** (`mail.py`), **Telegram** (`telegram.py`), **WhatsApp** (`whatsapp.py`) and **SMS** (`sms.py`). Each has the same `Send`/`SendBulk` shape and a dry-run switch; none knows about the others. `alerts.py` decides who is reached on which channel and calls each.
 
-## `Mail`
+## Who gets notified
 
-SMTP over `aiosmtplib`, Jinja templates under `templates/mail/*.{html,txt}.j2` (both rendered — HTML with a plain-text fallback in the same message). `Mail.Send` opens one connection per email; `Mail.SendBulk` opens a single SMTP connection and reuses it for every recipient, since a panic alert may fan out to several contacts at once.
+`SELECT_CONFIRMED_CONTACTS_BY_USER` returns a contact if **any** channel is active, then `alerts.py` re-checks each channel independently:
 
-```python
-await Mail.SendBulk(subject, template, [(email, context), ...])
-```
+| Channel | Sent when | Address |
+|---|---|---|
+| Email | `email` set **and** `confirmed = TRUE` | contact email |
+| Telegram | `telegram_chat_id` set | that chat |
+| WhatsApp | `whatsapp_enabled` **and** `whatsapp_confirmed` | contact phone |
+| SMS | `sms_enabled` | contact phone |
 
-A failure for one recipient inside `SendBulk` is logged and collected, not raised immediately — only after the whole batch does it raise `MailNotSentError` listing who failed, so one bad address doesn't stop the rest from being sent.
+Each `(alert, contact, channel)` gets its own `alert_notifications` row with the contact's name and a no-expiry view-link token, so "did this contact, on this channel, open the map" is tracked per channel and shown on the dashboard.
 
-When `SMTP_ENABLED` is off (see [`operations.md`](operations.md)) both `Send` and `SendBulk` log what they *would* have sent and return without opening a connection — for local development against a real SMTP account without delivering anything.
-
-## `Telegram`
-
-HTTP calls to the Telegram Bot API (`httpx`), templates under `templates/telegram/*.txt.j2` (plain text only — Telegram has no HTML-email equivalent). Same `Send`/`SendBulk` shape as `Mail`, plus `SetWebhook` (called once at startup, see [`architecture.md`](architecture.md)).
-
-## Why `alerts.py` treats a mail failure as non-fatal
-
-```python
-async def _notify_by_mail(subject, template, recipients):
-    try:
-        await Mail.SendBulk(subject, template, recipients)
-    except MailNotSentError:
-        pass  # already logged inside SendBulk
-```
-
-`BackgroundTasks` runs its queued tasks in order and stops at the first exception. `create_alert` queues the email batch and the Telegram batch as two separate background tasks — if the email task's exception were allowed to propagate, the Telegram task queued right after it would never run. During an actual panic alert, a broken mailbox must never be the reason a contact who only has Telegram never hears about it.
-
-## Panic alert fan-out
+## Fan-out
 
 ```mermaid
 sequenceDiagram
     participant App
     participant Alerts as POST /alerts
     participant DB
-    participant Mail
-    participant TG as Telegram
-
     App->>Alerts: latitude, longitude + JWT
-    Alerts->>DB: INSERT INTO alerts
-    Alerts->>DB: SELECT confirmed contacts (email OR telegram_chat_id)
-    loop each contact
-        Alerts->>DB: INSERT alert_notifications (one row per channel)
+    Alerts->>DB: INSERT alert; SELECT confirmed contacts
+    loop each contact × active channel
+        Alerts->>DB: INSERT alert_notifications
     end
-    Alerts-->>App: 201 (immediately)
+    Alerts-->>App: 201 with per-channel counts
     par background
-        Alerts->>Mail: SendBulk(panic_alert, email recipients)
-        Mail-->>Alerts: (each recipient's link marked unviewed)
-    and background
-        Alerts->>TG: SendBulk(panic_alert, telegram recipients)
+        Alerts->>Alerts: email batch
+    and
+        Alerts->>Alerts: Telegram batch
+    and
+        Alerts->>Alerts: WhatsApp batch
+    and
+        Alerts->>Alerts: SMS batch
     end
 ```
 
-A contact needs *either* `confirmed = TRUE` (email) or a set `telegram_chat_id` — the two channels are independent, not sequential; someone who never clicked the email confirmation link but did link Telegram still gets notified. Each `(alert, contact, channel)` gets its own `alert_notifications` row and its own no-expiry view-link token (see [`auth.md`](auth.md)), so "did this specific contact, on this specific channel, open the map" is tracked separately — visible on the dashboard.
+The four batches are queued as separate background tasks and each channel's failure is caught, not raised — `BackgroundTasks` stops at the first exception, so a broken mailbox must never stop the Telegram/WhatsApp/SMS batches queued after it. During a real alert, one dead channel can't silence the others.
 
-## Contact confirmation (email)
+## Email
+
+SMTP over `aiosmtplib`, Jinja templates under `templates/mail/*.{html,txt}.j2` (both rendered). `Send` opens one connection per email; `SendBulk` reuses a single connection for the whole batch. When `SMTP_ENABLED=false`, both log what they *would* send and return without connecting (dry-run for local dev).
+
+**Deliverability check.** Before any address is accepted — register, a contact's email, an email change — its domain is checked for a mail server (MX/A). A typo like `gmial.com` is rejected with `422`, so no record is created whose confirmation could only ever bounce. Toggle with `SMTP_VERIFY_DELIVERABILITY`.
+
+**Contact confirmation (email).** Adding a contact with an email queues a confirmation link; clicking it sets `confirmed`. Editing the email starts the flow over (unconfirmed again, fresh link). `POST /contacts/{id}/confirm/resend` re-sends without an edit.
+
+**Account-change notice.** Changing the account email or password emails the `security_alert` template to the address on file *before* the change, so a takeover can't happen silently.
+
+## Telegram
+
+HTTP to the Bot API (`httpx`), plain-text templates under `templates/telegram/`. Telegram's deep-link `start` parameter only allows `[A-Za-z0-9_-]`, so contact linking uses an opaque, database-backed token instead of a JWT.
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant API as POST /contacts
-    participant Mail
-    participant Contact
-    participant Confirm as GET /contacts/confirm/:token
-
-    User->>API: add contact (with email)
-    API->>Mail: send contact_confirmation (background task)
-    Mail-->>Contact: email with confirmation link
-    Contact->>Confirm: clicks link
-    Confirm->>Confirm: Token.ValidateContactConfirmation
-    Confirm-->>Contact: styled HTML result page
-```
-
-A contact added *without* an email skips this step entirely — it only becomes eligible for alerts via Telegram instead.
-
-Editing a contact's email address (`PUT /contacts/{id}`) starts this flow over: the contact is marked unconfirmed again and a fresh confirmation email goes to the new address. Correcting a mistyped address therefore re-verifies it, rather than leaving the contact "confirmed" against an address that never actually received anything. `POST /contacts/{id}/confirm/resend` sends the same email again without any edit, for when the first one was lost — it applies only to a contact that has an email and hasn't confirmed yet.
-
-## Verifying an address can receive mail
-
-Before any address is accepted — a new account (`POST /auth/register`), a contact with an email, or an email change on either — its domain is checked for a mail server (an MX or A record). A typo like `gmial.com` or an invented domain is rejected with a `422` at that point, so the system never creates a record whose confirmation email could only ever bounce. This confirms the domain can receive mail, not that the specific mailbox exists; the confirmation link is still what proves the address is real and belongs to the right person. The check can be turned off (`SMTP_VERIFY_DELIVERABILITY`, see [`operations.md`](operations.md)) for offline development.
-
-## Account-change notifications
-
-Changing the account's email or password (see [`auth.md`](auth.md)) emails a security notice — the `security_alert` template — to the address on file *before* the change. If an email address is swapped, the previous owner still hears about it, so an account takeover can't happen silently.
-
-## Telegram linking
-
-Telegram's own deep-link `start` parameter only allows `[A-Za-z0-9_-]`, which a dot-separated JWT can't satisfy — so unlike every other confirmation flow, this one uses an opaque, database-backed token instead of a JWT.
-
-```mermaid
-sequenceDiagram
-    participant User as App user
     participant API as POST /contacts/:id/telegram/enable
-    participant DB
     participant Contact
-    participant Bot as Telegram Bot
+    participant Bot
     participant Webhook as POST /telegram/webhook
-
-    User->>API: enable Telegram for a contact
-    API->>DB: UPDATE contacts SET telegram_link_token, telegram_link_expires_at
-    API-->>User: link URL (emailed to the contact, or handed back to share manually)
-    Contact->>Bot: opens t.me/BOT_USERNAME, start param = link token
-    Bot->>Webhook: update - message text "/start TOKEN", chat id
-    Webhook->>DB: look up contact by token (must not be expired)
-    Webhook->>DB: UPDATE contacts SET telegram_chat_id, clear token
-    Webhook-->>Bot: confirmation message to the contact
+    User->>API: enable Telegram
+    API-->>User: t.me/BOT?start=TOKEN (emailed or returned)
+    Contact->>Bot: opens link, sends /start TOKEN
+    Bot->>Webhook: update (chat id + token)
+    Webhook->>Webhook: match token, store telegram_chat_id
+    Webhook-->>Contact: confirmation message
 ```
 
-- If the contact already has an email on file, the link is emailed (`telegram_link` template) and the API response omits the URL (`{"telegram_link_url": null}`) — the app doesn't need to show it.
-- If not, the API hands the URL straight back so the app can offer it via the OS share sheet.
-- The link expires after 24h (`telegram.LINK_EXPIRATION`) and is single-use — a successful link clears `telegram_link_token` back to `NULL`.
+**Webhook security & self-healing.** `POST /telegram/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET`. The webhook URL is **registered by the backend** at startup (`EnsureWebhook`: set + verify via `getWebhookInfo`, with retries) and re-asserted by a background keeper if it drifts. Every hit and every ignore/failure reason is logged, so a mis-registered webhook is visible rather than silent (see [operations.md](operations.md)).
 
-### Webhook security
+## WhatsApp
 
-Telegram doesn't sign requests. `POST /telegram/webhook` instead checks the `X-Telegram-Bot-Api-Secret-Token` header against `TELEGRAM_WEBHOOK_SECRET` — a value this deployment invents and registers once via `Telegram.SetWebhook` at startup, not issued by Telegram itself. Any request without a matching header is rejected with `401` before the update is even parsed (skipped only when no secret is configured at all, i.e. local development without a real bot).
+Twilio Messages API (`httpx`). Because a panic alert is business-initiated and usually outside WhatsApp's 24 h free-form window, alerts are sent through an **approved template** when `TWILIO_WHATSAPP_TEMPLATE_SID` is set (free-form body otherwise, for sandbox). Full setup in [twilio.md](twilio.md).
 
-Any exception while handling a webhook update is caught and logged, and the endpoint still returns `{"ok": true}` — Telegram retries aggressively on anything but a `2xx` response, and a retry storm over something a retry won't fix is worse than one dropped update.
+**Opt-in.** Enabling WhatsApp on a contact sets `whatsapp_enabled` and returns a `wa.me` link. When the contact messages the number, Twilio calls `POST /whatsapp/webhook` (verified by Twilio signature), which matches them by phone and sets `whatsapp_confirmed`. Both flags must be true to be notified. Unlike Telegram, this webhook is **configured manually** in Twilio — it is not auto-registered.
+
+## SMS
+
+Twilio Messages API, one short text template (`templates/sms/panic_alert.txt.j2`). No opt-in, no template, no 24 h window — SMS is a per-contact toggle (`sms_enabled`): enable it, and confirmed contacts get a text on the next alert. Caveats (A2P 10DLC, geo-permissions) are in [twilio.md](twilio.md).

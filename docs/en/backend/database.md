@@ -1,15 +1,15 @@
 # Database
 
-MariaDB, no ORM, no migration framework. `queries/` (repo root) holds the SQL an administrator runs by hand to provision a database; `modules/cursor.py` holds every query the app runs against it, as plain parameterized SQL strings.
+MariaDB, no ORM, no migration framework. `queries/` holds the SQL an operator runs by hand; `modules/cursor.py` holds every query the app runs, as plain parameterised strings.
 
 ## Schema
 
 ```mermaid
 erDiagram
-    users ||--o{ contacts : "owns"
-    users ||--o{ alerts : "triggers"
+    users ||--o{ contacts : owns
+    users ||--o{ alerts : triggers
     alerts ||--o{ alert_notifications : "fans out to"
-    contacts ||--o{ alert_notifications : "receives"
+    contacts |o--o{ alert_notifications : "receives (nullable)"
 
     users {
         int id PK
@@ -30,6 +30,9 @@ erDiagram
         bigint telegram_chat_id
         varchar telegram_link_token UK
         datetime telegram_link_expires_at
+        boolean whatsapp_enabled
+        boolean whatsapp_confirmed
+        boolean sms_enabled
     }
     alerts {
         int id PK
@@ -41,52 +44,38 @@ erDiagram
     alert_notifications {
         int id PK
         int alert_id FK
-        int contact_id FK
-        enum channel "email | telegram"
+        int contact_id FK "nullable, ON DELETE SET NULL"
+        varchar contact_name
+        enum channel "email|telegram|whatsapp|sms"
         datetime viewed_at
     }
 ```
 
-(`queries/tables.sql` is the source of truth — this diagram mirrors it.)
+`queries/tables.sql` is the source of truth for a fresh install.
 
-- **`users.confirmed`** gates login (`POST /auth/login` returns `403` until it's `true`) — set by clicking the link in the registration email. An account that's never confirmed can't own contacts or alerts, so `scripts/purge_unconfirmed_users.py` can safely delete any that are still unconfirmed 24h after signup (see [`operations.md`](operations.md)).
-- **`contacts.confirmed`** and **`contacts.telegram_chat_id`** are two independent notification channels for the same contact — a panic alert reaches them by whichever one (or both) is set. `telegram_link_token`/`telegram_link_expires_at` are single-use, time-boxed state for the linking handshake (see [`notifications.md`](notifications.md)); they're cleared back to `NULL` once linked.
-- **`alert_notifications`** is one row per `(alert, contact, channel)` — a contact confirmed on both email and Telegram gets two rows for the same alert. `viewed_at` is set the first time that specific link is opened, which is how the dashboard shows per-contact, per-channel delivery confirmation.
+- **`users.confirmed`** gates login (`403` until true) — set by clicking the registration email link. An unconfirmed account can own nothing, so `scripts/purge_unconfirmed_users.py` can safely delete stale ones.
+- **`contacts`** carries one set of state per channel: `confirmed` (email), `telegram_chat_id` (+ single-use link token/expiry), `whatsapp_enabled`/`whatsapp_confirmed`, and `sms_enabled`. A contact is notified on a channel only when that channel's condition holds (see [notifications.md](notifications.md)).
+- **`alert_notifications`** is one row per `(alert, contact, channel)`. It stores the **`contact_name`** at send time and its `contact_id` FK is **`ON DELETE SET NULL`** — so deleting a contact keeps the alert's history intact (the row survives with the name; only the link to the live contact is cleared). `viewed_at` marks the first time that specific view link was opened.
 
 ## `Cursor`: one connection per thread
 
-FastAPI runs the `def` routes in a threadpool, so several requests can be in flight at once. Each thread gets its own MariaDB connection and cursor, created on first use and kept for that thread — so `cursor.execute(...)` followed by `cursor.lastrowid` or `cursor.rowcount` always describes the statement *this* thread just ran, never another request's. The connections are held in `threading.local()`; the shared `cursor` object every module imports is just the dispatcher in front of them.
+FastAPI runs `def` routes in a threadpool. A single shared connection would let requests interleave `execute` / `rowcount` / `lastrowid` on the same cursor — one request reading another's insert id. Each thread instead gets its own connection and cursor, created on first use and kept for that thread (via `threading.local()`); the shared `cursor` object each module imports is just the dispatcher in front of them.
 
 ```python
-class Cursor:
-    def _open(self):
-        conn = mariadb.connect(..., client_flag=CLIENT.FOUND_ROWS, autocommit=True)
-        return _Connection(conn, conn.cursor(dictionary=True))
+conn = mariadb.connect(..., client_flag=CLIENT.FOUND_ROWS, autocommit=True)
 ```
 
-Two non-default connection flags, both fixing real bugs hit in production:
+Two non-default flags, each fixing a real bug:
 
-- **`CLIENT.FOUND_ROWS`** — without it, an `UPDATE` that matches a row but doesn't change its value reports `rowcount = 0`, indistinguishable from "no row matched at all". Every existence/ownership check in this codebase (`if cursor.rowcount == 0: raise 404`) depends on `rowcount` meaning "rows matched", not "rows changed" — a confirmation link clicked twice, or an edit that resubmits the same value, must not 404.
-- **`autocommit = True`** — every write already calls `cursor.commit()` explicitly; this is a backstop so a stray write on a path that forgets to (or a plain `SELECT`, which still opens a transaction under MariaDB's default isolation) can't leave a row locked. For the few places that must read and then write atomically, `cursor.transaction()` opens an explicit transaction on the calling thread's connection — used to enforce the emergency-contact cap under a row lock, so two simultaneous adds can't both slip past the limit.
+- **`CLIENT.FOUND_ROWS`** — without it, an `UPDATE` that matches a row but changes nothing reports `rowcount = 0`, indistinguishable from "no match". Every existence/ownership check here relies on `rowcount` meaning "rows found".
+- **`autocommit = True`** — a backstop so a stray write (or a bare `SELECT`, which still opens a transaction) never leaves a row locked. The few read-then-write paths that must be atomic use `cursor.transaction()`, an explicit transaction on the calling thread's connection.
 
-`execute()` retries once on `mariadb.InterfaceError` (the classic "MariaDB server has gone away" from an idle connection getting closed server-side after `wait_timeout`) by reconnecting and re-running the query, so a backend that's been idle overnight recovers on the next request instead of needing a manual restart. A `mariadb.IntegrityError` (a `UNIQUE` constraint violation — duplicate phone/email, etc.) is translated into `DuplicateRecordError`, which routers catch and turn into a `409`. At startup `main.py` opens a connection eagerly (`cursor.verify()`) so a misconfigured or unreachable database fails the boot loudly instead of on the first request.
+`execute()` retries once on `mariadb.InterfaceError` (the "server has gone away" after `wait_timeout`) by reconnecting — so an idle backend recovers on the next request instead of needing a restart. A `mariadb.IntegrityError` (UNIQUE violation) is translated to `DuplicateRecordError`, which routers turn into a `409`. At startup `cursor.verify()` opens a connection eagerly so a misconfigured database fails loudly.
 
-## `Queries`: every SQL string, in one place
+## `Queries`
 
-`modules/cursor.py`'s `Queries` class is a namespace of `str` constants — `SELECT_USER_BY_EMAIL`, `INSERT_CONTACT`, `CONFIRM_CONTACT_TELEGRAM`, etc. Routers that need a one-off `UPDATE ... SET <dynamic column list>` (partial updates on `PUT /users/me`, `PUT /contacts/{id}`) build that one query inline instead — everything reused across more than one call site lives here.
+The `Queries` class in `modules/cursor.py` is a namespace of `str` constants — `SELECT_USER_BY_EMAIL`, `INSERT_CONTACT`, `SELECT_CONFIRMED_CONTACTS_BY_USER`, etc. Routes that need a one-off `UPDATE … SET <dynamic columns>` (partial updates in `PUT /users/me`, `PUT /contacts/{id}`) build that inline; everything reused lives here.
 
-## Provisioning a database
+## Provisioning & migrations
 
-```bash
-mariadb -u root
-```
-
-```sql
--- queries/creation.sql (adjust the placeholders)
-CREATE DATABASE <database name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER '<username>'@'localhost' IDENTIFIED BY '<password>';
-GRANT ALL PRIVILEGES ON <database name>.* TO '<username>'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-Then run `queries/tables.sql` against that database to create all four tables. `queries/insertions.sql` has example `INSERT` statements (one user, two contacts, one alert) for manual testing — there's no seed/fixture script beyond that, a fresh environment starts with an empty database.
+See [setup.md](setup.md) to create a database from `creation.sql` + `tables.sql`, and [operations.md](operations.md) for applying the `migrations/` files to an existing database.

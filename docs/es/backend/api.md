@@ -1,63 +1,73 @@
 # Referencia de la API
 
-Referencia rápida de cada ruta. Los cuerpos completos de petición/respuesta y ejemplos de uso en Python/JavaScript viven en [`backend/API.md`](../../../backend/API.md) — esta página es el mapa, esa es el detalle. 🔒 = requiere `Authorization: Bearer <token>` (ver [`auth.md`](auth.md)).
+Referencia rápida de cada ruta. 🔒 = requiere `Authorization: Bearer <token>` (ver [auth.md](auth.md)). Los cuerpos completos de petición/respuesta y ejemplos de código viven en [`backend/API.md`](../../../backend/API.md).
 
 ## `/auth`
 
 | Método y ruta | Auth | Propósito |
 |---|---|---|
-| `POST /auth/register` | — | Crea un usuario, envía por correo un enlace de confirmación de cuenta |
-| `POST /auth/login` | — | Verifica credenciales + `confirmed`, devuelve un JWT |
-| `GET /auth/confirm/{token}` | — | Confirma una cuenta desde el enlace del correo (página HTML) |
+| `POST /auth/register` | — | Crea un usuario, envía por correo un enlace de confirmación de cuenta. Con límite de tasa; se verifica la entregabilidad del dominio. |
+| `POST /auth/login` | — | Verifica credenciales + `confirmed`, devuelve un JWT. Con límite de tasa. |
+| `GET /auth/confirm/{token}` | — | Confirma una cuenta desde el enlace del correo (página HTML). |
 
 ## `/users`
 
 | Método y ruta | Auth | Propósito |
 |---|---|---|
-| `GET /users/me` | 🔒 | Perfil del usuario actual |
-| `PUT /users/me` | 🔒 | Actualización parcial (nombre/teléfono/email/contraseña) — cambiar el email o la contraseña requiere además `current_password` (ver [`auth.md`](auth.md)) |
+| `GET /users/me` | 🔒 | Perfil del usuario actual. |
+| `PUT /users/me` | 🔒 | Actualización parcial (nombre/teléfono/email/contraseña) — cambiar email o contraseña requiere además `current_password` (ver [auth.md](auth.md)). |
 
 ## `/contacts`
 
 | Método y ruta | Auth | Propósito |
 |---|---|---|
-| `POST /contacts` | 🔒 | Agrega un contacto de emergencia (máx. 4), envía un enlace de confirmación si tiene email |
-| `GET /contacts` | 🔒 | Lista los contactos del usuario actual, con flags `confirmed`/`telegram_linked` |
-| `GET /contacts/confirm/{token}` | — | Confirma un contacto desde el enlace del correo (página HTML) |
-| `PUT /contacts/{id}` | 🔒 | Actualización parcial — cambiar el email reenvía la confirmación y vuelve a marcar el contacto como no confirmado |
-| `POST /contacts/{id}/confirm/resend` | 🔒 | Reenvía el correo de confirmación a un contacto no confirmado |
-| `DELETE /contacts/{id}` | 🔒 | Elimina un contacto |
-| `POST /contacts/{id}/telegram/enable` | 🔒 | Inicia una vinculación de Telegram (ver [`notifications.md`](notifications.md)) |
-| `DELETE /contacts/{id}/telegram` | 🔒 | Desvincula Telegram de un contacto |
+| `POST /contacts` | 🔒 | Agrega un contacto de emergencia (máx. 4), envía confirmación si tiene email. |
+| `GET /contacts` | 🔒 | Lista contactos con `confirmed`, `telegram_linked`, `whatsapp_enabled`, `whatsapp_confirmed`, `sms_enabled`. |
+| `GET /contacts/confirm/{token}` | — | Confirma el email de un contacto desde el enlace (página HTML). |
+| `PUT /contacts/{id}` | 🔒 | Actualización parcial — cambiar el email reinicia la confirmación y la reenvía. |
+| `POST /contacts/{id}/confirm/resend` | 🔒 | Reenvía la confirmación por correo a un contacto no confirmado. Con límite de tasa. |
+| `DELETE /contacts/{id}` | 🔒 | Elimina un contacto. Las alertas pasadas conservan su nombre (ver [database.md](database.md)). |
+| `POST /contacts/{id}/telegram/enable` | 🔒 | Inicia una vinculación de Telegram (devuelve un enlace `t.me` o lo envía por correo). |
+| `DELETE /contacts/{id}/telegram` | 🔒 | Desvincula Telegram. |
+| `POST /contacts/{id}/whatsapp/enable` | 🔒 | Activa WhatsApp; devuelve un enlace `wa.me` de opt-in. |
+| `DELETE /contacts/{id}/whatsapp` | 🔒 | Desactiva WhatsApp (limpia enabled + confirmed). |
+| `POST /contacts/{id}/sms/enable` | 🔒 | Activa SMS para el contacto. |
+| `DELETE /contacts/{id}/sms` | 🔒 | Desactiva SMS. |
 
 ## `/alerts`
 
 | Método y ruta | Auth | Propósito |
 |---|---|---|
-| `POST /alerts` | 🔒 | Dispara una alerta de pánico — notifica a cada contacto confirmado por email y/o Telegram |
-| `GET /alerts` | 🔒 | Lista las alertas del usuario actual, cada una con estado de entrega por contacto/canal |
-| `GET /alerts/view/{token}` | — | Enlace al mapa enviado a un contacto por correo/Telegram — lo marca como visto y redirige a Google Maps |
+| `POST /alerts` | 🔒 | Dispara una alerta de pánico; notifica a cada contacto confirmado por cada canal activo. Con límite de tasa. Devuelve conteos por canal. |
+| `GET /alerts` | 🔒 | Lista alertas, cada una con sus notificaciones (`contact_name`, `channel`, `viewed_at`, `contact_removed`). |
+| `GET /alerts/view/{token}` | — | Enlace del mapa enviado a un contacto — lo marca como visto y redirige a Google Maps. |
 
-## `/telegram`
+Respuesta de `POST /alerts`:
+
+```json
+{
+  "id": 42,
+  "created_at": "2026-08-20T15:28:33",
+  "notified_contacts": 3,
+  "channels": { "email": 2, "telegram": 1, "whatsapp": 1, "sms": 0 }
+}
+```
+
+## Webhooks
 
 | Método y ruta | Auth | Propósito |
 |---|---|---|
-| `POST /telegram/webhook` | secreto de webhook | Telegram llama a esto en cada update del bot; no está pensado para llamarse directamente |
+| `POST /telegram/webhook` | secreto de webhook | Telegram llama a esto en cada update del bot. |
+| `POST /whatsapp/webhook` | firma de Twilio | Twilio llama a esto en mensajes de WhatsApp de entrada (opt-in). |
 
-## `/features`
-
-| Método y ruta | Auth | Propósito |
-|---|---|---|
-| `GET /features` | — | `{"telegram": bool, "max_contacts": int}` — si este despliegue tiene un bot de Telegram configurado, y el tope de contactos de emergencia que la app debe respetar |
-
-## `/health`
+## `/features` y rutas de servicio
 
 | Método y ruta | Auth | Propósito |
 |---|---|---|
-| `GET /health` | — | Estado del servicio más alcanzabilidad de la base de datos (`200` sano, `503` si no se puede alcanzar la base de datos) — para un supervisor de proceso o un monitor de disponibilidad |
+| `GET /features` | — | `{"telegram": bool, "whatsapp": bool, "sms": bool, "max_contacts": int}`. |
+| `GET /health` | — | Servicio + alcanzabilidad de la base (`200` / `503`). |
+| `GET /favicon.ico` | — | Favicon del sitio. |
+| `GET /` | — | Landing. |
+| `GET /dashboard` | — | Panel de alertas (inicia sesión con una cuenta de la app). |
 
-El registro, el login y la alerta de pánico tienen límite de tasa por cliente; superar el límite devuelve `429`. Ver [`operations.md`](operations.md).
-
-## Páginas web (no JSON)
-
-Ver [`web-pages.md`](web-pages.md) para `GET /`, `GET /dashboard`, y los mounts estáticos `/app`/`/static`.
+El registro, login, reenvío y alerta tienen límite de tasa; superarlo devuelve `429`. Ver [operations.md](operations.md). Los estáticos se sirven en `/static`, y la UI móvil en `/app` (ver [web-pages.md](web-pages.md) y [app/architecture.md](../app/architecture.md)).

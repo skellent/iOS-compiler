@@ -1,124 +1,53 @@
 # App architecture
 
-`app/` is a [Capacitor](https://capacitorjs.com/) project (Android + iOS) built with plain HTML/CSS/JavaScript — no frontend framework. Every view (`src/views/*.js`) exports one `render(container, ctx)` function that builds its own markup and wires its own listeners; there's no component system beyond that repeated shape.
+The mobile app is a **Capacitor** (Android) app that runs *online*: the native shell is a thin container whose WebView loads the UI live from the backend's `/app` mount. Most changes ship by rebuilding the web bundle and redeploying the backend — no new APK.
 
-**The app doesn't bundle its own UI.** The WebView navigates straight to the backend's own `/app` route and loads it live — the same idea as an Electron window pointed at a URL instead of shipping a local copy of the page. This is the single most important thing to understand about how this app is deployed, so most of this document is about it.
-
-## Build pipeline
-
-```mermaid
-flowchart LR
-    src["src/*.js\n(ES modules, Capacitor plugin imports)"]
-    bun["bun run build\nBun.build() bundler"]
-    www["www/js/main.js\n(one file, API_BASE_URL baked in)"]
-    backend["backend/main.py\nserves www/ at /app"]
-    webview["WebView\nserver.url = API_BASE_URL/app/"]
-
-    src --> bun --> www --> backend --> webview
-```
-
-`src/*.js` imports Capacitor plugins as bare npm specifiers (`import { Geolocation } from "@capacitor/geolocation"`) — something a WebView can't resolve on its own. `build.js` runs Bun's built-in bundler (`Bun.build()`) to resolve those into one file, `www/js/main.js`, loaded as `<script type="module">`. This is the *only* build step in the project — there's no TypeScript, no syntax transform, every `.js` file is already directly runnable; the bundler's only job is folding `node_modules` imports into something a browser can load.
-
-`import.meta.env.API_BASE_URL` in `src/lib/api.js` isn't a real runtime API — `Bun.build()`'s `define` option textually replaces that exact expression with a string literal at build time, read from `app/.env`. The WebView never sees an environment variable, only the substituted URL, baked in.
-
-Run `bun run build` after any change under `src/` — `www/js/` is committed (not gitignored, so it can be deployed by `git pull` + restarting/leaving the backend running) but it only updates when this command runs.
-
-## Why the app loads its UI from the backend
-
-```js
-// capacitor.config.js
-server: {
-  url: `${apiBaseUrl}/app/`,
-  cleartext: true,
-},
-```
-
-Every earlier version of this app used Capacitor the conventional way: `webDir: "www"`, `cap sync` copied `www/` into the native project, and an install had the whole UI baked in from the moment it was downloaded — the only way to fix a typo was to ship a new build to every device. Now `capacitor.config.js`'s `server.url` points the WebView straight at `${API_BASE_URL}/app/` instead. The trade-off is explicit: **there's no bundled fallback.** A device with no network reachable to `API_BASE_URL` has nothing to load at all, in exchange for never needing a new native build just to change a screen's copy or fix a CSS bug.
-
-`cleartext: true` only matters for local development (`http://10.0.2.2:8000`, a LAN IP, etc.) — a production `API_BASE_URL` is a real `https://` domain and never needs it.
-
-## Staying in sync: the update-check flow
-
-A WebView that's already loaded a page keeps running it — a new backend deploy doesn't reach a phone sitting in the background, the same way pushing to a website doesn't refresh an already-open tab.
-
-```mermaid
-sequenceDiagram
-    participant App as main.js boot()
-    participant Update as appUpdate.js
-    participant Backend as GET /app/manifest
-    participant Prefs as Preferences (local)
-
-    App->>Update: initAppUpdates()
-    Update->>Backend: fetch manifest (cache: no-store)
-    Backend-->>Update: version (sha256 hash)
-    Update->>Prefs: get last known version
-    alt first run
-        Update->>Prefs: store version
-    else version changed
-        Update->>Prefs: store new version
-        Update->>App: window.location.reload()
-    else unchanged
-        Update->>Update: do nothing
-    end
-    Note over Update: also runs on App.addListener("resume", ...)
-```
-
-`GET /app/manifest` (`backend/modules/app_assets.py`) hashes every file's path + contents under `app/www`, recomputed fresh on every request — no version number to remember to bump, the hash just changes when the files do. The check runs on boot and whenever `@capacitor/app`'s `resume` event fires (foregrounding after being backgrounded) — not on a timer, since both are already moments a hard reload is unsurprising to the user. The reload actually picks up fresh files because `/app`'s static files are served with `Cache-Control: no-cache` (see [`../backend/web-pages.md`](../backend/web-pages.md)) — otherwise the WebView could reload and still get its own stale disk cache back.
-
-## What this update mechanism *doesn't* cover: native code
-
-`GET /app/manifest` only hashes `app/www/` — HTML, CSS, the bundled JS. **It never reaches anything compiled into the native binary.** Concretely, this means the live-reload path does *not* pick up:
-
-- A new or updated Capacitor plugin (native Java/Kotlin or Swift code)
-- A new `AndroidManifest.xml` permission or `Info.plist` entry
-- Any change under `android/` or `ios/` themselves
-
-Any of those require a fresh `./gradlew assembleRelease` and redistributing the resulting APK (`backend/static/downloads/panic-button.apk`, see [`../backend/web-pages.md`](../backend/web-pages.md)) — a phone that already has the app installed keeps running the native code it shipped with, no matter what `app/www` says, until it installs that new APK.
-
-## Native platforms: manual additions after scaffolding
-
-`bunx cap add android`/`bunx cap add ios` generated `android/`/`ios/`; a few things were added by hand afterward, since Capacitor plugins ship empty native manifests (permissions are declared by the *app*, not the plugin):
-
-- **`AndroidManifest.xml`**: `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION` (`@capacitor/geolocation`), `READ_CONTACTS`/`WRITE_CONTACTS` (`@capacitor-community/contacts` requests both under one Android permission alias, though this app never writes to the address book), and `android:usesCleartextTraffic="true"` on `<application>` — needed because `cap sync` doesn't inject that attribute into a manifest that already exists (only into one being scaffolded fresh), and without it a plain-`http://` `server.url` gets silently blocked (no page, no error) on Android 28+.
-- **`Info.plist`**: `NSLocationWhenInUseUsageDescription`, `NSContactsUsageDescription` — the iOS equivalent, the human-readable strings shown on first permission request.
-- **`colors.xml`**: `colorPrimary`/`colorPrimaryDark`/`colorAccent`, since Capacitor's Android template doesn't generate one — otherwise native chrome (status bar, system dialogs) falls back to Capacitor's stock indigo/pink instead of the brand color.
-
-## `SplashScreen.hide()` is required
-
-```js
-// capacitor.config.js
-SplashScreen: { launchAutoHide: false, ... }
-```
-
-```js
-// main.js boot()
-await renderCurrentRoute();
-await SplashScreen.hide();
-```
-
-`launchAutoHide: false` means the native splash overlay stays on screen indefinitely until something explicitly calls `SplashScreen.hide()` — it does not dismiss itself once the WebView's first frame renders. `boot()` calls it as its last step. **If this call is ever removed or an exception in `boot()` happens before it runs, the app gets stuck on the splash screen forever**, indistinguishable at a glance from a network/loading failure — this was an actual bug hit during development.
-
-## Directory layout
+## Layout
 
 ```
 app/
-  build.js                 — Bun.build() script
-  capacitor.config.js      — server.url built from API_BASE_URL, splash screen config
-  src/
-    main.js                 — hash router, boot sequence
-    lib/
-      api.js                 — fetch wrapper for every backend endpoint
-      session.js             — auth token persistence (@capacitor/preferences)
-      appUpdate.js            — the update-check flow above
-      geolocation.js, contactsPicker.js — thin plugin wrappers
-      theme.js                — accent color + light/dark, HSL-derived shades
-      i18n.js                  — 12-language string dictionary
-      phone.js, features.js, icons.js, toast.js, sheet.js, dom.js — small shared helpers
-    views/
-      login.js, register.js, home.js, contacts.js, profile.js, about.js, help.js
-  www/                       — build output, see screens.md for what's in it
-    index.html, css/styles.css, js/main.js (bundled), assets/
-  android/, ios/             — native projects, mostly not hand-edited (see above)
+├── src/
+│   ├── main.js            # entry: router, view mounting
+│   ├── views/             # home, contacts, profile, login, register
+│   ├── lib/               # api.js, session.js, features.js, i18n.js, icons.js, …
+│   └── ...
+├── www/                   # served by the backend at /app
+│   ├── js/main.js         # the built bundle (Bun output)
+│   └── css/styles.css     # served directly (not bundled)
+├── assets/icon.png        # source launcher icon (SOS)
+├── build.js               # Bun build script
+└── android/, ios/         # native shells (Capacitor)
 ```
 
-See [`screens.md`](screens.md) for what each screen does.
+## The online model
+
+```mermaid
+flowchart LR
+    Shell[Native shell] -->|loads| Www["/app (backend)"]
+    Www --> Bundle[www/js/main.js]
+    Bundle -->|fetch| API[Backend API]
+    Shell -->|on launch/resume| Manifest["/app/manifest hash"]
+    Manifest -->|changed?| Reload[reload UI]
+```
+
+- **JS** is bundled from `src/main.js` into `www/js/main.js` by Bun (`build.js`). `API_BASE_URL` is injected at build time.
+- **CSS** (`www/css/styles.css`) is served directly — CSS-only changes need no rebuild.
+- On launch/resume the shell checks `/app/manifest` (a content hash) and reloads the WebView when it changed, so a redeployed bundle reaches installed apps without a store update.
+
+## Building
+
+```bash
+cd app
+bun install
+API_BASE_URL='https://your-domain' bun run build   # → www/js/main.js
+```
+
+Deploy by shipping `app/www` with the backend (it serves `/app`).
+
+## When an APK rebuild *is* required
+
+Only for changes the native shell bakes in: native plugins/permissions, the launcher icon or app name, the Capacitor config, or the shell's start URL. A pure UI change (views, styles, i18n, channel toggles) does not. See [domain-change.md](../backend/domain-change.md) for the domain case.
+
+## Configuration from the backend
+
+The app asks `GET /features` once per session and adapts: it hides a channel's UI (Telegram / WhatsApp / SMS) when that channel isn't configured, and reads `max_contacts` so its "add contact" limit matches the backend. Auth token is kept with `@capacitor/preferences` and sent as `Authorization: Bearer` on every call.
