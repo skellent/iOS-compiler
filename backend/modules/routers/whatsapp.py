@@ -34,18 +34,25 @@ async def whatsapp_webhook(request: Request, x_twilio_signature: str | None = He
     body: bytes = await request.body()
     params: dict = dict(parse_qsl(body.decode("utf-8", "replace")))
 
+    sender: str = params.get("From", "")
+    _logger.info(f"WhatsApp webhook: received inbound from {sender or '(no From)'} (sid={params.get('MessageSid') or 'none'})")
+
     if _credentials['validate_signature'] and _credentials['auth_token']:
         if not validate_signature(x_twilio_signature, _WEBHOOK_URL, params):
             _logger.warning("WhatsApp webhook rejected: invalid Twilio signature")
             return Response(content=_EMPTY_TWIML, media_type="application/xml", status_code=403)
 
-    sender: str = params.get("From", "")
     digits: str = _digits(sender)
     if not digits:
+        _logger.info("WhatsApp webhook: inbound without a usable From number, ignored")
         return Response(content=_EMPTY_TWIML, media_type="application/xml")
 
     rows: list[dict] = cursor.execute(Queries.SELECT_WHATSAPP_ENABLED_CONTACTS_BY_PHONE, (digits,))
     if not rows:
+        _logger.warning(
+            f"WhatsApp webhook: no whatsapp-enabled contact matches {digits} "
+            "(the number differs from the stored contact phone, or WhatsApp isn't enabled for it)"
+        )
         return Response(content=_EMPTY_TWIML, media_type="application/xml")
 
     cursor.execute(Queries.CONFIRM_CONTACTS_WHATSAPP_BY_PHONE, (digits,))
