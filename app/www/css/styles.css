@@ -643,7 +643,6 @@ button {
 
 .sheet-backdrop.sheet-open {
   background: var(--scrim);
-  backdrop-filter: blur(2px);
 }
 
 .sheet {
