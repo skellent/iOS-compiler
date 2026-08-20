@@ -14,7 +14,7 @@ from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI, Request
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import HTMLResponse, JSONResponse, Response
+from fastapi.responses        import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles      import StaticFiles
 
 from slowapi          import _rate_limit_exceeded_handler
@@ -134,7 +134,35 @@ app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "st
 
 @app.get("/", response_class=HTMLResponse)
 def root():
-    return Pages.Render("landing", {"contact_email": _credentials['email']['from']})
+    return Pages.Render("landing", {
+        "contact_email": _credentials['email']['from'],
+        "base_url": _credentials['api_base_url'],
+    })
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots():
+    base_url: str = _credentials['api_base_url']
+    return (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /app\n"
+        "Disallow: /dashboard\n"
+        "Disallow: /docs\n"
+        f"Sitemap: {base_url}/sitemap.xml\n"
+    )
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    base_url: str = _credentials['api_base_url']
+    xml: str = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'  <url><loc>{base_url}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n'
+        '</urlset>\n'
+    )
+    return Response(content=xml, media_type="application/xml")
 
 
 @app.get("/health")
