@@ -39,11 +39,12 @@ CREATE TABLE alerts (
 
 
 CREATE TABLE alert_notifications (
-    id         INT                       AUTO_INCREMENT PRIMARY KEY,
-    alert_id   INT                       NOT NULL,
-    contact_id INT                       NOT NULL,
-    channel    ENUM('email', 'telegram', 'whatsapp', 'sms') NOT NULL,
-    viewed_at  DATETIME,
+    id           INT                       AUTO_INCREMENT PRIMARY KEY,
+    alert_id     INT                       NOT NULL,
+    contact_id   INT,
+    contact_name VARCHAR(100),
+    channel      ENUM('email', 'telegram', 'whatsapp', 'sms') NOT NULL,
+    viewed_at    DATETIME,
     FOREIGN KEY (alert_id) REFERENCES alerts(id),
-    FOREIGN KEY (contact_id) REFERENCES contacts(id)
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
 );

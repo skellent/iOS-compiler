@@ -217,14 +217,10 @@ def resend_contact_confirmation(request: Request, contact_id: int, background_ta
 
 @router.delete("/{contact_id}", status_code=204)
 def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
-    # A contact that was ever part of an alert has alert_notifications rows pointing
-    # at it (FK, no ON DELETE CASCADE). Clear those first, then the contact, in one
-    # transaction so we never leave the notifications orphaned or half-deleted.
-    with cursor.transaction():
-        if not cursor.execute(Queries.SELECT_CONTACT_ID_FOR_USER, (contact_id, user_id)):
-            raise HTTPException(status_code=404, detail="Contact not found")
-        cursor.execute(Queries.DELETE_ALERT_NOTIFICATIONS_BY_CONTACT, (contact_id,))
-        cursor.execute(Queries.DELETE_CONTACT, (contact_id, user_id))
+    cursor.execute(Queries.DELETE_CONTACT, (contact_id, user_id))
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    cursor.commit()
     _logger.info(f"User {user_id} deleted contact {contact_id}")
 
 
