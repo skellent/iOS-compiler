@@ -1,6 +1,6 @@
 # Base de datos
 
-MariaDB, sin ORM, sin framework de migraciones. `queries/` (raíz del repo) tiene el SQL que un administrador ejecuta a mano para provisionar una base de datos; `modules/cursor.py` tiene cada query que la app ejecuta contra ella, como strings SQL parametrizados planos.
+MariaDB, sin ORM, sin framework de migraciones. `queries/` tiene el SQL que un operador ejecuta a mano; `modules/cursor.py` tiene cada query que la app ejecuta, como strings SQL parametrizados planos.
 
 ## Esquema
 
@@ -8,8 +8,8 @@ MariaDB, sin ORM, sin framework de migraciones. `queries/` (raíz del repo) tien
 erDiagram
     users ||--o{ contacts : "posee"
     users ||--o{ alerts : "dispara"
-    alerts ||--o{ alert_notifications : "se distribuye a"
-    contacts ||--o{ alert_notifications : "recibe"
+    alerts ||--o{ alert_notifications : "se reparte a"
+    contacts |o--o{ alert_notifications : "recibe (nullable)"
 
     users {
         int id PK
@@ -30,6 +30,9 @@ erDiagram
         bigint telegram_chat_id
         varchar telegram_link_token UK
         datetime telegram_link_expires_at
+        boolean whatsapp_enabled
+        boolean whatsapp_confirmed
+        boolean sms_enabled
     }
     alerts {
         int id PK
@@ -41,52 +44,38 @@ erDiagram
     alert_notifications {
         int id PK
         int alert_id FK
-        int contact_id FK
-        enum channel "email | telegram"
+        int contact_id FK "nullable, ON DELETE SET NULL"
+        varchar contact_name
+        enum channel "email|telegram|whatsapp|sms"
         datetime viewed_at
     }
 ```
 
-(`queries/tables.sql` es la fuente de verdad — este diagrama lo refleja.)
+`queries/tables.sql` es la fuente de verdad para una instalación nueva.
 
-- **`users.confirmed`** condiciona el login (`POST /auth/login` devuelve `403` hasta que sea `true`) — se activa haciendo clic en el enlace del correo de registro. Una cuenta que nunca se confirma no puede tener contactos ni alertas, así que `scripts/purge_unconfirmed_users.py` puede borrar sin riesgo cualquiera que siga sin confirmar 24h después del registro (ver [`operations.md`](operations.md)).
-- **`contacts.confirmed`** y **`contacts.telegram_chat_id`** son dos canales de notificación independientes para el mismo contacto — una alerta de pánico los alcanza por el que esté activo (o ambos). `telegram_link_token`/`telegram_link_expires_at` son estado de un solo uso y con vencimiento para el enlace de vinculación (ver [`notifications.md`](notifications.md)); se limpian de vuelta a `NULL` una vez vinculado.
-- **`alert_notifications`** es una fila por `(alerta, contacto, canal)` — un contacto confirmado por email y por Telegram genera dos filas para la misma alerta. `viewed_at` se marca la primera vez que se abre ese enlace específico, que es cómo el dashboard muestra confirmación de entrega por contacto y por canal.
+- **`users.confirmed`** condiciona el login (`403` hasta que sea true) — se activa con el enlace del correo de registro. Una cuenta sin confirmar no puede poseer nada, así que `scripts/purge_unconfirmed_users.py` puede borrar las viejas sin riesgo.
+- **`contacts`** lleva un conjunto de estado por canal: `confirmed` (email), `telegram_chat_id` (+ token/vencimiento de enlace de un solo uso), `whatsapp_enabled`/`whatsapp_confirmed`, y `sms_enabled`. Un contacto es notificado por un canal solo cuando se cumple la condición de ese canal (ver [notifications.md](notifications.md)).
+- **`alert_notifications`** es una fila por `(alerta, contacto, canal)`. Guarda el **`contact_name`** al momento del envío y su FK `contact_id` es **`ON DELETE SET NULL`** — así, borrar un contacto conserva el historial de la alerta (la fila sobrevive con el nombre; solo se limpia el enlace al contacto vivo). `viewed_at` marca la primera vez que se abrió ese enlace de vista específico.
 
 ## `Cursor`: una conexión por hilo
 
-FastAPI ejecuta las rutas `def` en un pool de hilos, así que puede haber varias peticiones a la vez. Cada hilo obtiene su propia conexión y cursor de MariaDB, creados en el primer uso y conservados para ese hilo — de modo que `cursor.execute(...)` seguido de `cursor.lastrowid` o `cursor.rowcount` siempre describe la sentencia que *este* hilo acaba de ejecutar, nunca la de otra petición. Las conexiones se guardan en `threading.local()`; el objeto `cursor` compartido que cada módulo importa es solo el despachador frente a ellas.
+FastAPI corre las rutas `def` en un threadpool. Una sola conexión compartida dejaría que las peticiones intercalen `execute` / `rowcount` / `lastrowid` sobre el mismo cursor — una petición leyendo el id de inserción de otra. Cada hilo obtiene su propia conexión y cursor, creados en el primer uso y conservados para ese hilo (vía `threading.local()`); el objeto `cursor` compartido que cada módulo importa es solo el despachador frente a ellos.
 
 ```python
-class Cursor:
-    def _open(self):
-        conn = mariadb.connect(..., client_flag=CLIENT.FOUND_ROWS, autocommit=True)
-        return _Connection(conn, conn.cursor(dictionary=True))
+conn = mariadb.connect(..., client_flag=CLIENT.FOUND_ROWS, autocommit=True)
 ```
 
-Dos flags de conexión no default, ambos corrigiendo bugs reales encontrados en producción:
+Dos flags no default, cada uno corrigiendo un bug real:
 
-- **`CLIENT.FOUND_ROWS`** — sin esto, un `UPDATE` que encuentra una fila pero no cambia su valor reporta `rowcount = 0`, indistinguible de "ninguna fila coincidió". Cada verificación de existencia/pertenencia en este código (`if cursor.rowcount == 0: raise 404`) depende de que `rowcount` signifique "filas encontradas", no "filas modificadas" — un enlace de confirmación clickeado dos veces, o una edición que reenvía el mismo valor, no debe dar 404.
-- **`autocommit = True`** — cada escritura ya llama a `cursor.commit()` explícitamente; esto es un respaldo para que una escritura suelta en un camino que se olvida de hacerlo (o un simple `SELECT`, que igual abre una transacción bajo el nivel de aislamiento default de MariaDB) no deje una fila bloqueada. Para los pocos lugares que deben leer y luego escribir de forma atómica, `cursor.transaction()` abre una transacción explícita en la conexión del hilo que llama — usada para hacer cumplir el tope de contactos de emergencia bajo un bloqueo de fila, de modo que dos altas simultáneas no puedan ambas saltarse el límite.
+- **`CLIENT.FOUND_ROWS`** — sin esto, un `UPDATE` que encuentra una fila pero no cambia nada reporta `rowcount = 0`, indistinguible de "ninguna coincidencia". Cada chequeo de existencia/pertenencia depende de que `rowcount` signifique "filas encontradas".
+- **`autocommit = True`** — un respaldo para que una escritura suelta (o un simple `SELECT`, que igual abre transacción) no deje una fila bloqueada. Los pocos caminos leer-luego-escribir que deben ser atómicos usan `cursor.transaction()`, una transacción explícita en la conexión del hilo que llama.
 
-`execute()` reintenta una vez ante `mariadb.InterfaceError` (el clásico "MariaDB server has gone away" de una conexión inactiva cerrada del lado del servidor tras `wait_timeout`) reconectando y reejecutando la query, así un backend inactivo toda la noche se recupera en la siguiente petición en vez de necesitar un reinicio manual. Un `mariadb.IntegrityError` (violación de una restricción `UNIQUE` — teléfono/email duplicado, etc.) se traduce a `DuplicateRecordError`, que los routers capturan y convierten en un `409`. Al arrancar, `main.py` abre una conexión de inmediato (`cursor.verify()`) para que una base de datos mal configurada o inalcanzable haga fallar el arranque de forma ruidosa en vez de en la primera petición.
+`execute()` reintenta una vez ante `mariadb.InterfaceError` (el "server has gone away" tras `wait_timeout`) reconectando — así un backend inactivo se recupera en la siguiente petición en vez de necesitar un reinicio. Un `mariadb.IntegrityError` (violación de UNIQUE) se traduce a `DuplicateRecordError`, que los routers convierten en `409`. Al arrancar, `cursor.verify()` abre una conexión de inmediato para que una base mal configurada falle ruidosamente.
 
-## `Queries`: todo el SQL, en un solo lugar
+## `Queries`
 
-La clase `Queries` de `modules/cursor.py` es un namespace de constantes `str` — `SELECT_USER_BY_EMAIL`, `INSERT_CONTACT`, `CONFIRM_CONTACT_TELEGRAM`, etc. Los routers que necesitan un `UPDATE ... SET <lista dinámica de columnas>` puntual (actualizaciones parciales en `PUT /users/me`, `PUT /contacts/{id}`) arman esa query inline en su lugar — todo lo que se reutiliza en más de un lugar vive acá.
+La clase `Queries` de `modules/cursor.py` es un namespace de constantes `str` — `SELECT_USER_BY_EMAIL`, `INSERT_CONTACT`, `SELECT_CONFIRMED_CONTACTS_BY_USER`, etc. Las rutas que necesitan un `UPDATE … SET <columnas dinámicas>` puntual (actualizaciones parciales en `PUT /users/me`, `PUT /contacts/{id}`) lo arman inline; todo lo reutilizado vive acá.
 
-## Provisionar una base de datos
+## Provisionar y migrar
 
-```bash
-mariadb -u root
-```
-
-```sql
--- queries/creation.sql (ajustar los placeholders)
-CREATE DATABASE <nombre de la base de datos> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER '<usuario>'@'localhost' IDENTIFIED BY '<contraseña>';
-GRANT ALL PRIVILEGES ON <nombre de la base de datos>.* TO '<usuario>'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-Luego correr `queries/tables.sql` contra esa base para crear las cuatro tablas. `queries/insertions.sql` tiene ejemplos de `INSERT` (un usuario, dos contactos, una alerta) para pruebas manuales — no hay script de seed/fixtures más allá de eso, un entorno nuevo arranca con la base vacía.
+Ver [setup.md](setup.md) para crear una base desde `creation.sql` + `tables.sql`, y [operations.md](operations.md) para aplicar los archivos de `migrations/` a una base existente.

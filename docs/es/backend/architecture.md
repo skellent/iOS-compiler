@@ -1,130 +1,84 @@
 # Arquitectura del backend
 
-`backend/` es una única aplicación FastAPI (`main.py`) dividida en `modules/` — sin capa de servicios, sin ORM: los routers llaman a `Cursor.execute()` directamente con SQL plano. Este documento cubre cómo `main.py` conecta todo; cada subsistema tiene su propio doc.
+Un servicio FastAPI sobre MariaDB, sin ORM. Las rutas son funciones planas; el SQL vive como strings parametrizados en un solo lugar.
 
-## Mapa de módulos
+## Estructura
 
-```mermaid
-flowchart TD
-    main["main.py\nApp FastAPI, CORS, routers, mounts /static + /app"]
-
-    main --> auth["routers/auth.py\n/auth"]
-    main --> users["routers/users.py\n/users"]
-    main --> contacts["routers/contacts.py\n/contacts"]
-    main --> alerts["routers/alerts.py\n/alerts"]
-    main --> telegramR["routers/telegram.py\n/telegram"]
-    main --> features["routers/features.py\n/features"]
-    main --> dashboard["routers/dashboard.py\n/dashboard"]
-
-    auth & users & contacts & alerts --> deps["dependencies.py\ncurrent_user"]
-    deps --> token["token.py\nToken"]
-    auth & users --> guard["guard.py\nGuard"]
-    auth & alerts --> limiter["limiter.py\nlímites de tasa"]
-    auth & users & contacts & alerts --> db["db.py / cursor.py\nCursor, Queries"]
-    auth & contacts & alerts --> mail["mail.py\nMail"]
-    auth & users & contacts --> emailcheck["email_check.py\nassert_deliverable()"]
-    alerts & contacts & telegramR --> telegram["telegram.py\nTelegram"]
-    auth & contacts & alerts --> pages["pages.py\nPages.Render"]
-    db --> credentials["credentials.py\nget_credentials()"]
-    mail --> credentials
-    telegram --> credentials
-    token --> credentials
-
-    main --> appassets["app_assets.py\nAPP_WWW_DIR, get_manifest()"]
+```
+backend/
+├── main.py                 # ensamblado: lifespan, middleware, rutas, mounts estáticos
+├── modules/
+│   ├── credentials.py      # .env → un dict de config agrupado
+│   ├── db.py, cursor.py    # acceso a MariaDB confinado por hilo + todo el SQL (Queries)
+│   ├── guard.py, token.py  # hash de contraseñas, JWT
+│   ├── dependencies.py     # dependencia de auth current_user
+│   ├── types.py            # modelos Pydantic de petición/respuesta
+│   ├── limiter.py          # limitador slowapi
+│   ├── email_check.py      # chequeo de entregabilidad del dominio del destinatario
+│   ├── mail.py             # canal SMTP
+│   ├── telegram.py         # canal Telegram + webhook (autorreparable)
+│   ├── whatsapp.py         # canal WhatsApp (Twilio) + verificación de firma
+│   ├── sms.py              # canal SMS (Twilio)
+│   ├── logs.py, pages.py, app_assets.py
+│   └── routers/            # auth, users, contacts, alerts, features,
+│                           #   telegram, whatsapp, dashboard
+├── templates/              # Jinja: mail/, telegram/, whatsapp/, sms/, web/
+├── static/                 # css, js, img (favicon), downloads (apk)
+└── queries/                # creation.sql, tables.sql, migrations/
 ```
 
-Cada módulo que necesita configuración llama a `get_credentials()` (`.env`, ver [`operations.md`](operations.md)) por sí mismo en vez de recibirla inyectada — no hay framework de inyección de dependencias aquí, solo imports directos.
-
-## Flujo de una petición autenticada
+## Flujo de una petición
 
 ```mermaid
 sequenceDiagram
-    participant Cliente
-    participant Router as routers/*.py
-    participant Dep as dependencies.py
-    participant Token as token.py
-    participant DB as Cursor
+    participant Client
+    participant MW as Middleware
+    participant Route
+    participant Cursor
+    participant DB as MariaDB
 
-    Cliente->>Router: petición + Authorization Bearer JWT
-    Router->>Dep: Depends(current_user)
-    Dep->>Token: Token.Validate(jwt)
-    Token-->>Dep: payload o None
-    alt inválido/expirado
-        Dep-->>Cliente: 401
-    else válido
-        Dep-->>Router: user_id
-        Router->>DB: cursor.execute(query, (user_id, ...))
-        DB-->>Router: filas
-        Router-->>Cliente: respuesta JSON
-    end
+    Client->>MW: petición HTTP
+    MW->>MW: asigna request id, rate limit
+    MW->>Route: despacha
+    Route->>Route: Depends(current_user) valida el JWT
+    Route->>Cursor: execute(SQL, params)
+    Cursor->>DB: (conexión de este hilo)
+    DB-->>Route: filas
+    Route-->>MW: respuesta
+    MW->>MW: cabeceras de seguridad, X-Request-ID
+    MW-->>Client: respuesta
 ```
 
-## CORS
+FastAPI corre las rutas `def` en un threadpool, así que varias peticiones pueden estar en curso a la vez. Cada hilo obtiene su **propia** conexión a MariaDB (ver [database.md](database.md)), de modo que `execute` / `rowcount` / `lastrowid` siempre describen la sentencia que *esta* petición acaba de correr.
 
-El WebView de la app móvil corre sobre un origen fijo de Capacitor (`capacitor://localhost` en Android; `https://localhost` también está permitido para iOS/dev), no el propio origen del backend — así que sus llamadas `fetch()` a esta API son cross-origin y quedan sujetas a CORS. `main.py` permite exactamente esos tres orígenes fijos, no un wildcard, ya que la app nunca corre desde ningún otro lugar:
+## Middleware
 
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["capacitor://localhost", "http://localhost", "https://localhost"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
+Registrado en `main.py`:
 
-## Middleware: límite de tasa, contexto de petición, cabeceras de seguridad
+- **SlowAPI** — límites de tasa en `register`, `login`, `alerts` (ver [operations.md](operations.md)).
+- **CORS** — permite los orígenes de la app (`capacitor://localhost`, `http://localhost`, `https://localhost`).
+- **Contexto de petición** — asigna un request id por petición (heredado por tareas en segundo plano para trazar el reparto de una alerta), captura errores no manejados en un `500` limpio, y pone cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
 
-Más allá de CORS, `main.py` envuelve cada petición con dos capas más de middleware:
+## Arranque / apagado (`lifespan`)
 
-- **Límite de tasa** (`slowapi`) acota `POST /auth/register`, `POST /auth/login` y `POST /alerts`; superado el límite la petición recibe un `429` antes de que corra su handler. Login y register se agrupan por dirección de cliente, `POST /alerts` por id de usuario. Ver [`operations.md`](operations.md).
-- **Contexto de petición** asigna a cada petición un id corto, guardado en un `ContextVar` para que cada línea de log de esa petición — y las tareas en segundo plano que lanza — lo lleve (ver [`operations.md`](operations.md)). El mismo middleware fija `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` y `Permissions-Policy` en cada respuesta, y convierte una excepción no manejada en un `500` limpio en vez de filtrar un traceback.
+1. **Verifica la base de datos** — abre una conexión de inmediato; se niega a arrancar si falla.
+2. **Registra el webhook de Telegram** — si hay bot token, `EnsureWebhook` lo pone y verifica vía `getWebhookInfo`, reintentando ante fallos transitorios; el estado se registra. Una tarea **keeper** en segundo plano lo re-chequea y re-registra si deriva. Se cancela limpio al apagar.
 
-## `APP_MODE`: interruptor de la documentación automática
+## Routers
 
-```python
-_docs_enabled: bool = get_credentials()['app_mode'] != "Deploy"
+| Router | Prefijo | Propósito |
+|---|---|---|
+| `auth` | `/auth` | registro, login, confirmación de cuenta |
+| `users` | `/users` | perfil, reautenticación de cambios sensibles |
+| `contacts` | `/contacts` | CRUD + activar/desactivar por canal |
+| `alerts` | `/alerts` | disparar alerta, listar alertas, enlace de mapa |
+| `features` | `/features` | qué canales están configurados + `max_contacts` |
+| `telegram` | `/telegram` | webhook de entrada del bot |
+| `whatsapp` | `/whatsapp` | webhook de entrada de Twilio (opt-in) |
+| `dashboard` | `/dashboard` | el panel web de alertas |
 
-app = FastAPI(
-    docs_url=("/docs" if _docs_enabled else None),
-    redoc_url=("/redoc" if _docs_enabled else None),
-    openapi_url=("/openapi.json" if _docs_enabled else None),
-    ...
-)
-```
+Más rutas de nivel superior en `main.py`: `/` (landing), `/health`, `/favicon.ico`, `/app` (el mount de la UI móvil) y `/static`.
 
-`APP_MODE=Deploy` no solo oculta `/docs`/`/redoc`/`/openapi.json` — pasar `None` hace que FastAPI nunca registre esas rutas, así que devuelven un `404` plano. Cualquier otro valor (incluido no definirla, el default) las deja habilitadas. Producción debería usar `Deploy` para que la superficie completa de la API no quede expuesta a cualquiera que pueda alcanzarla.
+## Canales de notificación
 
-## Arranque: verificar la base de datos y registrar el webhook de Telegram
-
-```python
-@asynccontextmanager
-async def _lifespan(app: FastAPI):
-    cursor.verify()  # falla el arranque si la base de datos no es alcanzable
-    if _credentials['telegram']['bot_token']:
-        try:
-            await Telegram.SetWebhook(f"{_credentials['api_base_url']}/telegram/webhook")
-        except Exception as e:
-            _logger.error(f"Could not register Telegram webhook: {e}")
-    yield
-```
-
-La base de datos se comprueba primero: `cursor.verify()` abre una conexión de inmediato, así una base de datos mal configurada o inalcanzable hace fallar el arranque al instante en vez de manifestarse en la primera petición que necesite una fila.
-
-Registrar el webhook, en cambio, es best-effort y no bloqueante: un despliegue sin bot de Telegram configurado igual arranca con normalidad, solo que sin esa función. Esto también implica que `API_BASE_URL` debe ser una URL `https://` real y públicamente alcanzable para que el registro realmente funcione — Telegram no puede llamar de vuelta a `127.0.0.1`, así que en desarrollo local este paso registra un error en el log y no hace nada más, sin causar problemas (ver [`notifications.md`](notifications.md)).
-
-## `/static` y `/app`: dos mounts estáticos sin relación entre sí
-
-```python
-app.mount("/static", StaticFiles(directory=BACKEND_DIR / "static"), name="static")
-...
-app.mount("/app", _NoCacheStaticFiles(directory=APP_WWW_DIR, html=True), name="app")
-```
-
-- **`/static`** sirve `backend/static/` — CSS/JS/imágenes de las páginas propias de este backend (landing, dashboard, confirmación), más la descarga del APK. Ver [`web-pages.md`](web-pages.md).
-- **`/app`** sirve `app/www/` — la UI compilada de la app móvil, con una política de cacheo particular para que un cambio de versión llegue a un WebView ya abierto. Ver [`app/architecture.md`](../app/architecture.md) y [`web-pages.md`](web-pages.md).
-
-No están relacionados: `/static` nunca necesita señalar "el archivo cambió, recarga ahora" como sí lo hace `/app`, ya que una pestaña de navegador que recarga `/dashboard` de todas formas vuelve a pedir todo.
-
-## Orden de registro de rutas
-
-`GET /app/manifest` se registra como ruta exacta *antes* de `app.mount("/app", ...)`. Starlette compara las rutas en el orden en que se registraron, así que la ruta exacta gana para esa URL puntual, y todo lo demás bajo `/app/*` cae al mount — `/app/manifest` nunca se confunde con "un archivo llamado `manifest` dentro de `app/www`".
+Cuatro canales independientes — `mail.py`, `telegram.py`, `whatsapp.py`, `sms.py` — con la misma forma `Send`/`SendBulk`. Ninguno conoce a los otros; `alerts.py` decide quién es notificado por qué canal(es) y llama a cada uno. Cada canal tiene un interruptor dry-run para correr contra credenciales reales sin enviar. Ver [notifications.md](notifications.md).

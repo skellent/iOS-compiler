@@ -1,50 +1,86 @@
 # Operations
 
-Environment variables, logging, feature flags, and the one maintenance script — everything an operator (not a developer reading the code) needs.
+Everything an operator needs: environment variables, logging, rate limits, feature flags, health checks, migrations and the maintenance script.
 
-## Environment variables (`credentials.py`)
+## Environment variables
 
-`get_credentials()` reads `.env` (`python-dotenv`, `override=True` — see note below) and returns one dict, grouped by concern:
+`get_credentials()` (in `modules/credentials.py`) loads `.env` with `python-dotenv` (`override=True`) and returns one grouped dict. Missing required values raise a clear `MissingCredentialError` at startup.
 
 | Group | Variables | Notes |
 |---|---|---|
-| Database | `USERNAME`, `PASSWORD`, `HOST`, `PORT`, `DATABASE` | See [`database.md`](database.md) |
-| JWT | `JWT_SECRET_KEY` | Sign/verify session + confirmation tokens, see [`auth.md`](auth.md) |
-| SMTP | `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_HOST` (default `smtp.gmail.com`), `SMTP_PORT` (default `587`), `SMTP_FROM` (defaults to `SMTP_USER`), `SMTP_ENABLED` (default `true`), `SMTP_VERIFY_DELIVERABILITY` (default `true`) | See [`notifications.md`](notifications.md) |
-| Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | All optional — unset means the feature is simply off |
-| General | `API_BASE_URL` (default `http://127.0.0.1:8000`), `APP_MODE` (default `Debug`), `LOG_LEVEL` (default `INFO`) | |
+| **Database** | `USERNAME`, `PASSWORD`, `HOST`, `PORT`, `DATABASE` | Required. See [database.md](database.md). |
+| **JWT** | `JWT_SECRET_KEY` | Required. Signs every token; use 32+ random bytes. |
+| **Email (SMTP)** | `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_HOST` (default `smtp.gmail.com`), `SMTP_PORT` (default `587`), `SMTP_FROM` (default `SMTP_USER`), `SMTP_ENABLED` (default `true`), `SMTP_VERIFY_DELIVERABILITY` (default `true`) | All optional. See [notifications.md](notifications.md). |
+| **Telegram** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | Optional. All three needed for the channel to be live. |
+| **Twilio (shared)** | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Shared by the WhatsApp and SMS channels. |
+| **WhatsApp** | `TWILIO_WHATSAPP_FROM`, `TWILIO_WHATSAPP_JOIN_KEYWORD`, `TWILIO_WHATSAPP_TEMPLATE_SID`, `TWILIO_WHATSAPP_ENABLED` (default `true`), `TWILIO_VALIDATE_SIGNATURE` (default `true`) | See [twilio.md](twilio.md). |
+| **SMS** | `TWILIO_SMS_FROM`, `TWILIO_SMS_ENABLED` (default `true`) | See [twilio.md](twilio.md). |
+| **General** | `API_BASE_URL` (default `http://127.0.0.1:8000`), `APP_MODE` (default `Debug`), `LOG_LEVEL` (default `INFO`) | `API_BASE_URL` must be the public HTTPS URL in production. |
 
-`override=True` matters specifically on Windows: the OS predefines its own `USERNAME` environment variable (the logged-in Windows account), and `load_dotenv()` leaves existing environment variables alone by default — without `override=True`, `.env`'s own `USERNAME` (the MariaDB user) silently loses to whatever Windows account happens to be running the process.
+**Dry-run switches.** `SMTP_ENABLED`, `TWILIO_WHATSAPP_ENABLED` and `TWILIO_SMS_ENABLED` set to `false` log what *would* have been sent instead of sending it — meant for local development against real accounts. `SMTP_VERIFY_DELIVERABILITY=false` skips the recipient-domain DNS check (for working offline). Production leaves them all at their `true` default.
 
-`SMTP_PASSWORD` is a 16-character Google Workspace **app password**, not the account's real password (Gmail hasn't accepted basic SMTP auth on Workspace accounts since March 2025) — generate one at `myaccount.google.com/apppasswords` with 2-Step Verification on. `TELEGRAM_BOT_TOKEN`/`TELEGRAM_BOT_USERNAME` come from Telegram's `@BotFather` (`/newbot`); `TELEGRAM_WEBHOOK_SECRET`, like `JWT_SECRET_KEY`, is a random string this deployment invents:
+**Secrets.** `JWT_SECRET_KEY` and `TELEGRAM_WEBHOOK_SECRET` are values this deployment invents. Generate a distinct value per environment and never commit `.env`:
 
 ```bash
 uv run python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Generate a separate value per environment (dev, prod) for both secrets — never reuse one across them, never commit `.env` (already gitignored).
+`SMTP_PASSWORD` for Gmail/Workspace is a 16-character **app password**, not the account password.
 
-`SMTP_ENABLED=false` logs outgoing mail instead of sending it, and `SMTP_VERIFY_DELIVERABILITY=false` skips the recipient-domain check (see [`notifications.md`](notifications.md)) — both meant for local development (the second for working offline, where DNS lookups can't be made). Production leaves both at their `true` default, and the process needs outbound DNS for the deliverability check to run.
+## Enabling / disabling a channel
+
+A channel is offered to the app only when its credentials are present. `GET /features` reports this, and the app hides a channel's UI when it is off:
+
+| Channel | On when these are all set | Turn off by clearing |
+|---|---|---|
+| Telegram | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_BOT_USERNAME` | `TELEGRAM_BOT_TOKEN` |
+| WhatsApp | `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` + `TWILIO_WHATSAPP_FROM` | `TWILIO_WHATSAPP_FROM` |
+| SMS | `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` + `TWILIO_SMS_FROM` | `TWILIO_SMS_FROM` |
+
+WhatsApp and SMS **share** `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`, so clear each channel's own `*_FROM` to disable just that one. Changes require a restart (credentials are read once at startup).
 
 ## Rate limiting
 
-`POST /auth/register`, `POST /auth/login` and `POST /alerts` are rate-limited (`slowapi`); over the limit the request gets a `429` before the handler runs. Login and register are keyed by client address — so registration can't be scripted into an unauthenticated email sender, and passwords can't be guessed unbounded — while `POST /alerts` is keyed by user id, so one account on a shared network can't consume everyone else's allowance. Behind a reverse proxy the real client address only reaches the limiter if the proxy forwards it (`X-Forwarded-For`) and Uvicorn is run with `--proxy-headers`; otherwise every request appears to come from the proxy and shares one bucket.
+`POST /auth/register`, `POST /auth/login` and `POST /alerts` are rate-limited with `slowapi`; over the limit returns `429`. Login/register are keyed by client address, alerts by user id. Behind a proxy the real client address only reaches the limiter if the proxy forwards it (`X-Forwarded-For`) and Uvicorn runs with `--proxy-headers`.
 
 ## Health check — `GET /health`
 
-Returns `{"status": "ok", "database": true}` with a `200` when the database is reachable, or a `503` when it isn't — a single endpoint a process supervisor or uptime monitor can poll. The same reachability is checked once at startup, and the process refuses to boot if the database can't be reached, so a misconfiguration surfaces immediately rather than on the first request.
+Returns `{"status":"ok","database":true}` (`200`) when the database is reachable, `503` otherwise — poll it from a supervisor or uptime monitor. The same check runs once at startup and the process refuses to boot on failure.
 
-## Logging (`logs.py`)
+## Logging
 
-Standard library `logging`, one shared config applied at import time: console (stdout) + a rotating file (`backend/logs/panicbutton.log`, 5 MB × 3 backups, gitignored). `LOG_LEVEL` sets the minimum severity for both handlers — `DEBUG`/`INFO`/`WARNING`/`ERROR`/`CRITICAL`, defaults to `INFO` if unset or misspelled. Every module gets its own named logger via `get_logger(__name__)`, so log lines show which module they came from. Each line also carries a short request id, assigned per request by `main.py`'s middleware and inherited by the background tasks that request spawns, so the log for one panic alert (and its email/Telegram fan-out) can be followed end to end even while other requests interleave. The `httpx` client's own request logging is pinned to `WARNING`, so the Telegram API URL — which embeds the bot token — never lands in the log file.
+Standard-library `logging`: stdout plus a rotating file (`backend/logs/panicbutton.log`, 5 MB × 3, gitignored). `LOG_LEVEL` sets the minimum severity. Every line carries a short **request id** (assigned per request, inherited by background tasks) so one alert and its fan-out can be followed end to end. The `httpx` client logger is pinned to `WARNING` so bot tokens never land in the log.
+
+Useful lines to grep:
+
+- `Telegram webhook status: url=… last_error=…` — at startup, tells you if the Telegram webhook is registered (see [notifications.md](notifications.md)).
+- `WhatsApp webhook: received inbound from …` / `opt-in confirmed for contacts …` — WhatsApp opt-in.
+- `Twilio rejected SMS … [status=…]` — an SMS that Twilio refused (often a geo-permission or unverified-number issue).
+- `Alert N: notifying X by email, Y by Telegram, Z by WhatsApp, W by SMS` — per-alert fan-out counts.
 
 ## Feature flags — `GET /features`
 
 ```json
-{"telegram": true, "max_contacts": 4}
+{"telegram": true, "whatsapp": true, "sms": true, "max_contacts": 4}
 ```
 
-`telegram` is whether this deployment has Telegram fully configured (both `TELEGRAM_BOT_TOKEN` *and* `TELEGRAM_BOT_USERNAME` set — either alone means a contact who tries to link Telegram would hit a broken link). `max_contacts` is the emergency-contact cap, served from the backend so the app enforces the same number the backend does rather than hardcoding its own. Unauthenticated, cached client-side for the app's session (`app/src/lib/features.js`) — used to hide Telegram UI entirely on a deployment that doesn't have a bot configured, rather than showing a feature that would just fail.
+Unauthenticated, cached by the app for its session. `max_contacts` is the emergency-contact cap, served so the app and backend can't drift.
+
+## Migrations
+
+`queries/tables.sql` is the full schema for fresh installs. To upgrade an existing database, apply the files in `queries/migrations/` **in date order, once each** (they are not idempotent):
+
+```bash
+mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-add-whatsapp.sql
+mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-add-sms.sql
+mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-dashboard-history.sql
+```
+
+- **add-whatsapp** — WhatsApp columns + `whatsapp` in the `channel` enum.
+- **add-sms** — SMS column + `sms` in the `channel` enum.
+- **dashboard-history** — `alert_notifications.contact_name` + makes `contact_id` `ON DELETE SET NULL` (so deleting a contact no longer wipes the alert's history). Backfills existing names.
+
+Confirm a migration landed, e.g.: `SHOW COLUMNS FROM alert_notifications LIKE 'contact_name';`.
 
 ## Maintenance script
 
@@ -52,4 +88,4 @@ Standard library `logging`, one shared config applied at import time: console (s
 uv run scripts/purge_unconfirmed_users.py
 ```
 
-Deletes accounts still unconfirmed 24h after signup. Safe by construction: login is blocked pre-confirmation, so an unconfirmed account can never own contacts or alerts — there's nothing this script could delete that anything else references. Meant to run periodically (cron or similar); it isn't wired into the API or run automatically by anything in this repo.
+Deletes accounts still unconfirmed 24 h after signup. Safe by construction (login is blocked pre-confirmation, so such accounts own nothing). Run it periodically from cron; it is not wired into the API.

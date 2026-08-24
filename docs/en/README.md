@@ -1,61 +1,51 @@
-# PanicButton — Documentation
+# Panic Button — Documentation
 
-PanicButton is a personal-safety system: a user holds a button in the mobile app, the app captures their GPS location, and the backend notifies their emergency contacts by email and/or Telegram with a link to that location. Registration, contact confirmation, and login all live behind the same API.
+Panic Button is a personal-safety system: a mobile app with a single hold-to-alert button that shares the user's live location with their trusted emergency contacts over **four independent channels — email, Telegram, WhatsApp and SMS**. A web dashboard lets the account owner review every alert and see who was reached on which channel.
 
-This documentation is also available in [Spanish](../es/README.md).
+The project has two deployable parts:
 
-## System overview
+- **`backend/`** — a FastAPI service (Python) backed by MariaDB. It owns accounts, contacts, alerts, all notification channels, the public landing page and the alert dashboard.
+- **`app/`** — a Capacitor (Android) app. It is an *online* app: the native shell loads its UI live from the backend's `/app` mount, so most UI changes ship without rebuilding the APK.
+
+## Documentation map
+
+### Getting started
+- [Setup & first run](backend/setup.md) — install the backend, provision the database, fill in `.env`, run it.
+- [Twilio setup](backend/twilio.md) — enable WhatsApp (sender + template) and SMS.
+- [Changing the domain](backend/domain-change.md) — everything to update when the public URL changes.
+- [Docker deployment](backend/docker.md) — run the backend (and a bundled MariaDB) in containers.
+
+### Backend reference
+- [Architecture](backend/architecture.md) — modules, request flow, middleware, startup.
+- [Authentication](backend/auth.md) — password hashing and the JWT token types.
+- [Database](backend/database.md) — schema, the thread-confined cursor, migrations.
+- [API reference](backend/api.md) — every route.
+- [Notifications](backend/notifications.md) — the four channels and how they are chosen.
+- [Operations](backend/operations.md) — environment variables, logging, rate limits, health, maintenance.
+- [Web pages](backend/web-pages.md) — landing page and dashboard.
+
+### App reference
+- [Architecture](app/architecture.md) — the online-app model and project layout.
+- [Screens](app/screens.md) — what each screen does.
+
+## The five-minute picture
 
 ```mermaid
 flowchart LR
-    subgraph Client
-        App["Mobile app (Capacitor WebView)"]
-        Browser["Browser (landing / dashboard)"]
-    end
-
-    subgraph Server["backend/ (FastAPI)"]
-        API["REST API\n/auth /users /contacts /alerts"]
-        Web["Server-rendered pages\n/ /dashboard /app"]
-    end
-
-    DB[(MariaDB)]
-    SMTP["Gmail SMTP"]
-    TG["Telegram Bot API"]
-
-    App -- "fetch() JSON" --> API
-    App -- "loads UI live" --> Web
-    Browser -- "GET /" --> Web
-    Browser -- "login + fetch" --> API
-    API --> DB
-    API -- "confirmation / alert emails" --> SMTP
-    API -- "alert messages" --> TG
-    TG -- "webhook" --> API
+    App[Mobile app] -- "hold button" --> API[FastAPI backend]
+    API --> DB[(MariaDB)]
+    API -- email --> Email[SMTP]
+    API -- bot --> TG[Telegram]
+    API -- Twilio --> WA[WhatsApp]
+    API -- Twilio --> SMS[SMS]
+    Owner[Account owner] -- browser --> Dash[/dashboard/]
+    Dash --> API
 ```
 
-## Two halves of one repository
+A contact is reachable on a channel once it is **confirmed** for that channel (email confirmation link, Telegram/WhatsApp opt-in, or simply enabling SMS). When the user triggers an alert, the backend records it and fans it out, in parallel, to every confirmed channel of every contact.
 
-| Directory | What it is | Docs |
-|---|---|---|
-| [`backend/`](../../backend) | FastAPI + MariaDB API, plus the server-rendered web pages | [`backend/`](backend/) |
-| [`app/`](../../app) | Capacitor mobile client (Android/iOS), plain HTML/CSS/JS | [`app/`](app/) |
+## Conventions
 
-They're deployed together: the app doesn't bundle its own UI anymore — its WebView loads `backend/`'s `/app` route live, the same way an Electron window points at a URL instead of shipping a local copy of the page. See [`app/architecture.md`](app/architecture.md) for why.
-
-## Backend docs
-
-- [`backend/architecture.md`](backend/architecture.md) — how `main.py` is wired: routers, CORS, the `/docs` toggle, startup
-- [`backend/database.md`](backend/database.md) — schema (ER diagram), `Cursor`, connection handling
-- [`backend/auth.md`](backend/auth.md) — JWT tokens, password hashing, the `current_user` dependency
-- [`backend/api.md`](backend/api.md) — endpoint reference (full examples in [`backend/API.md`](../../backend/API.md))
-- [`backend/notifications.md`](backend/notifications.md) — email + Telegram alert delivery
-- [`backend/web-pages.md`](backend/web-pages.md) — the landing page, dashboard, and confirmation pages the backend renders itself
-- [`backend/operations.md`](backend/operations.md) — environment variables, logging, maintenance scripts, feature flags
-
-## App docs
-
-- [`app/architecture.md`](app/architecture.md) — the build pipeline, and why the app loads its UI from the backend instead of bundling it
-- [`app/screens.md`](app/screens.md) — screen-by-screen walkthrough, theming, i18n
-
-## Setup
-
-See the root [`README.md`](../../README.md) for backend setup and [`app/README.md`](../../app/README.md) for the mobile app.
+- Docs are bilingual: this is the English set; the Spanish mirror lives under [`docs/es/`](../es/README.md).
+- Code and configuration keys are in English. UI copy is translated in the app.
+- These docs describe the code on the `main` branch.

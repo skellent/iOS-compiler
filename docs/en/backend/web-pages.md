@@ -1,65 +1,48 @@
-# Server-rendered web pages
+# Web pages
 
-Most of this backend answers JSON. Three routes answer a real browser instead — `Pages.Render` (`modules/pages.py`) is the small Jinja wrapper behind all of them:
+The backend serves three HTML surfaces plus static assets. All are rendered from Jinja templates under `templates/web/` and styled by `static/css/`, and all share a theme system (light/dark + accent colour, stored client-side).
 
-```python
-class Pages:
-    Render(template: str, context: dict) -> str
+## Landing — `GET /`
+
+The public marketing page: hero, download button (`static/downloads/panic-button.apk`), feature cards, and a three-step setup. Server-rendered from `landing.html.j2` with the contact email injected. The head carries the favicon set (see below).
+
+## Alert dashboard — `GET /dashboard`
+
+A client-side page where an account owner reviews their alerts. It logs in with the same app credentials (stores the JWT in `sessionStorage`) and calls `GET /alerts`.
+
+```mermaid
+flowchart TD
+    Login[Login form] -->|POST /auth/login| Token[JWT in sessionStorage]
+    Token --> Load[GET /alerts]
+    Load --> Stats[Summary tiles]
+    Load --> List[Filterable alert list]
 ```
 
-It renders a template from `templates/web/` and returns a plain string; the calling router wraps it in `HTMLResponse` with whatever status code fits (`200`, `401`, `404`). `pages.py` has no idea what `/static` is or that anything links to it — that's purely `main.py`'s concern.
+**Summary tiles** — total alerts, alerts in the last 7 days, notifications sent, and the seen rate (viewed ÷ sent).
 
-## The three pages
+**Filter bar** — search by contact name, per-channel chips (Email / Telegram / WhatsApp / SMS, toggle to hide a channel), and a seen / not-seen filter. Filters narrow both which alerts show and which notification rows within them.
 
-| Route | Template | Rendered by | When |
-|---|---|---|---|
-| `GET /` | `landing.html.j2` | `main.py`'s `root()` | Whoever opens the API's base URL directly |
-| `GET /dashboard` | `dashboard.html.j2` | `routers/dashboard.py` | Following the landing page's "Open Dashboard" link |
-| `GET /auth/confirm/{token}`, `GET /contacts/confirm/{token}`, `GET /alerts/view/{token}` (error cases) | `confirmation_result.html.j2` | the respective router | Someone clicking a link inside an email |
+**Alert cards** — each shows the time (US format) and a relative "Xh ago", a `sent · seen` badge, the map link, and one row per notification: a coloured channel tag, the contact name (with a **"removed"** tag if the contact was later deleted — the name is preserved on the row), and its seen status.
 
-Both `landing` and `dashboard` are rendered with `{"contact_email": get_credentials()['email']['from']}` — the same address `mail.py` actually sends *from*, not a second hardcoded one, so the footer's "Contact us" link and the address a contact actually receives mail from can never drift apart.
+Because `alert_notifications` stores the contact name and survives contact deletion (see [database.md](database.md)), the dashboard keeps showing who an old alert reached even after those contacts are gone — no more empty alerts.
 
-## `landing.html.j2` — also the app's download page
+There is a refresh button, and the settings dialog offers theme (auto/light/dark) and an accent-colour picker.
 
-Hero with a "Download APK" button (`/static/downloads/panic-button.apk`) next to a disabled "Google Play — coming soon" button, a feature grid, a setup summary, and a footer with "Contact us" (`mailto:`) and "About us" (`https://keycodelogics.com/`). A gear icon opens a Theme/Language settings dialog, backed by `localStorage` — but the page's core content renders fully without JavaScript.
+## Favicon
 
-`backend/static/downloads/panic-button.apk` is a build artifact — `./gradlew assembleRelease` in `app/android`, copied here by whoever deploys, same as `app/www` (see [`../app/architecture.md`](../app/architecture.md)). **Any change at the native Android level — a new Capacitor plugin, a manifest permission, a native dependency bump — needs this file regenerated and redeployed.** The live-reload mechanism described in `app/architecture.md` only covers `app/www` (HTML/CSS/JS); it can't reach code compiled into the installed binary, so a device that already has the app installed won't see a native-level change until it installs a new APK.
+`GET /favicon.ico` serves the multi-size icon; the landing and dashboard heads also link `favicon.png` and `apple-touch-icon.png`. All three are generated from the app's `SOS` launcher icon and live in `static/img/`.
 
-## `dashboard.html.j2` — a small client-side app
+## Static & app mounts
 
-Unlike the other two, this one does its real work in the browser: `POST /auth/login` (token kept in `sessionStorage`, not `localStorage`, so it doesn't outlive the tab) followed by `GET /alerts`, rendered into alert cards showing when/where each alert fired and, per notified contact, whether they've opened their `map_url` yet. Reuses the same `/auth`/`/alerts` endpoints the mobile app uses — no dashboard-specific API surface.
+- `/static` — css, js, images, the APK download.
+- `/app` — the mobile app's web UI (`app/www`), served with `no-cache` on HTML/JS so an app launch always sees the latest bundle, and long cache on images. `/app/manifest` returns a content hash the app uses to decide when to reload. See [app/architecture.md](../app/architecture.md).
 
-## `confirmation_result.html.j2` — one template, every outcome
+## Password reset page — `GET /auth/password-reset/{token}`
 
-`{success: bool, message: str}` picks a checkmark or an X (inline SVG, with a small draw-in animation) and the body copy — covers account confirmation, contact confirmation, and alert-view failures without near-duplicate HTML files for each.
+A small self-contained page (form + inline script) that a user reaches from the reset email. It posts the new password as JSON to the same path and shows the result inline; it is `noindex`. The flow is described in [auth.md](auth.md).
 
-## Shared CSS/JS: theme, language, and the app's own icon
+## SEO metadata
 
-`landing` and `dashboard` both use `<img class="brand-mark" src="/static/img/brand-mark.png">` — the same PNG used for the app's own auth screens (`app/www/assets/brand-mark.png`), copied into `backend/static/img/` — instead of a CSS-drawn placeholder. Theme (Light/Dark/Auto) is stored under the *same* `localStorage` key on both pages (`panicbutton.site.theme`), so a choice made on either page applies on both the next time either loads. Language (`landing.js` only — the dashboard has no translated strings yet) is separate (`panicbutton.landing.lang`).
-
-## `/static` vs `/app`
-
-```python
-app.mount("/static", StaticFiles(directory=BACKEND_DIR / "static"), name="static")
-...
-app.mount("/app", _NoCacheStaticFiles(directory=APP_WWW_DIR, html=True), name="app")
-```
-
-`/static` is this backend's *own* CSS/JS/images (`landing.css`, `dashboard.js`, `brand-mark.png`, the APK) — a plain `StaticFiles` mount, default caching, nothing special. `/app` is the mobile app's built UI (`app/www/`, described fully in [`../app/architecture.md`](../app/architecture.md)) — a different mount, with a different, deliberate caching policy:
-
-```python
-_LONG_CACHE_SUFFIXES = {".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp"}
-
-class _NoCacheStaticFiles(StaticFiles):
-    def file_response(self, full_path, stat_result, scope, status_code=200):
-        response = super().file_response(full_path, stat_result, scope, status_code)
-        if Path(full_path).suffix in _LONG_CACHE_SUFFIXES:
-            response.headers["Cache-Control"] = "public, max-age=604800"
-        else:
-            response.headers["Cache-Control"] = "no-cache"
-        return response
-```
-
-`index.html`/CSS/JS get `Cache-Control: no-cache` — the WebView must revalidate with the server on every request (a cheap `304` when nothing changed) rather than silently serving a stale copy from disk, which would defeat `GET /app/manifest`'s whole purpose (see `app/architecture.md`'s update-check flow). Cosmetic images (favicon, brand mark) get a real week-long cache instead: a stale icon for a few days is harmless, and forcing every image through the same revalidate-on-every-request treatment was pure overhead — a `304` still costs a full round trip, and it showed up as needless request volume in production logs for something that almost never changes.
-
-`GET /app/manifest` is registered before `app.mount("/app", ...)` — Starlette matches routes in registration order, so the exact path wins for that one URL before the mount ever sees it (see [`architecture.md`](architecture.md)).
+- **Landing (`/`)** carries a full set of tags built from `API_BASE_URL`: title/description/keywords, a canonical link, `theme-color`, Open Graph and Twitter Card tags, and a `SoftwareApplication` JSON-LD block. It is indexable.
+- **Dashboard (`/dashboard`)** carries title/description/Open Graph too, but is marked **`noindex, nofollow`** — it's a private, login-gated tool that shouldn't appear in search.
+- **`/robots.txt`** allows the landing and disallows `/app`, `/dashboard`, `/docs`, pointing crawlers at **`/sitemap.xml`** (the landing page). Both are generated from `API_BASE_URL`, so a [domain change](domain-change.md) updates them automatically.

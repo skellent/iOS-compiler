@@ -1,121 +1,83 @@
-# Notificaciones: correo + Telegram
+# Notificaciones — cuatro canales
 
-Dos canales de entrega independientes y paralelos para los mismos eventos (confirmación de contacto, alertas de pánico): `mail.py` (`Mail`) y `telegram.py` (`Telegram`). Ninguno sabe del otro — los routers deciden a quién notificar por cuál(es) canal(es) y llaman a ambos.
+Cuatro canales de entrega independientes para los mismos eventos (confirmación de contacto, alertas de pánico): **email** (`mail.py`), **Telegram** (`telegram.py`), **WhatsApp** (`whatsapp.py`) y **SMS** (`sms.py`). Cada uno tiene la misma forma `Send`/`SendBulk` y un interruptor dry-run; ninguno conoce a los otros. `alerts.py` decide a quién se alcanza por qué canal y llama a cada uno.
 
-## `Mail`
+## Quién es notificado
 
-SMTP vía `aiosmtplib`, plantillas Jinja bajo `templates/mail/*.{html,txt}.j2` (se renderizan ambas — HTML con un fallback en texto plano en el mismo mensaje). `Mail.Send` abre una conexión por correo; `Mail.SendBulk` abre una única conexión SMTP y la reutiliza para cada destinatario, ya que una alerta de pánico puede distribuirse a varios contactos a la vez.
+`SELECT_CONFIRMED_CONTACTS_BY_USER` devuelve un contacto si **algún** canal está activo, luego `alerts.py` re-chequea cada canal por separado:
 
-```python
-await Mail.SendBulk(subject, template, [(email, context), ...])
-```
+| Canal | Se envía cuando | Dirección |
+|---|---|---|
+| Email | `email` puesto **y** `confirmed = TRUE` | email del contacto |
+| Telegram | `telegram_chat_id` puesto | ese chat |
+| WhatsApp | `whatsapp_enabled` **y** `whatsapp_confirmed` | teléfono del contacto |
+| SMS | `sms_enabled` | teléfono del contacto |
 
-Una falla para un destinatario dentro de `SendBulk` se registra en el log y se acumula, no se lanza de inmediato — solo después de todo el lote lanza `MailNotSentError` listando quién falló, así una dirección mala no detiene el envío al resto.
+Cada `(alerta, contacto, canal)` obtiene su propia fila `alert_notifications` con el nombre del contacto y un token de vista sin vencimiento, así "¿este contacto, por este canal, abrió el mapa?" se rastrea por canal y se muestra en el panel.
 
-Cuando `SMTP_ENABLED` está desactivado (ver [`operations.md`](operations.md)), tanto `Send` como `SendBulk` registran lo que *habrían* enviado y retornan sin abrir conexión — para desarrollo local contra una cuenta SMTP real sin entregar nada.
-
-## `Telegram`
-
-Llamadas HTTP a la API de Bots de Telegram (`httpx`), plantillas bajo `templates/telegram/*.txt.j2` (solo texto plano — Telegram no tiene equivalente a un correo HTML). Misma forma `Send`/`SendBulk` que `Mail`, más `SetWebhook` (llamado una vez al arrancar, ver [`architecture.md`](architecture.md)).
-
-## Por qué `alerts.py` trata una falla de correo como no fatal
-
-```python
-async def _notify_by_mail(subject, template, recipients):
-    try:
-        await Mail.SendBulk(subject, template, recipients)
-    except MailNotSentError:
-        pass  # ya quedó registrado dentro de SendBulk
-```
-
-`BackgroundTasks` ejecuta sus tareas encoladas en orden y se detiene ante la primera excepción. `create_alert` encola el lote de correo y el de Telegram como dos tareas de fondo separadas — si se dejara propagar la excepción de la tarea de correo, la tarea de Telegram encolada justo después nunca correría. Durante una alerta de pánico real, un correo roto nunca debe ser la razón por la que un contacto que solo tiene Telegram no se entera.
-
-## Distribución de una alerta de pánico
+## Reparto (fan-out)
 
 ```mermaid
 sequenceDiagram
     participant App
     participant Alerts as POST /alerts
     participant DB
-    participant Mail
-    participant TG as Telegram
-
-    App->>Alerts: latitude, longitude + JWT
-    Alerts->>DB: INSERT INTO alerts
-    Alerts->>DB: SELECT contactos confirmados (email O telegram_chat_id)
-    loop cada contacto
-        Alerts->>DB: INSERT alert_notifications (una fila por canal)
+    App->>Alerts: latitud, longitud + JWT
+    Alerts->>DB: INSERT alerta; SELECT contactos confirmados
+    loop cada contacto × canal activo
+        Alerts->>DB: INSERT alert_notifications
     end
-    Alerts-->>App: 201 (inmediato)
-    par en segundo plano
-        Alerts->>Mail: SendBulk(panic_alert, destinatarios por email)
-        Mail-->>Alerts: (el enlace de cada destinatario queda sin ver)
-    and en segundo plano
-        Alerts->>TG: SendBulk(panic_alert, destinatarios por Telegram)
+    Alerts-->>App: 201 con conteos por canal
+    par background
+        Alerts->>Alerts: lote email
+    and
+        Alerts->>Alerts: lote Telegram
+    and
+        Alerts->>Alerts: lote WhatsApp
+    and
+        Alerts->>Alerts: lote SMS
     end
 ```
 
-Un contacto necesita *o bien* `confirmed = TRUE` (email) o un `telegram_chat_id` definido — los dos canales son independientes, no secuenciales; alguien que nunca hizo clic en el correo de confirmación pero sí vinculó Telegram igual es notificado. Cada `(alerta, contacto, canal)` obtiene su propia fila en `alert_notifications` y su propio token de enlace de vista sin expiración (ver [`auth.md`](auth.md)), así que "este contacto específico, en este canal específico, abrió el mapa" se rastrea por separado — visible en el dashboard.
+Los cuatro lotes se encolan como tareas en segundo plano separadas y el fallo de cada canal se captura, no se lanza — `BackgroundTasks` se detiene ante la primera excepción, así que un buzón roto nunca debe detener los lotes de Telegram/WhatsApp/SMS encolados después. Durante una alerta real, un canal caído no puede silenciar a los otros.
 
-## Confirmación de contacto (correo)
+## Email
 
-```mermaid
-sequenceDiagram
-    participant Usuario
-    participant API as POST /contacts
-    participant Mail
-    participant Contacto
-    participant Confirm as GET /contacts/confirm/:token
+SMTP sobre `aiosmtplib`, plantillas Jinja en `templates/mail/*.{html,txt}.j2` (ambas renderizadas). `Send` abre una conexión por correo; `SendBulk` reutiliza una sola para todo el lote. Con `SMTP_ENABLED=false`, ambos registran lo que *enviarían* y retornan sin conectar (dry-run para dev local).
 
-    Usuario->>API: agrega contacto (con email)
-    API->>Mail: envía contact_confirmation (tarea de fondo)
-    Mail-->>Contacto: correo con enlace de confirmación
-    Contacto->>Confirm: hace clic en el enlace
-    Confirm->>Confirm: Token.ValidateContactConfirmation
-    Confirm-->>Contacto: página HTML de resultado
-```
+**Chequeo de entregabilidad.** Antes de aceptar cualquier dirección — registro, email de un contacto, cambio de email — se verifica que su dominio tenga servidor de correo (MX/A). Un typo como `gmial.com` se rechaza con `422`, así no se crea un registro cuya confirmación solo podría rebotar. Se alterna con `SMTP_VERIFY_DELIVERABILITY`.
 
-Un contacto agregado *sin* email se salta este paso por completo — solo queda habilitado para alertas vía Telegram.
+**Confirmación de contacto (email).** Agregar un contacto con email encola un enlace de confirmación; al clicarlo se activa `confirmed`. Editar el email reinicia el flujo (vuelve a no confirmado, enlace nuevo). `POST /contacts/{id}/confirm/resend` reenvía sin editar.
 
-Editar la dirección de email de un contacto (`PUT /contacts/{id}`) reinicia este flujo: el contacto vuelve a marcarse como no confirmado y sale un nuevo correo de confirmación a la nueva dirección. Corregir una dirección mal escrita, por tanto, la vuelve a verificar, en vez de dejar el contacto "confirmado" contra una dirección que en realidad nunca recibió nada. `POST /contacts/{id}/confirm/resend` envía el mismo correo de nuevo sin ninguna edición, para cuando el primero se perdió — solo aplica a un contacto que tiene email y aún no ha confirmado.
+**Aviso de cambio de cuenta.** Cambiar el email o la contraseña de la cuenta envía la plantilla `security_alert` a la dirección que figuraba *antes* del cambio, para que una apropiación no ocurra en silencio.
 
-## Verificar que una dirección puede recibir correo
+## Telegram
 
-Antes de aceptar cualquier dirección — una cuenta nueva (`POST /auth/register`), un contacto con email, o un cambio de email en cualquiera de los dos — se comprueba que su dominio tenga un servidor de correo (un registro MX o A). Un error de tipeo como `gmial.com` o un dominio inventado se rechaza con un `422` en ese punto, así el sistema nunca crea un registro cuyo correo de confirmación solo podría rebotar. Esto confirma que el dominio puede recibir correo, no que el buzón concreto exista; el enlace de confirmación sigue siendo lo que prueba que la dirección es real y pertenece a la persona correcta. La comprobación puede desactivarse (`SMTP_VERIFY_DELIVERABILITY`, ver [`operations.md`](operations.md)) para desarrollo sin conexión.
-
-## Avisos de cambio de cuenta
-
-Cambiar el email o la contraseña de la cuenta (ver [`auth.md`](auth.md)) envía un aviso de seguridad — la plantilla `security_alert` — a la dirección que figuraba *antes* del cambio. Si se cambia una dirección de email, el dueño anterior igual se entera, así una apropiación de cuenta no puede ocurrir en silencio.
-
-## Vinculación con Telegram
-
-El parámetro `start` de los deep links propios de Telegram solo permite `[A-Za-z0-9_-]`, algo que un JWT (separado por puntos) no puede cumplir — así que, a diferencia de cualquier otro flujo de confirmación, este usa un token opaco respaldado en base de datos en vez de un JWT.
+HTTP a la Bot API (`httpx`), plantillas de texto plano en `templates/telegram/`. El parámetro `start` de los deep-link de Telegram solo permite `[A-Za-z0-9_-]`, así que la vinculación de contacto usa un token opaco respaldado en base de datos en vez de un JWT.
 
 ```mermaid
 sequenceDiagram
-    participant Usuario as Usuario de la app
+    participant User
     participant API as POST /contacts/:id/telegram/enable
-    participant DB
-    participant Contacto
-    participant Bot as Bot de Telegram
+    participant Contact
+    participant Bot
     participant Webhook as POST /telegram/webhook
-
-    Usuario->>API: activa Telegram para un contacto
-    API->>DB: UPDATE contacts SET telegram_link_token, telegram_link_expires_at
-    API-->>Usuario: URL del enlace (enviada por correo al contacto, o devuelta para compartir manualmente)
-    Contacto->>Bot: abre t.me/BOT_USERNAME, start = token del enlace
-    Bot->>Webhook: update - texto del mensaje "/start TOKEN", chat id
-    Webhook->>DB: busca el contacto por token (no debe estar expirado)
-    Webhook->>DB: UPDATE contacts SET telegram_chat_id, limpia el token
-    Webhook-->>Bot: mensaje de confirmación al contacto
+    User->>API: activar Telegram
+    API-->>User: t.me/BOT?start=TOKEN (por correo o devuelto)
+    Contact->>Bot: abre el enlace, envía /start TOKEN
+    Bot->>Webhook: update (chat id + token)
+    Webhook->>Webhook: matchea token, guarda telegram_chat_id
+    Webhook-->>Contact: mensaje de confirmación
 ```
 
-- Si el contacto ya tiene un email registrado, el enlace se envía por correo (plantilla `telegram_link`) y la respuesta de la API omite la URL (`{"telegram_link_url": null}`) — la app no necesita mostrarla.
-- Si no, la API devuelve la URL directamente para que la app la ofrezca vía el share sheet del sistema operativo.
-- El enlace expira a las 24h (`telegram.LINK_EXPIRATION`) y es de un solo uso — una vinculación exitosa limpia `telegram_link_token` de vuelta a `NULL`.
+**Seguridad del webhook y autorreparación.** `POST /telegram/webhook` verifica `X-Telegram-Bot-Api-Secret-Token` contra `TELEGRAM_WEBHOOK_SECRET`. La URL del webhook la **registra el backend** al arrancar (`EnsureWebhook`: set + verificar vía `getWebhookInfo`, con reintentos) y una tarea keeper la re-afirma si deriva. Cada golpe y cada motivo de ignorar/fallar se registra, así que un webhook mal registrado es visible en vez de silencioso (ver [operations.md](operations.md)).
 
-### Seguridad del webhook
+## WhatsApp
 
-Telegram no firma sus peticiones. `POST /telegram/webhook` en cambio verifica el header `X-Telegram-Bot-Api-Secret-Token` contra `TELEGRAM_WEBHOOK_SECRET` — un valor que este despliegue inventa y registra una sola vez vía `Telegram.SetWebhook` al arrancar, no algo emitido por Telegram. Cualquier petición sin un header coincidente se rechaza con `401` antes incluso de parsear el update (se salta solo cuando no hay ningún secreto configurado, es decir, desarrollo local sin un bot real).
+Twilio Messages API (`httpx`). Como una alerta de pánico es iniciada por el negocio y suele estar fuera de la ventana de 24 h de texto libre de WhatsApp, las alertas se envían por una **plantilla aprobada** cuando `TWILIO_WHATSAPP_TEMPLATE_SID` está puesto (cuerpo de texto libre si no, para sandbox). Configuración completa en [twilio.md](twilio.md).
 
-Cualquier excepción al manejar un update del webhook se captura y se registra en el log, y el endpoint igual devuelve `{"ok": true}` — Telegram reintenta agresivamente ante cualquier cosa que no sea una respuesta `2xx`, y una tormenta de reintentos por algo que un reintento no va a arreglar es peor que un update perdido.
+**Opt-in.** Activar WhatsApp en un contacto pone `whatsapp_enabled` y devuelve un enlace `wa.me`. Cuando el contacto escribe al número, Twilio llama a `POST /whatsapp/webhook` (verificado por firma de Twilio), que lo matchea por teléfono y pone `whatsapp_confirmed`. Ambos flags deben ser true para notificar. A diferencia de Telegram, este webhook se **configura a mano** en Twilio — no se auto-registra.
+
+## SMS
+
+Twilio Messages API, una plantilla corta de texto (`templates/sms/panic_alert.txt.j2`). Sin opt-in, sin plantilla, sin ventana de 24 h — SMS es un toggle por contacto (`sms_enabled`): actívalo y los contactos confirmados reciben un texto en la siguiente alerta. Los detalles (A2P 10DLC, geo-permisos) están en [twilio.md](twilio.md).

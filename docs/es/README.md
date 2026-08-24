@@ -1,61 +1,51 @@
-# PanicButton — Documentación
+# Panic Button — Documentación
 
-PanicButton es un sistema de seguridad personal: el usuario mantiene presionado un botón en la app móvil, la app captura su ubicación GPS, y el backend notifica a sus contactos de emergencia por correo y/o Telegram con un enlace a esa ubicación. El registro, la confirmación de contactos y el login viven detrás de la misma API.
+Panic Button es un sistema de seguridad personal: una app móvil con un único botón de "mantener pulsado para alertar" que comparte la ubicación en vivo del usuario con sus contactos de emergencia por **cuatro canales independientes — email, Telegram, WhatsApp y SMS**. Un panel web permite al dueño de la cuenta revisar cada alerta y ver a quién se alcanzó y por qué canal.
 
-Esta documentación también está disponible en [inglés](../en/README.md).
+El proyecto tiene dos partes desplegables:
 
-## Visión general del sistema
+- **`backend/`** — un servicio FastAPI (Python) sobre MariaDB. Gestiona cuentas, contactos, alertas, todos los canales de notificación, la landing pública y el panel de alertas.
+- **`app/`** — una app Capacitor (Android). Es una app *online*: el contenedor nativo carga su interfaz en vivo desde el mount `/app` del backend, así que la mayoría de los cambios de UI se publican sin recompilar el APK.
+
+## Mapa de la documentación
+
+### Para empezar
+- [Instalación y primer arranque](backend/setup.md) — instalar el backend, provisionar la base de datos, llenar el `.env`, ejecutarlo.
+- [Configuración de Twilio](backend/twilio.md) — habilitar WhatsApp (sender + plantilla) y SMS.
+- [Cambio de dominio](backend/domain-change.md) — todo lo que actualizar cuando cambia la URL pública.
+- [Despliegue con Docker](backend/docker.md) — correr el backend (y una MariaDB incluida) en contenedores.
+
+### Referencia del backend
+- [Arquitectura](backend/architecture.md) — módulos, flujo de petición, middleware, arranque.
+- [Autenticación](backend/auth.md) — hash de contraseñas y los tipos de token JWT.
+- [Base de datos](backend/database.md) — esquema, el cursor confinado por hilo, migraciones.
+- [Referencia de la API](backend/api.md) — cada ruta.
+- [Notificaciones](backend/notifications.md) — los cuatro canales y cómo se eligen.
+- [Operaciones](backend/operations.md) — variables de entorno, logging, límites de tasa, salud, mantenimiento.
+- [Páginas web](backend/web-pages.md) — landing y panel.
+
+### Referencia de la app
+- [Arquitectura](app/architecture.md) — el modelo de app-online y la estructura del proyecto.
+- [Pantallas](app/screens.md) — qué hace cada pantalla.
+
+## La foto en cinco minutos
 
 ```mermaid
 flowchart LR
-    subgraph Cliente
-        App["App móvil (WebView de Capacitor)"]
-        Browser["Navegador (landing / dashboard)"]
-    end
-
-    subgraph Servidor["backend/ (FastAPI)"]
-        API["API REST\n/auth /users /contacts /alerts"]
-        Web["Páginas renderizadas por el servidor\n/ /dashboard /app"]
-    end
-
-    DB[(MariaDB)]
-    SMTP["Gmail SMTP"]
-    TG["API de Bots de Telegram"]
-
-    App -- "fetch() JSON" --> API
-    App -- "carga la UI en vivo" --> Web
-    Browser -- "GET /" --> Web
-    Browser -- "login + fetch" --> API
-    API --> DB
-    API -- "correos de confirmación / alerta" --> SMTP
-    API -- "mensajes de alerta" --> TG
-    TG -- "webhook" --> API
+    App[App móvil] -- "mantener botón" --> API[Backend FastAPI]
+    API --> DB[(MariaDB)]
+    API -- email --> Email[SMTP]
+    API -- bot --> TG[Telegram]
+    API -- Twilio --> WA[WhatsApp]
+    API -- Twilio --> SMS[SMS]
+    Owner[Dueño de la cuenta] -- navegador --> Dash[/dashboard/]
+    Dash --> API
 ```
 
-## Dos mitades de un mismo repositorio
+Un contacto es alcanzable por un canal una vez que está **confirmado** para ese canal (enlace de confirmación por email, opt-in de Telegram/WhatsApp, o simplemente activando SMS). Cuando el usuario dispara una alerta, el backend la registra y la reparte, en paralelo, a cada canal confirmado de cada contacto.
 
-| Directorio | Qué es | Docs |
-|---|---|---|
-| [`backend/`](../../backend) | API en FastAPI + MariaDB, más las páginas web renderizadas por el servidor | [`backend/`](backend/) |
-| [`app/`](../../app) | Cliente móvil en Capacitor (Android/iOS), HTML/CSS/JS plano | [`app/`](app/) |
+## Convenciones
 
-Se despliegan juntos: la app ya no empaqueta su propia UI — su WebView carga la ruta `/app` del `backend/` en vivo, la misma idea que una ventana de Electron apuntando a una URL en vez de empaquetar una copia local de la página. Ver [`app/architecture.md`](app/architecture.md) para el porqué.
-
-## Docs del backend
-
-- [`backend/architecture.md`](backend/architecture.md) — cómo está armado `main.py`: routers, CORS, el interruptor de `/docs`, arranque
-- [`backend/database.md`](backend/database.md) — esquema (diagrama ER), `Cursor`, manejo de conexión
-- [`backend/auth.md`](backend/auth.md) — tokens JWT, hash de contraseñas, la dependencia `current_user`
-- [`backend/api.md`](backend/api.md) — referencia de endpoints (ejemplos completos en [`backend/API.md`](../../backend/API.md))
-- [`backend/notifications.md`](backend/notifications.md) — entrega de alertas por correo + Telegram
-- [`backend/web-pages.md`](backend/web-pages.md) — la landing page, el dashboard y las páginas de confirmación que el backend renderiza él mismo
-- [`backend/operations.md`](backend/operations.md) — variables de entorno, logging, scripts de mantenimiento, feature flags
-
-## Docs de la app
-
-- [`app/architecture.md`](app/architecture.md) — el pipeline de build, y por qué la app carga su UI desde el backend en vez de empaquetarla
-- [`app/screens.md`](app/screens.md) — recorrido pantalla por pantalla, theming, i18n
-
-## Instalación
-
-Ver el [`README.md`](../../README.md) de la raíz para la instalación del backend, y [`app/README.md`](../../app/README.md) para la app móvil.
+- La documentación es bilingüe: este es el set en español; el espejo en inglés vive en [`docs/en/`](../en/README.md).
+- El código y las claves de configuración están en inglés. Los textos de la interfaz se traducen en la app.
+- Esta documentación describe el código de la rama `main`.
