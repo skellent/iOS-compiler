@@ -11,4 +11,7 @@ _credentials: dict = get_credentials()
 
 @router.get("", response_class=HTMLResponse)
 def dashboard():
-    return HTMLResponse(Pages.Render("dashboard", {"contact_email": _credentials['email']['from']}))
+    return HTMLResponse(Pages.Render("dashboard", {
+        "contact_email": _credentials['email']['from'],
+        "base_url": _credentials['api_base_url'],
+    }))
