@@ -3,9 +3,9 @@ services:
     image: mariadb:11
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${DATABASE:-panicbutton}
-      MARIADB_USER: ${USERNAME:-panic}
-      MARIADB_PASSWORD: ${PASSWORD:-panic}
+      MARIADB_DATABASE: ${DB_NAME:-panicbutton}
+      MARIADB_USER: ${DB_USERNAME:-panic}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-panic}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change-me-root}
     volumes:
       - db-data:/var/lib/mysql
@@ -18,10 +18,18 @@ services:
       start_period: 20s
 
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     env_file: .env
+    # These override anything in .env so the backend and db always agree on the
+    # database credentials. DB_* names are used (not USERNAME/PASSWORD) because on
+    # Windows the shell already defines USERNAME, which would hijack ${USERNAME}.
     environment:
+      USERNAME: ${DB_USERNAME:-panic}
+      PASSWORD: ${DB_PASSWORD:-panic}
+      DATABASE: ${DB_NAME:-panicbutton}
       HOST: db
       PORT: "3306"
     ports:
