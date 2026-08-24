@@ -9,6 +9,7 @@ const config = {
   server: {
     url: `${apiBaseUrl}/app/`,
     cleartext: true,
+    errorPath: "offline.html",
   },
   plugins: {
     SplashScreen: {

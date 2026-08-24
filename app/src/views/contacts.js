@@ -7,6 +7,7 @@ import { escapeHtml, setLoading, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t } from "../lib/i18n.js";
 import { attachPhoneSanitizer, buildCountryCodeOptions, combinePhone, splitPhone } from "../lib/phone.js";
+import { shareLink } from "../lib/share.js";
 
 const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
 const MAX_CONTACTS = 4;
@@ -317,10 +318,11 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         } else {
           const result = await Api.enableContactTelegram(contact.id);
           if (result.telegram_link_url) {
-            try {
-              await navigator.clipboard.writeText(result.telegram_link_url);
-            } catch {
-            }
+            await shareLink({
+              url: result.telegram_link_url,
+              title: "Panic Button",
+              text: t("contacts.telegramShareText"),
+            });
             showToast(t("contacts.telegramLinkReady"), "success");
           } else {
             showToast(t("contacts.telegramEmailSent"), "success");
@@ -346,10 +348,11 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         } else {
           const result = await Api.enableContactWhatsapp(contact.id);
           if (result.join_url) {
-            try {
-              await navigator.clipboard.writeText(result.join_url);
-            } catch {
-            }
+            await shareLink({
+              url: result.join_url,
+              title: "Panic Button",
+              text: t("contacts.whatsappShareText"),
+            });
             showToast(t("contacts.whatsappLinkReady"), "success");
           } else {
             showToast(t("contacts.whatsappEnabled"), "success");

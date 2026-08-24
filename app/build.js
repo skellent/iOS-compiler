@@ -15,4 +15,50 @@ if (!result.success) {
   process.exit(1);
 }
 
-console.log(`Built www/js/main.js (API_BASE_URL=${apiBaseUrl})`);
+const offlineHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Panic Button — Offline</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        padding: 24px; text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(circle at 50% 0%, rgba(234,32,82,0.18), transparent 60%), #0b0a10;
+        color: #f2f0f5; -webkit-tap-highlight-color: transparent;
+      }
+      .wrap { max-width: 340px; }
+      .mark {
+        width: 76px; height: 76px; margin: 0 auto 22px; border-radius: 20px;
+        display: grid; place-items: center; font-weight: 800; font-size: 26px; letter-spacing: 1px;
+        color: #fff; background: linear-gradient(140deg, #ea2052, #8c1331);
+        box-shadow: 0 12px 30px rgba(234,32,82,0.45);
+      }
+      h1 { font-size: 20px; margin: 0 0 8px; }
+      p { font-size: 14px; line-height: 1.6; color: #b8b4c2; margin: 0 0 24px; }
+      button {
+        border: none; border-radius: 12px; padding: 14px 28px; font-size: 15px; font-weight: 700;
+        color: #fff; background: #ea2052; cursor: pointer; font-family: inherit; width: 100%;
+      }
+      button:active { transform: scale(0.97); }
+      .hint { margin-top: 16px; font-size: 12px; color: #6f6b7d; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="mark">SOS</div>
+      <h1>You're offline</h1>
+      <p>Panic Button can't reach the server right now. Check your internet connection and try again.</p>
+      <button type="button" onclick="location.href='${apiBaseUrl}/app/'">Retry</button>
+      <p class="hint">Your emergency contacts and alerts are safe — they're stored on the server.</p>
+    </div>
+  </body>
+</html>
+`;
+await Bun.write("www/offline.html", offlineHtml);
+
+console.log(`Built www/js/main.js + www/offline.html (API_BASE_URL=${apiBaseUrl})`);

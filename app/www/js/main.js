@@ -769,6 +769,36 @@ var init_web5 = __esm(() => {
   };
 });
 
+// node_modules/@capacitor/share/dist/esm/web.js
+var exports_web6 = {};
+__export(exports_web6, {
+  ShareWeb: () => ShareWeb
+});
+var ShareWeb;
+var init_web6 = __esm(() => {
+  init_dist();
+  ShareWeb = class ShareWeb extends WebPlugin {
+    async canShare() {
+      if (typeof navigator === "undefined" || !navigator.share) {
+        return { value: false };
+      } else {
+        return { value: true };
+      }
+    }
+    async share(options) {
+      if (typeof navigator === "undefined" || !navigator.share) {
+        throw this.unavailable("Share API not available in this browser");
+      }
+      await navigator.share({
+        title: options.title,
+        text: options.text,
+        url: options.url
+      });
+      return {};
+    }
+  };
+});
+
 // node_modules/@capacitor/splash-screen/dist/esm/index.js
 init_dist();
 var SplashScreen = registerPlugin("SplashScreen", {
@@ -898,7 +928,9 @@ var STRINGS = {
     "contacts.telegramConnect": "Connect Telegram",
     "contacts.telegramDisconnect": "Disconnect Telegram",
     "contacts.telegramEmailSent": "Telegram link sent to their email.",
-    "contacts.telegramLinkReady": "Telegram link ready — copied, share it with your contact.",
+    "contacts.telegramLinkReady": "Telegram link ready — share it with your contact.",
+    "contacts.telegramShareText": "Link me on Telegram to receive my Panic Button alerts:",
+    "contacts.whatsappShareText": "Message me on WhatsApp to receive my Panic Button alerts:",
     "contacts.telegramDisconnected": "Telegram disconnected.",
     "contacts.telegramEnableError": "Couldn't start the Telegram link.",
     "contacts.telegramDisableError": "Couldn't disconnect Telegram.",
@@ -1036,7 +1068,9 @@ var STRINGS = {
     "contacts.telegramConnect": "Conectar Telegram",
     "contacts.telegramDisconnect": "Desconectar Telegram",
     "contacts.telegramEmailSent": "Enlace de Telegram enviado a su correo.",
-    "contacts.telegramLinkReady": "Enlace de Telegram listo — copiado, compártelo con tu contacto.",
+    "contacts.telegramLinkReady": "Enlace de Telegram listo — compártelo con tu contacto.",
+    "contacts.telegramShareText": "Vincúlame en Telegram para recibir mis alertas de Panic Button:",
+    "contacts.whatsappShareText": "Escríbeme por WhatsApp para recibir mis alertas de Panic Button:",
     "contacts.telegramDisconnected": "Telegram desconectado.",
     "contacts.telegramEnableError": "No se pudo iniciar la vinculación de Telegram.",
     "contacts.telegramDisableError": "No se pudo desconectar Telegram.",
@@ -3036,6 +3070,36 @@ function openSheet(bodyElement) {
   return { close, sheet };
 }
 
+// src/lib/share.js
+init_dist();
+
+// node_modules/@capacitor/share/dist/esm/index.js
+init_dist();
+var Share = registerPlugin("Share", {
+  web: () => Promise.resolve().then(() => (init_web6(), exports_web6)).then((m) => new m.ShareWeb)
+});
+
+// src/lib/share.js
+async function copyToClipboard(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    return "copied";
+  } catch {
+    return "failed";
+  }
+}
+async function shareLink({ url, title, text }) {
+  if (!Capacitor.isPluginAvailable("Share")) {
+    return copyToClipboard(url);
+  }
+  try {
+    await Share.share({ title, text, url });
+    return "shared";
+  } catch {
+    return copyToClipboard(url);
+  }
+}
+
 // src/views/contacts.js
 var EMAIL_DOMAINS2 = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
 var MAX_CONTACTS = 4;
@@ -3278,9 +3342,11 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         } else {
           const result = await Api.enableContactTelegram(contact.id);
           if (result.telegram_link_url) {
-            try {
-              await navigator.clipboard.writeText(result.telegram_link_url);
-            } catch {}
+            await shareLink({
+              url: result.telegram_link_url,
+              title: "Panic Button",
+              text: t("contacts.telegramShareText")
+            });
             showToast(t("contacts.telegramLinkReady"), "success");
           } else {
             showToast(t("contacts.telegramEmailSent"), "success");
@@ -3305,9 +3371,11 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
         } else {
           const result = await Api.enableContactWhatsapp(contact.id);
           if (result.join_url) {
-            try {
-              await navigator.clipboard.writeText(result.join_url);
-            } catch {}
+            await shareLink({
+              url: result.join_url,
+              title: "Panic Button",
+              text: t("contacts.whatsappShareText")
+            });
             showToast(t("contacts.whatsappLinkReady"), "success");
           } else {
             showToast(t("contacts.whatsappEnabled"), "success");
