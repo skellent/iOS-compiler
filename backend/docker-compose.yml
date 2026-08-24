@@ -1,0 +1,34 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DATABASE:-panicbutton}
+      MARIADB_USER: ${USERNAME:-panic}
+      MARIADB_PASSWORD: ${PASSWORD:-panic}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change-me-root}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./queries/tables.sql:/docker-entrypoint-initdb.d/01-tables.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  backend:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOST: db
+      PORT: "3306"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
