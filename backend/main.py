@@ -14,7 +14,7 @@ from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI, Request
 from fastapi.middleware.cors  import CORSMiddleware
-from fastapi.responses        import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses        import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles      import StaticFiles
 
 from slowapi          import _rate_limit_exceeded_handler
@@ -131,6 +131,14 @@ async def _request_context(request: Request, call_next):
 
 
 app.mount("/static", StaticFiles(directory=Path(__file__).resolve().parent / "static"), name="static")
+
+_FAVICON_PATH = Path(__file__).resolve().parent / "static" / "img" / "favicon.ico"
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(_FAVICON_PATH, media_type="image/x-icon")
+
 
 @app.get("/", response_class=HTMLResponse)
 def root():

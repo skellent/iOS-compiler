@@ -68,21 +68,22 @@ class Queries:
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
     SELECT_ALERTS_BY_USER: str = "SELECT id, created_at, latitude, longitude FROM alerts WHERE user_id = %s ORDER BY created_at DESC;"
 
-    INSERT_ALERT_NOTIFICATION: str = "INSERT INTO alert_notifications (alert_id, contact_id, channel) VALUES (%s, %s, %s);"
+    INSERT_ALERT_NOTIFICATION: str = "INSERT INTO alert_notifications (alert_id, contact_id, contact_name, channel) VALUES (%s, %s, %s, %s);"
     SELECT_ALERT_NOTIFICATIONS_BY_ALERT: str = (
-        "SELECT alert_notifications.channel, alert_notifications.viewed_at, contacts.name AS contact_name "
-        "FROM alert_notifications JOIN contacts ON contacts.id = alert_notifications.contact_id "
-        "WHERE alert_notifications.alert_id = %s ORDER BY contacts.name;"
+        "SELECT alert_notifications.channel, alert_notifications.viewed_at, alert_notifications.contact_name, "
+        "(alert_notifications.contact_id IS NULL) AS contact_removed "
+        "FROM alert_notifications "
+        "WHERE alert_notifications.alert_id = %s ORDER BY alert_notifications.contact_name;"
     )
     # One query for every notification belonging to one user's alerts, so listing
-    # alerts costs 2 queries instead of 1-per-alert.
+    # alerts costs 2 queries instead of 1-per-alert. The contact name is stored on
+    # the row, so an alert keeps its recipients even after a contact is deleted.
     SELECT_ALERT_NOTIFICATIONS_BY_USER: str = (
         "SELECT alert_notifications.alert_id, alert_notifications.channel, alert_notifications.viewed_at, "
-        "contacts.name AS contact_name "
+        "alert_notifications.contact_name, (alert_notifications.contact_id IS NULL) AS contact_removed "
         "FROM alert_notifications "
-        "JOIN contacts ON contacts.id = alert_notifications.contact_id "
         "JOIN alerts ON alerts.id = alert_notifications.alert_id "
-        "WHERE alerts.user_id = %s ORDER BY contacts.name;"
+        "WHERE alerts.user_id = %s ORDER BY alert_notifications.contact_name;"
     )
     SELECT_ALERT_NOTIFICATION_BY_ID: str = (
         "SELECT alert_notifications.id, alert_notifications.viewed_at, alerts.latitude, alerts.longitude "

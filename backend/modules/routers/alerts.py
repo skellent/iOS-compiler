@@ -23,8 +23,8 @@ _URL_BASE: str = get_credentials()['api_base_url']
 _logger = get_logger(__name__)
 
 
-def _create_notification(alert_id: int, contact_id: int, channel: str) -> int:
-    cursor.execute(Queries.INSERT_ALERT_NOTIFICATION, (alert_id, contact_id, channel))
+def _create_notification(alert_id: int, contact_id: int, contact_name: str, channel: str) -> int:
+    cursor.execute(Queries.INSERT_ALERT_NOTIFICATION, (alert_id, contact_id, contact_name, channel))
     cursor.commit()
     return cursor.lastrowid
 
@@ -100,28 +100,28 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
         # re-check confirmed on its own: a Telegram-linked contact whose email is
         # unconfirmed (e.g. just edited, which resets confirmed) must not be emailed.
         if contact["email"] and contact["confirmed"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], "email")
+            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "email")
             mail_recipients.append((contact["email"], {
                 "contact_name": contact["name"],
                 "map_url": _view_url(notification_id),
                 **base_context,
             }))
         if contact["telegram_chat_id"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], "telegram")
+            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "telegram")
             telegram_recipients.append((contact["telegram_chat_id"], {
                 "contact_name": contact["name"],
                 "map_url": _view_url(notification_id),
                 **base_context,
             }))
         if contact["whatsapp_enabled"] and contact["whatsapp_confirmed"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], "whatsapp")
+            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "whatsapp")
             whatsapp_recipients.append((contact["phone"], {
                 "contact_name": contact["name"],
                 "map_url": _view_url(notification_id),
                 **base_context,
             }))
         if contact["sms_enabled"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], "sms")
+            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "sms")
             sms_recipients.append((contact["phone"], {
                 "contact_name": contact["name"],
                 "map_url": _view_url(notification_id),

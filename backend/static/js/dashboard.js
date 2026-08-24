@@ -144,12 +144,47 @@ const dashView = document.getElementById("dashboard-view");
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const alertsList = document.getElementById("alerts-list");
+const statsEl = document.getElementById("stats");
 const logoutBtn = document.getElementById("logout-btn");
+const refreshBtn = document.getElementById("refresh-btn");
+const searchInput = document.getElementById("search-input");
+const seenFilter = document.getElementById("seen-filter");
+const channelFilters = document.getElementById("channel-filters");
+
+const CHANNEL_LABELS = { email: "Email", telegram: "Telegram", whatsapp: "WhatsApp", sms: "SMS" };
+const ALL_CHANNELS = ["email", "telegram", "whatsapp", "sms"];
+
+let allAlerts = [];
+let searchQuery = "";
+let seenMode = "all";
+const activeChannels = new Set(ALL_CHANNELS);
 
 function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value ?? "";
   return div.innerHTML;
+}
+
+function channelLabel(channel) {
+  return CHANNEL_LABELS[channel] || channel;
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return escapeHtml(value);
+  return date.toLocaleString("en-US", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function relativeTime(value) {
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "";
+  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 function showDashboard() {
@@ -182,55 +217,136 @@ async function api(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
-function channelLabel(channel) {
-  return channel === "telegram" ? "Telegram" : "Email";
+function renderStats(alerts) {
+  const now = Date.now();
+  let sent = 0;
+  let seen = 0;
+  let last7 = 0;
+  for (const alert of alerts) {
+    const time = new Date(alert.created_at).getTime();
+    if (!isNaN(time) && now - time < 7 * 86400 * 1000) last7 += 1;
+    for (const note of alert.notifications) {
+      sent += 1;
+      if (note.viewed_at) seen += 1;
+    }
+  }
+  const seenRate = sent ? Math.round((seen / sent) * 100) : 0;
+  const tiles = [
+    { value: alerts.length, label: "Total alerts" },
+    { value: last7, label: "Last 7 days" },
+    { value: sent, label: "Notifications sent" },
+    { value: `${seenRate}%`, label: "Seen rate", sub: sent ? `${seen}/${sent}` : "—" },
+  ];
+  statsEl.innerHTML = tiles
+    .map(
+      (tile) => `
+      <div class="stat-tile">
+        <span class="stat-value">${escapeHtml(String(tile.value))}</span>
+        <span class="stat-label">${escapeHtml(tile.label)}${tile.sub ? ` <em>${escapeHtml(tile.sub)}</em>` : ""}</span>
+      </div>`
+    )
+    .join("");
+}
+
+function filtersActive() {
+  return Boolean(searchQuery) || seenMode !== "all" || activeChannels.size < ALL_CHANNELS.length;
+}
+
+function notificationMatches(note) {
+  if (!activeChannels.has(note.channel)) return false;
+  if (seenMode === "seen" && !note.viewed_at) return false;
+  if (seenMode === "unseen" && note.viewed_at) return false;
+  if (searchQuery && !String(note.contact_name || "").toLowerCase().includes(searchQuery)) return false;
+  return true;
+}
+
+function renderNotification(note) {
+  const removed = note.contact_removed
+    ? ` <span class="removed-tag" title="This contact was deleted">removed</span>`
+    : "";
+  return `
+    <div class="notification-row">
+      <span class="channel-tag channel-${escapeHtml(note.channel)}">${escapeHtml(channelLabel(note.channel))}</span>
+      <span class="contact-name">${escapeHtml(note.contact_name || "Unknown contact")}${removed}</span>
+      <span class="view-status ${note.viewed_at ? "viewed" : "pending"}">${note.viewed_at ? "✓ Seen" : "Not seen"}</span>
+    </div>`;
+}
+
+function renderAlertCard(alert, notes) {
+  const seenCount = alert.notifications.filter((note) => note.viewed_at).length;
+  return `
+    <div class="alert-card">
+      <div class="alert-header">
+        <div class="alert-head-left">
+          <span class="alert-time">${formatDateTime(alert.created_at)}</span>
+          <span class="alert-rel">${relativeTime(alert.created_at)}</span>
+        </div>
+        <span class="alert-badge">${alert.notifications.length} sent &middot; ${seenCount} seen</span>
+      </div>
+      <a class="alert-coords" href="https://www.google.com/maps?q=${alert.latitude},${alert.longitude}" target="_blank" rel="noopener">&#128205; ${alert.latitude}, ${alert.longitude}</a>
+      <div class="notifications">
+        ${
+          notes.length === 0
+            ? `<p class="no-notifications">No contacts were notified for this alert.</p>`
+            : notes.map(renderNotification).join("")
+        }
+      </div>
+    </div>`;
+}
+
+function renderAlerts() {
+  const active = filtersActive();
+  const cards = [];
+  for (const alert of allAlerts) {
+    const matching = alert.notifications.filter(notificationMatches);
+    if (active && matching.length === 0) continue;
+    cards.push(renderAlertCard(alert, active ? matching : alert.notifications));
+  }
+  if (cards.length === 0) {
+    alertsList.innerHTML = `<p class="empty">${active ? "No alerts match your filters." : "No alerts have been triggered yet."}</p>`;
+    return;
+  }
+  alertsList.innerHTML = cards.join("");
 }
 
 async function loadAlerts() {
-  alertsList.innerHTML = `<p class="empty">Loading...</p>`;
+  alertsList.innerHTML = `<p class="empty">Loading&hellip;</p>`;
+  statsEl.innerHTML = "";
+  refreshBtn?.classList.add("spinning");
   try {
-    const alerts = await api("/alerts");
-    if (alerts.length === 0) {
-      alertsList.innerHTML = `<p class="empty">No alerts have been triggered yet.</p>`;
-      return;
-    }
-    alertsList.innerHTML = alerts
-      .map(
-        (alert) => `
-      <div class="alert-card">
-        <div class="alert-header">
-          <span class="alert-time">${escapeHtml(alert.created_at)}</span>
-        </div>
-        <a class="alert-coords" href="https://www.google.com/maps?q=${alert.latitude},${alert.longitude}" target="_blank" rel="noopener">${alert.latitude}, ${alert.longitude}</a>
-        <div class="notifications">
-          ${
-            alert.notifications.length === 0
-              ? `<p class="no-notifications">No confirmed contacts were notified for this alert.</p>`
-              : alert.notifications
-                  .map(
-                    (notification) => `
-                <div class="notification-row">
-                  <span class="channel-tag channel-${notification.channel}">${channelLabel(notification.channel)}</span>
-                  <span class="contact-name">${escapeHtml(notification.contact_name)}</span>
-                  <span class="view-status ${notification.viewed_at ? "viewed" : "pending"}">
-                    ${notification.viewed_at ? `Seen ${escapeHtml(notification.viewed_at)}` : "Not seen yet"}
-                  </span>
-                </div>
-              `
-                  )
-                  .join("")
-          }
-        </div>
-      </div>
-    `
-      )
-      .join("");
+    allAlerts = await api("/alerts");
+    renderStats(allAlerts);
+    renderAlerts();
   } catch (error) {
     if (error.message !== "unauthorized") {
       alertsList.innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`;
     }
+  } finally {
+    refreshBtn?.classList.remove("spinning");
   }
 }
+
+searchInput?.addEventListener("input", () => {
+  searchQuery = searchInput.value.trim().toLowerCase();
+  renderAlerts();
+});
+
+seenFilter?.addEventListener("change", () => {
+  seenMode = seenFilter.value;
+  renderAlerts();
+});
+
+channelFilters?.querySelectorAll("[data-channel]").forEach((chip) => {
+  chip.addEventListener("click", () => {
+    const channel = chip.dataset.channel;
+    const turnedOff = chip.classList.toggle("chip-off");
+    if (turnedOff) activeChannels.delete(channel);
+    else activeChannels.add(channel);
+    renderAlerts();
+  });
+});
+
+refreshBtn?.addEventListener("click", loadAlerts);
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
