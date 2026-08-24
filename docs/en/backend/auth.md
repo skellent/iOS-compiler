@@ -65,3 +65,31 @@ The app stores `access_token` (`@capacitor/preferences`) and sends it as `Author
 ## Re-authentication for sensitive changes
 
 Changing the account email or password (`PUT /users/me`) requires the **current password** in the body (`current_password`), even with a valid session token. A 30-day token is convenient but long-lived; re-asking for the password means a stolen token alone can't take over an account. The check verifies `current_password` against the stored hash (missing → `400`, wrong → `403`); editing only name or phone doesn't require it. When a sensitive field changes, a security notice is emailed to the address on file **before** the change, so the legitimate owner hears about it even if the email itself was changed (see [notifications.md](notifications.md)).
+
+## Password reset (forgot password)
+
+For a user who can't log in, a fifth token purpose drives an emailed reset link:
+
+| Purpose | Created by | Payload | Expires |
+|---|---|---|---|
+| Password reset | `Token.CreatePasswordReset` | `user_id`, `type=password_reset` | 1 hour |
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant API
+    participant Mail
+    participant Page as Reset web page
+    App->>API: POST /auth/password-reset/request {email}
+    API-->>App: 200 (always the same response)
+    API->>Mail: reset link (if the account exists)
+    Mail-->>Page: user opens GET /auth/password-reset/{token}
+    Page->>API: POST /auth/password-reset/{token} {password}
+    API->>API: update password_hash, email a security notice
+```
+
+- **Request** (`POST /auth/password-reset/request`) is rate-limited and **always returns the same response** whether or not the email exists — no account enumeration. If it exists, a 1-hour reset link is emailed.
+- **The link** (`GET /auth/password-reset/{token}`) serves a small web page with a new-password form; an invalid/expired token shows the standard error page.
+- **The form** posts the new password to `POST /auth/password-reset/{token}`, which validates the token (**type-checked**, so a session or confirmation token can't be used here), updates the hash, and emails a security notice.
+- In the app, a **"Forgot your password?"** link on the login screen triggers the request.
+

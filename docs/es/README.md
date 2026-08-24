@@ -13,6 +13,7 @@ El proyecto tiene dos partes desplegables:
 - [Instalación y primer arranque](backend/setup.md) — instalar el backend, provisionar la base de datos, llenar el `.env`, ejecutarlo.
 - [Configuración de Twilio](backend/twilio.md) — habilitar WhatsApp (sender + plantilla) y SMS.
 - [Cambio de dominio](backend/domain-change.md) — todo lo que actualizar cuando cambia la URL pública.
+- [Despliegue con Docker](backend/docker.md) — correr el backend (y una MariaDB incluida) en contenedores.
 
 ### Referencia del backend
 - [Arquitectura](backend/architecture.md) — módulos, flujo de petición, middleware, arranque.

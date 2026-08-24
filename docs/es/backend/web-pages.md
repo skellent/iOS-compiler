@@ -36,3 +36,13 @@ Hay un botón de refrescar, y el diálogo de ajustes ofrece tema (auto/claro/osc
 
 - `/static` — css, js, imágenes, la descarga del APK.
 - `/app` — la UI web de la app móvil (`app/www`), servida con `no-cache` en HTML/JS para que un arranque de la app siempre vea el último bundle, y cache largo en imágenes. `/app/manifest` devuelve un hash de contenido que la app usa para decidir cuándo recargar. Ver [app/architecture.md](../app/architecture.md).
+
+## Página de restablecimiento — `GET /auth/password-reset/{token}`
+
+Una página pequeña y autocontenida (formulario + script inline) a la que el usuario llega desde el correo de reset. Envía la nueva contraseña como JSON a la misma ruta y muestra el resultado en línea; es `noindex`. El flujo se describe en [auth.md](auth.md).
+
+## Metadatos SEO
+
+- **La landing (`/`)** lleva un set completo de etiquetas construidas desde `API_BASE_URL`: título/descripción/keywords, canonical, `theme-color`, Open Graph y Twitter Card, y un bloque JSON-LD `SoftwareApplication`. Es indexable.
+- **El dashboard (`/dashboard`)** también lleva título/descripción/Open Graph, pero está marcado **`noindex, nofollow`** — es una herramienta privada tras login que no debe salir en búsquedas.
+- **`/robots.txt`** permite la landing y bloquea `/app`, `/dashboard`, `/docs`, apuntando a **`/sitemap.xml`** (la landing). Ambos se generan desde `API_BASE_URL`, así que un [cambio de dominio](domain-change.md) los actualiza automáticamente.

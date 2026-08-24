@@ -36,3 +36,13 @@ There is a refresh button, and the settings dialog offers theme (auto/light/dark
 
 - `/static` — css, js, images, the APK download.
 - `/app` — the mobile app's web UI (`app/www`), served with `no-cache` on HTML/JS so an app launch always sees the latest bundle, and long cache on images. `/app/manifest` returns a content hash the app uses to decide when to reload. See [app/architecture.md](../app/architecture.md).
+
+## Password reset page — `GET /auth/password-reset/{token}`
+
+A small self-contained page (form + inline script) that a user reaches from the reset email. It posts the new password as JSON to the same path and shows the result inline; it is `noindex`. The flow is described in [auth.md](auth.md).
+
+## SEO metadata
+
+- **Landing (`/`)** carries a full set of tags built from `API_BASE_URL`: title/description/keywords, a canonical link, `theme-color`, Open Graph and Twitter Card tags, and a `SoftwareApplication` JSON-LD block. It is indexable.
+- **Dashboard (`/dashboard`)** carries title/description/Open Graph too, but is marked **`noindex, nofollow`** — it's a private, login-gated tool that shouldn't appear in search.
+- **`/robots.txt`** allows the landing and disallows `/app`, `/dashboard`, `/docs`, pointing crawlers at **`/sitemap.xml`** (the landing page). Both are generated from `API_BASE_URL`, so a [domain change](domain-change.md) updates them automatically.

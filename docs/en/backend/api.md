@@ -9,6 +9,9 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 | `POST /auth/register` | — | Create a user, email an account-confirmation link. Rate-limited; the email domain is deliverability-checked. |
 | `POST /auth/login` | — | Verify credentials + `confirmed`, return a JWT. Rate-limited. |
 | `GET /auth/confirm/{token}` | — | Confirm an account from the email link (HTML page). |
+| `POST /auth/password-reset/request` | — | Email a password-reset link. Rate-limited; same response whether or not the email exists. |
+| `GET /auth/password-reset/{token}` | — | The reset form web page (HTML). |
+| `POST /auth/password-reset/{token}` | — | Set the new password for a valid reset token. |
 
 ## `/users`
 
@@ -67,7 +70,9 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 | `GET /features` | — | `{"telegram": bool, "whatsapp": bool, "sms": bool, "max_contacts": int}`. |
 | `GET /health` | — | Service + database reachability (`200` / `503`). |
 | `GET /favicon.ico` | — | Site favicon. |
-| `GET /` | — | Landing page. |
-| `GET /dashboard` | — | Alert dashboard (logs in with an app account). |
+| `GET /robots.txt` | — | Crawl rules; disallows `/app`, `/dashboard`, `/docs` and points at the sitemap. |
+| `GET /sitemap.xml` | — | Sitemap (the landing page). |
+| `GET /` | — | Landing page (carries SEO metadata — see [web-pages.md](web-pages.md)). |
+| `GET /dashboard` | — | Alert dashboard (logs in with an app account; `noindex`). |
 
 Registration, login, resend, and alert are rate-limited; over the limit returns `429`. See [operations.md](operations.md). Static assets are served at `/static`, and the mobile UI at `/app` (see [web-pages.md](web-pages.md) and [app/architecture.md](../app/architecture.md)).

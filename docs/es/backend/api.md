@@ -9,6 +9,9 @@ Referencia rápida de cada ruta. 🔒 = requiere `Authorization: Bearer <token>`
 | `POST /auth/register` | — | Crea un usuario, envía por correo un enlace de confirmación de cuenta. Con límite de tasa; se verifica la entregabilidad del dominio. |
 | `POST /auth/login` | — | Verifica credenciales + `confirmed`, devuelve un JWT. Con límite de tasa. |
 | `GET /auth/confirm/{token}` | — | Confirma una cuenta desde el enlace del correo (página HTML). |
+| `POST /auth/password-reset/request` | — | Envía por correo un enlace para restablecer la contraseña. Con límite de tasa; misma respuesta exista o no el email. |
+| `GET /auth/password-reset/{token}` | — | La página web con el formulario de restablecimiento (HTML). |
+| `POST /auth/password-reset/{token}` | — | Fija la nueva contraseña para un token de reset válido. |
 
 ## `/users`
 
@@ -67,7 +70,9 @@ Respuesta de `POST /alerts`:
 | `GET /features` | — | `{"telegram": bool, "whatsapp": bool, "sms": bool, "max_contacts": int}`. |
 | `GET /health` | — | Servicio + alcanzabilidad de la base (`200` / `503`). |
 | `GET /favicon.ico` | — | Favicon del sitio. |
-| `GET /` | — | Landing. |
-| `GET /dashboard` | — | Panel de alertas (inicia sesión con una cuenta de la app). |
+| `GET /robots.txt` | — | Reglas de rastreo; bloquea `/app`, `/dashboard`, `/docs` y apunta al sitemap. |
+| `GET /sitemap.xml` | — | Sitemap (la landing). |
+| `GET /` | — | Landing (con metadatos SEO — ver [web-pages.md](web-pages.md)). |
+| `GET /dashboard` | — | Panel de alertas (inicia sesión con una cuenta de la app; `noindex`). |
 
 El registro, login, reenvío y alerta tienen límite de tasa; superarlo devuelve `429`. Ver [operations.md](operations.md). Los estáticos se sirven en `/static`, y la UI móvil en `/app` (ver [web-pages.md](web-pages.md) y [app/architecture.md](../app/architecture.md)).

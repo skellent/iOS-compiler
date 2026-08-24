@@ -65,3 +65,31 @@ La app guarda `access_token` (`@capacitor/preferences`) y lo envía como `Author
 ## Reautenticación para cambios sensibles
 
 Cambiar el email o la contraseña de la cuenta (`PUT /users/me`) requiere la **contraseña actual** en el cuerpo (`current_password`), aun con un token de sesión válido. Un token de 30 días es cómodo pero de larga vida; volver a pedir la contraseña significa que un token robado por sí solo no basta para apropiarse de la cuenta. El chequeo verifica `current_password` contra el hash almacenado (falta → `400`, incorrecta → `403`); editar solo nombre o teléfono no la pide. Cuando cambia un campo sensible, se envía un aviso de seguridad a la dirección que figuraba **antes** del cambio, para que el dueño legítimo se entere aunque el propio email se haya cambiado (ver [notifications.md](notifications.md)).
+
+## Restablecer contraseña (olvidé mi contraseña)
+
+Para un usuario que no puede iniciar sesión, un quinto propósito de token maneja un enlace de restablecimiento por correo:
+
+| Propósito | Creado por | Payload | Expira |
+|---|---|---|---|
+| Restablecer contraseña | `Token.CreatePasswordReset` | `user_id`, `type=password_reset` | 1 hora |
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant API
+    participant Mail
+    participant Page as Página web de reset
+    App->>API: POST /auth/password-reset/request {email}
+    API-->>App: 200 (siempre la misma respuesta)
+    API->>Mail: enlace de reset (si la cuenta existe)
+    Mail-->>Page: el usuario abre GET /auth/password-reset/{token}
+    Page->>API: POST /auth/password-reset/{token} {password}
+    API->>API: actualiza password_hash, envía aviso de seguridad
+```
+
+- **La solicitud** (`POST /auth/password-reset/request`) tiene límite de tasa y **siempre devuelve la misma respuesta** exista o no el email — sin enumeración de cuentas. Si existe, se envía un enlace válido por 1 hora.
+- **El enlace** (`GET /auth/password-reset/{token}`) sirve una pequeña página web con un formulario de nueva contraseña; un token inválido/expirado muestra la página de error estándar.
+- **El formulario** envía la nueva contraseña a `POST /auth/password-reset/{token}`, que valida el token (**con chequeo de tipo**, así un token de sesión o de confirmación no sirve aquí), actualiza el hash y envía un aviso de seguridad.
+- En la app, un enlace **"¿Olvidaste tu contraseña?"** en el login dispara la solicitud.
+
