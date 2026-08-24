@@ -47,6 +47,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 export const Api = {
   register: (data) => request("/auth/register", { method: "POST", body: data }),
   login: (data) => request("/auth/login", { method: "POST", body: data }),
+  requestPasswordReset: (email) => request("/auth/password-reset/request", { method: "POST", body: { email } }),
 
   getMe: () => request("/users/me", { auth: true }),
   updateMe: (data) => request("/users/me", { method: "PUT", body: data, auth: true }),

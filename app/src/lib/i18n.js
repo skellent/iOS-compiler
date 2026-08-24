@@ -40,6 +40,9 @@ const STRINGS = {
     "login.submit": "Log In",
     "login.switch": "Don't have an account?",
     "login.switchLink": "Create one",
+    "login.forgot": "Forgot your password?",
+    "login.forgotNeedEmail": "Enter your email above first.",
+    "login.forgotSent": "If that email has an account, we sent a reset link.",
 
     "register.subtitle": "A few details, and you're ready to add your emergency contacts.",
     "register.name": "Full name",
@@ -196,6 +199,9 @@ const STRINGS = {
     "login.submit": "Iniciar Sesión",
     "login.switch": "¿No tienes una cuenta?",
     "login.switchLink": "Crea una",
+    "login.forgot": "¿Olvidaste tu contraseña?",
+    "login.forgotNeedEmail": "Escribe tu correo arriba primero.",
+    "login.forgotSent": "Si ese correo tiene una cuenta, enviamos un enlace para restablecerla.",
 
     "register.subtitle": "Unos pocos datos y estarás listo para agregar tus contactos de emergencia.",
     "register.name": "Nombre completo",

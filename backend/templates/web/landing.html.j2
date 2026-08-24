@@ -3,12 +3,45 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Panic Button — Download the app</title>
-    <meta name="description" content="Press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most." />
+    <title>Panic Button — One-press emergency alert app</title>
+    <meta name="description" content="Press and hold one button to share your live location and alert your trusted emergency contacts by email, Telegram, WhatsApp and SMS, the moment you need them most." />
+    <meta name="keywords" content="panic button, emergency alert, personal safety, SOS app, live location sharing, emergency contacts" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#ea2052" />
+    <link rel="canonical" href="{{ base_url }}/" />
     <link rel="icon" href="/static/img/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="/static/img/favicon.png" />
     <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Panic Button" />
+    <meta property="og:title" content="Panic Button — One-press emergency alert app" />
+    <meta property="og:description" content="Hold one button to share your live location and alert your emergency contacts by email, Telegram, WhatsApp and SMS." />
+    <meta property="og:url" content="{{ base_url }}/" />
+    <meta property="og:image" content="{{ base_url }}/static/img/brand-mark.png" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Panic Button — One-press emergency alert app" />
+    <meta name="twitter:description" content="Hold one button to share your live location and alert your emergency contacts by email, Telegram, WhatsApp and SMS." />
+    <meta name="twitter:image" content="{{ base_url }}/static/img/brand-mark.png" />
+
     <link rel="stylesheet" href="/static/css/landing.css" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Panic Button",
+      "operatingSystem": "Android",
+      "applicationCategory": "SecurityApplication",
+      "description": "Hold one button to share your live location and alert your trusted emergency contacts by email, Telegram, WhatsApp and SMS.",
+      "url": "{{ base_url }}/",
+      "downloadUrl": "{{ base_url }}/static/downloads/panic-button.apk",
+      "image": "{{ base_url }}/static/img/brand-mark.png",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "publisher": { "@type": "Organization", "name": "Keylogics", "url": "https://keycodelogics.com/" }
+    }
+    </script>
   </head>
   <body>
     <header class="topbar">

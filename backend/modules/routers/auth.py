@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi            import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses  import HTMLResponse
 
@@ -11,11 +13,12 @@ from modules.logs         import get_logger
 from modules.mail         import Mail
 from modules.pages        import Pages
 from modules.token        import Token
-from modules.types        import User, UserLogin
+from modules.types        import User, UserLogin, PasswordResetRequest, PasswordResetConfirm
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _URL_BASE: str = get_credentials()['api_base_url']
+_CONTACT_EMAIL: str | None = get_credentials()['email']['from']
 _logger = get_logger(__name__)
 
 
@@ -107,3 +110,71 @@ def confirm_user(token: str):
             "message": "Your account is confirmed. Open the Panic Button app and log in to get started.",
         })
     )
+
+
+@router.post("/password-reset/request")
+@limiter.limit("5/hour")
+def request_password_reset(request: Request, data: PasswordResetRequest, background_tasks: BackgroundTasks):
+    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_EMAIL, (data.email,))
+    if rows:
+        user: dict = rows[0]
+        token: str = Token.CreatePasswordReset(user["id"])
+        background_tasks.add_task(
+            Mail.Send,
+            user["email"],
+            "Reset your Panic Button password",
+            "password_reset",
+            {
+                "user_name": user["name"],
+                "reset_url": f"{_URL_BASE}/auth/password-reset/{token}",
+            },
+        )
+        _logger.info(f"Password reset requested for user {user['id']}")
+    else:
+        _logger.info(f"Password reset requested for unknown email {data.email}")
+
+    return {"password_reset_email_sent": True}
+
+
+@router.get("/password-reset/{token}", response_class=HTMLResponse)
+def password_reset_page(token: str):
+    if Token.ValidatePasswordReset(token) is None:
+        return HTMLResponse(
+            Pages.Render("confirmation_result", {
+                "success": False,
+                "message": "This password reset link is invalid or has expired. Request a new one from the app.",
+            }),
+            status_code=401,
+        )
+    return HTMLResponse(Pages.Render("password_reset", {"reset_token": token}))
+
+
+@router.post("/password-reset/{token}")
+def perform_password_reset(token: str, data: PasswordResetConfirm, background_tasks: BackgroundTasks):
+    user_id: int | None = Token.ValidatePasswordReset(token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="This password reset link is invalid or has expired.")
+
+    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="This account no longer exists.")
+
+    cursor.execute(Queries.UPDATE_USER_PASSWORD, (Guard.Hash(data.password), user_id))
+    cursor.commit()
+    _logger.info(f"User {user_id} reset their password")
+
+    user: dict = rows[0]
+    background_tasks.add_task(
+        Mail.Send,
+        user["email"],
+        "Your Panic Button password was changed",
+        "security_alert",
+        {
+            "user_name":     user["name"],
+            "change_label":  "password",
+            "timestamp":     datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
+            "contact_email": _CONTACT_EMAIL,
+        },
+    )
+
+    return {"password_reset": True}

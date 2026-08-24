@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-panicbutton}
+      MARIADB_USER: ${DB_USERNAME:-panic}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-panic}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change-me-root}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./queries/tables.sql:/docker-entrypoint-initdb.d/01-tables.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    # These override anything in .env so the backend and db always agree on the
+    # database credentials. DB_* names are used (not USERNAME/PASSWORD) because on
+    # Windows the shell already defines USERNAME, which would hijack ${USERNAME}.
+    environment:
+      USERNAME: ${DB_USERNAME:-panic}
+      PASSWORD: ${DB_PASSWORD:-panic}
+      DATABASE: ${DB_NAME:-panicbutton}
+      HOST: db
+      PORT: "3306"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

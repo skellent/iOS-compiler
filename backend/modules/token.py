@@ -9,8 +9,10 @@ EXPIRATION: timedelta = timedelta(days=30)
 CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
 USER_CONFIRMATION_EXPIRATION: timedelta = timedelta(hours=24)
 ALERT_VIEW_EXPIRATION: timedelta = timedelta(days=30)
+PASSWORD_RESET_EXPIRATION: timedelta = timedelta(hours=1)
 
 SESSION_TYPE: str = "session"
+PASSWORD_RESET_TYPE: str = "password_reset"
 
 _secret: str = get_credentials()['jwt']['secret_key']
 
@@ -73,6 +75,22 @@ class Token:
     def ValidateUserConfirmation(token: str) -> int | None:
         payload: dict | None = Token.Validate(token)
         if payload is None or payload.get("type") != "user_confirmation":
+            return None
+        return _as_id(payload.get("user_id"))
+
+    @staticmethod
+    def CreatePasswordReset(user_id: int) -> str:
+        payload: dict = {
+            "user_id": user_id,
+            "type": PASSWORD_RESET_TYPE,
+            "exp": datetime.now(timezone.utc) + PASSWORD_RESET_EXPIRATION,
+        }
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidatePasswordReset(token: str) -> int | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != PASSWORD_RESET_TYPE:
             return None
         return _as_id(payload.get("user_id"))
 
