@@ -38,7 +38,7 @@ Un chip de estado sobre el botón muestra cuántos contactos realmente serían n
 
 ## Contactos
 
-`contacts.js` — lista + agregar/editar en un bottom sheet (`lib/sheet.js`, un modal que se siente nativo, no una navegación completa). "Agregar" ofrece elegir desde la agenda del dispositivo (`lib/contactsPicker.js`, selector nativo — la app nunca obtiene acceso masivo a la agenda) o llenar el formulario a mano. El cliente aplica el mismo `MAX_CONTACTS = 4` que aplica el backend (`routers/contacts.py`) solo para que la UI deje de ofrecer "agregar" antes de que el round-trip devuelva un 400 — el backend sigue siendo la fuente de verdad real. Cada fila muestra dos íconos de estado de canal independientes (email `confirmed`, Telegram `telegram_linked`) cuando Telegram está habilitado para el despliegue (`lib/features.js`); editar un contacto puede activar/desactivar su vínculo de Telegram directamente. Un contacto que tiene email pero aún no lo ha confirmado ofrece además una acción de "reenviar correo de confirmación" en su hoja de edición, para cuando el primer correo se perdió.
+`contacts.js` — lista + agregar/editar en un bottom sheet (`lib/sheet.js`, un modal que se siente nativo, no una navegación completa). "Agregar" ofrece elegir desde la agenda del dispositivo (`lib/contactsPicker.js`, selector nativo — la app nunca obtiene acceso masivo a la agenda) o llenar el formulario a mano. El cliente aplica el mismo `MAX_CONTACTS = 4` que aplica el backend (`routers/contacts.py`) solo para que la UI deje de ofrecer "agregar" antes de que el round-trip devuelva un 400 — el backend sigue siendo la fuente de verdad real. Cada fila muestra dos íconos de estado de canal independientes (email `confirmed`, Telegram `telegram_linked`) cuando Telegram está habilitado para el despliegue (`lib/features.js`); editar un contacto puede activar/desactivar su vínculo de Telegram directamente. Un contacto que tiene email pero aún no lo ha confirmado ofrece además una acción de "reenviar correo de confirmación" en su hoja de edición, para cuando el primer correo se perdió. Cuando activar un canal devuelve un enlace para compartir (un contacto sin email), la app abre el **share sheet nativo del sistema** (`lib/share.js`, `@capacitor/share`) en vez de copiarlo en silencio — y cae al portapapeles si un binario instalado más viejo aún no trae el plugin.
 
 ## Perfil
 
@@ -53,6 +53,10 @@ Cerrar sesión, y enlaces a Acerca de/Ayuda.
 ## Acerca de / Ayuda
 
 `about.js`, `help.js` — pantallas informativas estáticas, ambas usando el layout compartido `.info-screen` con un botón de volver a Perfil. Ayuda es una lista fija de secciones tipo preguntas y respuestas (`account`, `panic`, `contacts`, `channels`, `profile`), todo strings traducidos — sin contenido dinámico.
+
+## Sin conexión (offline)
+
+Como la app carga su UI en vivo desde el backend, un dispositivo que no puede alcanzar `API_BASE_URL` vería un WebView en blanco. El `server.errorPath` de Capacitor apunta a un `www/offline.html` local (generado por `build.js`) que se muestra en su lugar — una pantalla "estás sin conexión" con la marca y un botón **Retry** que vuelve al servidor. Ver [`architecture.md`](architecture.md).
 
 ## Piezas compartidas
 

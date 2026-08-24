@@ -30,10 +30,13 @@ Correr `bun run build` después de cualquier cambio bajo `src/` — `www/js/` es
 server: {
   url: `${apiBaseUrl}/app/`,
   cleartext: true,
+  errorPath: "offline.html",
 },
 ```
 
-Toda versión anterior de esta app usaba Capacitor de la forma convencional: `webDir: "www"`, `cap sync` copiaba `www/` al proyecto nativo, y una instalación tenía toda la UI incluida desde el momento de la descarga — la única forma de arreglar un error de tipeo era publicar un build nuevo a cada dispositivo. Ahora, `server.url` de `capacitor.config.js` apunta el WebView directo a `${API_BASE_URL}/app/` en su lugar. El trade-off es explícito: **no hay fallback empaquetado.** Un dispositivo sin red hacia `API_BASE_URL` no tiene nada que cargar, a cambio de nunca necesitar un build nativo nuevo solo para cambiar el texto de una pantalla o arreglar un bug de CSS.
+Toda versión anterior de esta app usaba Capacitor de la forma convencional: `webDir: "www"`, `cap sync` copiaba `www/` al proyecto nativo, y una instalación tenía toda la UI incluida desde el momento de la descarga — la única forma de arreglar un error de tipeo era publicar un build nuevo a cada dispositivo. Ahora, `server.url` de `capacitor.config.js` apunta el WebView directo a `${API_BASE_URL}/app/` en su lugar, a cambio de nunca necesitar un build nativo nuevo solo para cambiar el texto de una pantalla o arreglar un bug de CSS.
+
+El único respaldo empaquetado es **`server.errorPath`**: si el WebView no puede alcanzar `API_BASE_URL` (sin conexión, backend caído), Capacitor carga el `www/offline.html` local en vez de una pantalla en blanco. Esa página la genera `build.js` con la URL del backend horneada, así su botón **Retry** vuelve directo a `${API_BASE_URL}/app/`.
 
 `cleartext: true` solo importa para desarrollo local (`http://10.0.2.2:8000`, una IP de LAN, etc.) — un `API_BASE_URL` de producción es un dominio `https://` real y nunca lo necesita.
 
@@ -102,7 +105,7 @@ await SplashScreen.hide();
 
 ```
 app/
-  build.js                 — script de Bun.build()
+  build.js                 — script de Bun.build(); también genera www/offline.html
   capacitor.config.js      — server.url construido desde API_BASE_URL, config del splash screen
   src/
     main.js                 — router por hash, secuencia de arranque
@@ -113,6 +116,7 @@ app/
       geolocation.js, contactsPicker.js — wrappers finos de plugins
       theme.js                — color de acento + claro/oscuro, tonos derivados por HSL
       i18n.js                  — diccionario de strings en 12 idiomas
+      share.js                — share sheet nativo (@capacitor/share) con fallback a portapapeles
       phone.js, features.js, icons.js, toast.js, sheet.js, dom.js — helpers compartidos pequeños
     views/
       login.js, register.js, home.js, contacts.js, profile.js, about.js, help.js
