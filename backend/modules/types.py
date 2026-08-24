@@ -36,6 +36,14 @@ class UserLogin(BaseModel):
     password: str
 
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+
+class PasswordResetConfirm(BaseModel):
+    password: str = Password
+
+
 class UserUpdate(BaseModel):
     name:     str | None = Field(default=None, min_length=1, max_length=120)
     phone:    str | None = Field(default=None, pattern=PHONE_PATTERN)

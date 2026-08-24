@@ -838,6 +838,9 @@ var STRINGS = {
     "login.submit": "Log In",
     "login.switch": "Don't have an account?",
     "login.switchLink": "Create one",
+    "login.forgot": "Forgot your password?",
+    "login.forgotNeedEmail": "Enter your email above first.",
+    "login.forgotSent": "If that email has an account, we sent a reset link.",
     "register.subtitle": "A few details, and you're ready to add your emergency contacts.",
     "register.name": "Full name",
     "register.phone": "Phone",
@@ -973,6 +976,9 @@ var STRINGS = {
     "login.submit": "Iniciar Sesión",
     "login.switch": "¿No tienes una cuenta?",
     "login.switchLink": "Crea una",
+    "login.forgot": "¿Olvidaste tu contraseña?",
+    "login.forgotNeedEmail": "Escribe tu correo arriba primero.",
+    "login.forgotSent": "Si ese correo tiene una cuenta, enviamos un enlace para restablecerla.",
     "register.subtitle": "Unos pocos datos y estarás listo para agregar tus contactos de emergencia.",
     "register.name": "Nombre completo",
     "register.phone": "Teléfono",
@@ -2277,6 +2283,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 var Api = {
   register: (data) => request("/auth/register", { method: "POST", body: data }),
   login: (data) => request("/auth/login", { method: "POST", body: data }),
+  requestPasswordReset: (email) => request("/auth/password-reset/request", { method: "POST", body: { email } }),
   getMe: () => request("/users/me", { auth: true }),
   updateMe: (data) => request("/users/me", { method: "PUT", body: data, auth: true }),
   listContacts: () => request("/contacts", { auth: true }),
@@ -2518,11 +2525,25 @@ async function renderLogin(container2, { navigate, refreshUser }) {
         </button>
       </form>
 
+      <p class="auth-switch"><a href="#" id="forgot-link">${t("login.forgot")}</a></p>
       <p class="auth-switch">${t("login.switch")} <a href="#/register">${t("login.switchLink")}</a></p>
     </div>
   `;
   const form = container2.querySelector("#login-form");
   const button = form.querySelector('button[type="submit"]');
+  const forgotLink = container2.querySelector("#forgot-link");
+  forgotLink.addEventListener("click", async (event) => {
+    event.preventDefault();
+    const email = form.querySelector('input[name="email"]').value.trim();
+    if (!email) {
+      showToast(t("login.forgotNeedEmail"), "info");
+      return;
+    }
+    try {
+      await Api.requestPasswordReset(email);
+    } catch {}
+    showToast(t("login.forgotSent"), "success");
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form));

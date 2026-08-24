@@ -26,12 +26,28 @@ export async function renderLogin(container, { navigate, refreshUser }) {
         </button>
       </form>
 
+      <p class="auth-switch"><a href="#" id="forgot-link">${t("login.forgot")}</a></p>
       <p class="auth-switch">${t("login.switch")} <a href="#/register">${t("login.switchLink")}</a></p>
     </div>
   `;
 
   const form = container.querySelector("#login-form");
   const button = form.querySelector('button[type="submit"]');
+
+  const forgotLink = container.querySelector("#forgot-link");
+  forgotLink.addEventListener("click", async (event) => {
+    event.preventDefault();
+    const email = form.querySelector('input[name="email"]').value.trim();
+    if (!email) {
+      showToast(t("login.forgotNeedEmail"), "info");
+      return;
+    }
+    try {
+      await Api.requestPasswordReset(email);
+    } catch {
+    }
+    showToast(t("login.forgotSent"), "success");
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();

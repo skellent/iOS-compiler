@@ -19,6 +19,7 @@ class Queries:
     SELECT_USER_BY_EMAIL: str = "SELECT id, name, phone, email, password_hash, confirmed FROM users WHERE email = %s;"
     SELECT_USER_BY_ID: str = "SELECT id, name, phone, email, confirmed FROM users WHERE id = %s;"
     SELECT_USER_HASH_BY_ID: str = "SELECT password_hash FROM users WHERE id = %s;"
+    UPDATE_USER_PASSWORD: str = "UPDATE users SET password_hash = %s WHERE id = %s;"
 
     INSERT_CONTACT: str = "INSERT INTO contacts (user_id, name, phone, email) VALUES (%s, %s, %s, %s);"
     COUNT_CONTACTS_BY_USER: str = "SELECT COUNT(*) AS total FROM contacts WHERE user_id = %s;"
