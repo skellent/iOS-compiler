@@ -66,6 +66,11 @@ class Queries:
     CONFIRM_USER: str = "UPDATE users SET confirmed = TRUE WHERE id = %s;"
     PURGE_UNCONFIRMED_USERS: str = "DELETE FROM users WHERE confirmed = FALSE AND created_at < (NOW() - INTERVAL 24 HOUR);"
 
+    DELETE_ALERT_NOTIFICATIONS_BY_USER: str = "DELETE FROM alert_notifications WHERE alert_id IN (SELECT id FROM alerts WHERE user_id = %s);"
+    DELETE_ALERTS_BY_USER: str = "DELETE FROM alerts WHERE user_id = %s;"
+    DELETE_CONTACTS_BY_USER: str = "DELETE FROM contacts WHERE user_id = %s;"
+    DELETE_USER_BY_ID: str = "DELETE FROM users WHERE id = %s;"
+
     INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
     SELECT_ALERTS_BY_USER: str = "SELECT id, created_at, latitude, longitude FROM alerts WHERE user_id = %s ORDER BY created_at DESC;"
 

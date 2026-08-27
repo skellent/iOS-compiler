@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Delete your account — Panic Button</title>
+    <meta name="description" content="Request permanent deletion of your Panic Button account and all associated data. We email you a confirmation link before anything is removed." />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#ea2052" />
+    <link rel="canonical" href="{{ base_url }}/delete-account" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="stylesheet" href="/static/css/confirmation_result.css" />
+    <style>
+      .del-form { display: flex; flex-direction: column; gap: 14px; margin: 8px 0 4px; text-align: left; }
+      .del-form label { font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #71717a; margin-bottom: 6px; display: block; }
+      .del-form input { width: 100%; box-sizing: border-box; border: 1.5px solid #e4e4e7; border-radius: 10px; padding: 12px 13px; font-size: 15px; font-family: inherit; }
+      .del-form input:focus { outline: none; border-color: #EA2052; box-shadow: 0 0 0 4px rgba(234,32,82,0.15); }
+      .del-btn { border: none; border-radius: 10px; padding: 13px 20px; font-size: 15px; font-weight: 700; color: #fff; background: #EA2052; cursor: pointer; margin-top: 4px; }
+      .del-btn:disabled { opacity: 0.6; cursor: default; }
+      .del-msg { font-size: 14px; margin: 4px 0 0; min-height: 18px; }
+      .del-msg.error { color: #EA2052; }
+      .del-msg.ok { color: #16a34a; }
+      .del-hint { font-size: 12px; color: #a1a1aa; margin: 0; }
+      .del-warn { font-size: 13.5px; line-height: 1.55; color: #3f3f46; background: #fef2f4; border: 1px solid #f7c9d4; border-radius: 10px; padding: 12px 14px; margin: 0 0 4px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Delete your account</h1>
+      <p class="message">Permanently delete your Panic Button account and all associated data.</p>
+
+      <p class="del-warn">Deleting your account removes your profile, your emergency contacts and your alert history. This cannot be undone. For your security, we'll email you a confirmation link before anything is deleted.</p>
+
+      <form class="del-form" id="del-form" novalidate>
+        <div>
+          <label for="email">Account email</label>
+          <input type="email" id="email" autocomplete="email" inputmode="email" required />
+        </div>
+        <p class="del-hint">Enter the email address you use to sign in.</p>
+        <button type="submit" class="del-btn" id="submit-btn">Send deletion link</button>
+        <p class="del-msg" id="msg"></p>
+      </form>
+
+      <span class="brand">PANIC BUTTON</span>
+      <p class="footnote">Emergency alert system</p>
+    </div>
+
+    <script>
+      (function () {
+        var form = document.getElementById("del-form");
+        var msg = document.getElementById("msg");
+        var btn = document.getElementById("submit-btn");
+
+        form.addEventListener("submit", async function (event) {
+          event.preventDefault();
+          var email = document.getElementById("email").value.trim();
+          msg.className = "del-msg";
+          msg.textContent = "";
+
+          if (!email || email.indexOf("@") === -1) {
+            msg.className = "del-msg error";
+            msg.textContent = "Please enter a valid email address.";
+            return;
+          }
+
+          btn.disabled = true;
+          try {
+            var response = await fetch("/auth/account-deletion/request", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: email }),
+            });
+            if (response.ok) {
+              form.reset();
+              msg.className = "del-msg ok";
+              msg.textContent = "If an account exists for that email, we've sent a confirmation link. Check your inbox to finish deleting your account.";
+              btn.textContent = "Link sent";
+            } else if (response.status === 429) {
+              msg.className = "del-msg error";
+              msg.textContent = "Too many requests. Please wait a little while and try again.";
+              btn.disabled = false;
+            } else {
+              msg.className = "del-msg error";
+              msg.textContent = "Something went wrong. Please try again.";
+              btn.disabled = false;
+            }
+          } catch (err) {
+            msg.className = "del-msg error";
+            msg.textContent = "Something went wrong. Please try again.";
+            btn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

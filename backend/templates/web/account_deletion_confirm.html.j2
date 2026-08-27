@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirm account deletion — Panic Button</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="stylesheet" href="/static/css/confirmation_result.css" />
+    <style>
+      .del-warn { font-size: 14px; line-height: 1.55; color: #3f3f46; background: #fef2f4; border: 1px solid #f7c9d4; border-radius: 10px; padding: 14px 16px; margin: 0 0 18px; text-align: left; }
+      .del-actions { display: flex; flex-direction: column; gap: 10px; }
+      .del-btn { border: none; border-radius: 10px; padding: 13px 20px; font-size: 15px; font-weight: 700; color: #fff; background: #EA2052; cursor: pointer; }
+      .del-btn:disabled { opacity: 0.6; cursor: default; }
+      .del-cancel { font-size: 13px; color: #a1a1aa; text-decoration: none; }
+      .del-cancel:hover { color: #71717a; }
+      .del-msg { font-size: 14px; margin: 12px 0 0; min-height: 18px; }
+      .del-msg.error { color: #EA2052; }
+      .del-msg.ok { color: #16a34a; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Confirm account deletion</h1>
+      <p class="message">This is the last step. Deleting your account is permanent.</p>
+
+      <p class="del-warn">This permanently removes your Panic Button profile, your emergency contacts and your alert history. This action cannot be undone.</p>
+
+      <div class="del-actions" id="actions">
+        <button type="button" class="del-btn" id="confirm-btn">Permanently delete my account</button>
+        <a class="del-cancel" href="/">Cancel and go back</a>
+      </div>
+      <p class="del-msg" id="msg"></p>
+
+      <span class="brand">PANIC BUTTON</span>
+      <p class="footnote">Emergency alert system</p>
+    </div>
+
+    <script>
+      (function () {
+        var btn = document.getElementById("confirm-btn");
+        var msg = document.getElementById("msg");
+        var actions = document.getElementById("actions");
+        var url = "/auth/account-deletion/{{ deletion_token }}";
+
+        btn.addEventListener("click", async function () {
+          msg.className = "del-msg";
+          msg.textContent = "";
+          btn.disabled = true;
+          btn.textContent = "Deleting…";
+          try {
+            var response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+            });
+            if (response.ok) {
+              actions.style.display = "none";
+              msg.className = "del-msg ok";
+              msg.textContent = "Your account and all associated data have been permanently deleted. We're sorry to see you go.";
+            } else {
+              var body = await response.json().catch(function () { return {}; });
+              msg.className = "del-msg error";
+              msg.textContent = typeof body.detail === "string" ? body.detail : "This deletion link is invalid or has expired.";
+              btn.disabled = false;
+              btn.textContent = "Permanently delete my account";
+            }
+          } catch (err) {
+            msg.className = "del-msg error";
+            msg.textContent = "Something went wrong. Please try again.";
+            btn.disabled = false;
+            btn.textContent = "Permanently delete my account";
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

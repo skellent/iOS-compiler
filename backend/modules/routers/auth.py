@@ -13,7 +13,7 @@ from modules.logs         import get_logger
 from modules.mail         import Mail
 from modules.pages        import Pages
 from modules.token        import Token
-from modules.types        import User, UserLogin, PasswordResetRequest, PasswordResetConfirm
+from modules.types        import User, UserLogin, PasswordResetRequest, PasswordResetConfirm, AccountDeletionRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -178,3 +178,60 @@ def perform_password_reset(token: str, data: PasswordResetConfirm, background_ta
     )
 
     return {"password_reset": True}
+
+
+@router.post("/account-deletion/request")
+@limiter.limit("5/hour")
+def request_account_deletion(request: Request, data: AccountDeletionRequest, background_tasks: BackgroundTasks):
+    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_EMAIL, (data.email,))
+    if rows:
+        user: dict = rows[0]
+        token: str = Token.CreateAccountDeletion(user["id"])
+        background_tasks.add_task(
+            Mail.Send,
+            user["email"],
+            "Confirm deletion of your Panic Button account",
+            "account_deletion",
+            {
+                "user_name":    user["name"],
+                "deletion_url": f"{_URL_BASE}/auth/account-deletion/{token}",
+            },
+        )
+        _logger.info(f"Account deletion requested for user {user['id']}")
+    else:
+        _logger.info(f"Account deletion requested for unknown email {data.email}")
+
+    return {"account_deletion_email_sent": True}
+
+
+@router.get("/account-deletion/{token}", response_class=HTMLResponse)
+def account_deletion_page(token: str):
+    if Token.ValidateAccountDeletion(token) is None:
+        return HTMLResponse(
+            Pages.Render("confirmation_result", {
+                "success": False,
+                "message": "This account deletion link is invalid or has expired. Request a new one from the deletion page.",
+            }),
+            status_code=401,
+        )
+    return HTMLResponse(Pages.Render("account_deletion_confirm", {"deletion_token": token}))
+
+
+@router.post("/account-deletion/{token}")
+def perform_account_deletion(token: str):
+    user_id: int | None = Token.ValidateAccountDeletion(token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="This account deletion link is invalid or has expired.")
+
+    rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="This account no longer exists.")
+
+    with cursor.transaction():
+        cursor.execute(Queries.DELETE_ALERT_NOTIFICATIONS_BY_USER, (user_id,))
+        cursor.execute(Queries.DELETE_ALERTS_BY_USER, (user_id,))
+        cursor.execute(Queries.DELETE_CONTACTS_BY_USER, (user_id,))
+        cursor.execute(Queries.DELETE_USER_BY_ID, (user_id,))
+    _logger.info(f"User {user_id} deleted their account and associated data")
+
+    return {"account_deleted": True}
