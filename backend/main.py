@@ -148,6 +148,18 @@ def root():
     })
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy():
+    return Pages.Render("privacy", {
+        "contact_email": _credentials['email']['from'],
+        "base_url": _credentials['api_base_url'],
+        "company_name": "Keycodelogics",
+        "website": "https://keycodelogics.com/",
+        "updated_en": "August 27, 2026",
+        "updated_es": "27 de agosto de 2026",
+    })
+
+
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
     base_url: str = _credentials['api_base_url']
@@ -168,6 +180,7 @@ def sitemap():
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f'  <url><loc>{base_url}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n'
+        f'  <url><loc>{base_url}/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
         '</urlset>\n'
     )
     return Response(content=xml, media_type="application/xml")

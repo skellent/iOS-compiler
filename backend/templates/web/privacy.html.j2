@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — Panic Button</title>
+    <meta name="description" content="Panic Button Privacy Policy: what data we collect, how we use it, who we share it with, and the rights you have over it." />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#ea2052" />
+    <link rel="canonical" href="{{ base_url }}/privacy" />
+    <link rel="icon" href="/static/img/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Panic Button" />
+    <meta property="og:title" content="Privacy Policy — Panic Button" />
+    <meta property="og:description" content="What data Panic Button collects, how it is used, and the rights you have over it." />
+    <meta property="og:url" content="{{ base_url }}/privacy" />
+    <meta property="og:image" content="{{ base_url }}/static/img/brand-mark.png" />
+
+    <link rel="stylesheet" href="/static/css/landing.css" />
+    <link rel="stylesheet" href="/static/css/privacy.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/">
+          <img class="brand-mark" src="/static/img/brand-mark.png" alt="" />
+          <span class="brand-name">Panic Button</span>
+        </a>
+        <div class="topbar-actions">
+          <select class="lang-switch" id="lang-select" aria-label="Language / Idioma">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+          <a class="dashboard-link" href="/">Home</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      {# ----------------------------- ENGLISH ----------------------------- #}
+      <article class="legal" data-lang="en">
+        <div class="legal-head">
+          <h1>Privacy Policy</h1>
+          <p class="legal-updated">Last updated: {{ updated_en }}</p>
+
+          <dl class="legal-meta">
+            <div class="legal-meta-item">
+              <dt>Data controller</dt>
+              <dd>{{ company_name }}</dd>
+            </div>
+            <div class="legal-meta-item">
+              <dt>Application</dt>
+              <dd>Panic Button (com.keycodelogics.panicbutton)</dd>
+            </div>
+            <div class="legal-meta-item">
+              <dt>Contact email</dt>
+              <dd><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></dd>
+            </div>
+            <div class="legal-meta-item">
+              <dt>Website</dt>
+              <dd><a href="{{ website }}" target="_blank" rel="noopener">{{ website }}</a></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="legal-body">
+          <h2>1. Introduction</h2>
+          <p>Panic Button ("the App") is a personal safety application. By pressing and holding a button, the App captures the user's location and notifies their emergency contacts by email, Telegram, WhatsApp and/or SMS with a link to that location. This Privacy Policy explains what data we collect, how we use it, who we share it with, and what rights you have over it.</p>
+          <p>By creating an account and using the App, you accept the practices described here.</p>
+
+          <section class="legal-safety">
+            <h2>2. Important safety notice</h2>
+            <p><strong>Panic Button is not an emergency service and is not a substitute for the police, security forces or official medical services.</strong> The App depends on your internet connection, your device's GPS and third-party services; delivery of alerts is <strong>not guaranteed</strong>. In a real emergency, always contact your country's official emergency services.</p>
+          </section>
+
+          <h2>3. What information we collect</h2>
+          <p>We collect only the information the App needs to do its job:</p>
+
+          <h3>3.1. Your account data</h3>
+          <ul>
+            <li>The <strong>name</strong>, <strong>phone number</strong> and <strong>email address</strong> you provide when you register.</li>
+            <li>Your <strong>password</strong>, always stored <strong>encrypted (bcrypt hash)</strong> — we never store your password in plain text.</li>
+          </ul>
+
+          <h3>3.2. Emergency contacts</h3>
+          <ul>
+            <li>The <strong>name, phone number and/or email address</strong> of the people you add as emergency contacts.</li>
+            <li>The link status of each channel (confirmed by email, linked to Telegram/WhatsApp, or enabled for SMS).</li>
+          </ul>
+          <p class="legal-note">By adding an emergency contact, you declare that you have their consent to provide their data and for them to receive your alerts.</p>
+
+          <h3>3.3. Location</h3>
+          <ul>
+            <li>Your <strong>precise GPS location</strong>, captured <strong>at the moment you trigger a panic alert</strong>. It is sent to your emergency contacts as part of the alert and stored together with that alert.</li>
+            <li>The App does <strong>not</strong> track your location continuously or in the background in its current version. <em>(If real-time tracking is added in the future, this policy will be updated and the corresponding permission will be requested.)</em></li>
+          </ul>
+
+          <h3>3.4. Usage and technical data</h3>
+          <ul>
+            <li><strong>Alert history</strong> (date, time and location of each alert) and its <strong>delivery status</strong> per contact and channel.</li>
+            <li><strong>Technical logs</strong> such as request identifiers, timestamps and errors, used to operate and debug the service.</li>
+          </ul>
+          <p>We do not collect data from sources other than what you provide or generate by using the App.</p>
+
+          <h2>4. How we use the information</h2>
+          <p>We use your data exclusively to:</p>
+          <ul>
+            <li><strong>Deliver your panic alerts</strong> to your emergency contacts through the channels you have configured.</li>
+            <li><strong>Authenticate you</strong> and keep your session.</li>
+            <li><strong>Send you transactional emails</strong>: account confirmation, contact confirmation, password reset, and security notices when sensitive account data changes.</li>
+            <li><strong>Operate, maintain and improve</strong> the service and its security.</li>
+          </ul>
+          <p><strong>We do not use your data for advertising and we do not sell it to third parties.</strong></p>
+
+          <h2>5. Who we share the information with</h2>
+
+          <h3>5.1. Your emergency contacts</h3>
+          <p>When you trigger an alert, your confirmed contacts receive your <strong>name</strong>, the <strong>date and time</strong>, and a <strong>link to your location</strong>. This is the core purpose of the App.</p>
+
+          <h3>5.2. Service providers</h3>
+          <p>To deliver the messages we use external providers that process only the data strictly necessary for that purpose:</p>
+          <ul>
+            <li><strong>Email:</strong> Google (Gmail/Workspace SMTP).</li>
+            <li><strong>Telegram:</strong> Telegram Messenger.</li>
+            <li><strong>WhatsApp and SMS:</strong> Twilio.</li>
+            <li><strong>Hosting and infrastructure:</strong> our cloud hosting provider.</li>
+          </ul>
+          <p>These providers process the data in accordance with their own privacy policies.</p>
+
+          <h3>5.3. Legal requirements</h3>
+          <p>We may disclose information if the law requires it, or to protect the rights, safety or integrity of people.</p>
+          <p><strong>We do not sell or rent your personal data.</strong></p>
+
+          <h2>6. Basis for processing and consent</h2>
+          <p>We process your data on the basis of <strong>performing the service you request</strong> and your <strong>consent</strong>, given when you register and configure your contacts and channels. You may withdraw your consent at any time by deleting your account (see section 9).</p>
+
+          <h2>7. Data retention</h2>
+          <ul>
+            <li>We keep your account data and alert history for as long as your account is <strong>active</strong>.</li>
+            <li>Registered accounts that are <strong>never confirmed</strong> are automatically deleted after 24 hours.</li>
+            <li>When you delete your account, we erase your associated personal data within a maximum of 30 days, except what we must retain by legal obligation.</li>
+          </ul>
+
+          <h2>8. Security</h2>
+          <p>We apply reasonable measures to protect your information:</p>
+          <ul>
+            <li>Passwords are stored with a <strong>bcrypt hash</strong> (never in plain text).</li>
+            <li>Communication with our server travels <strong>encrypted over HTTPS/TLS</strong>.</li>
+            <li>Access to sensitive routes requires authentication, and certain account changes require re-authentication with your current password.</li>
+          </ul>
+          <p>No system is 100% secure; we cannot guarantee absolute security.</p>
+
+          <h2>9. Your rights</h2>
+          <p>In accordance with applicable law, you have the right to:</p>
+          <ul>
+            <li><strong>Access</strong> the personal data we hold about you.</li>
+            <li><strong>Rectify</strong> inaccurate data (you can edit your profile and contacts in the App).</li>
+            <li><strong>Delete</strong> your account and your personal data.</li>
+            <li><strong>Withdraw your consent</strong> at any time.</li>
+          </ul>
+          <p>To exercise these rights, edit them directly in the App or write to us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. We will respond within a reasonable time in accordance with applicable law.</p>
+
+          <h2>10. Account and data deletion</h2>
+          <p>You can request the deletion of your account from within the App itself or by sending a request by email to <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. When you do, your account, your emergency contacts and your associated personal data are deleted, except what is required by law.</p>
+
+          <h2>11. International transfers</h2>
+          <p>Some of our providers (Google, Telegram, Twilio) operate servers outside your country of residence. By using the App, you understand that your data may be processed in those jurisdictions, subject to safeguards under applicable law.</p>
+
+          <h2>12. Minors</h2>
+          <p>The App is not directed at children under 13, and we do not knowingly collect data from children under that age. If you believe a minor has provided us with data, contact us to have it deleted.</p>
+
+          <h2>13. Changes to this policy</h2>
+          <p>We may update this Privacy Policy. We will publish the current version with its "last updated" date and, when the change is significant, we will notify you by reasonable means. Continued use of the App after a change implies acceptance of the updated policy.</p>
+
+          <section class="legal-contact">
+            <h2>14. Contact</h2>
+            <p>For any questions about this Privacy Policy or the processing of your data:</p>
+            <p><strong>{{ company_name }}</strong></p>
+            <p>Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+            <p>Website: <a href="{{ website }}" target="_blank" rel="noopener">{{ website }}</a></p>
+          </section>
+        </div>
+      </article>
+
+      {# ----------------------------- ESPAÑOL ----------------------------- #}
+      <article class="legal" data-lang="es" hidden>
+        <div class="legal-head">
+          <h1>Política de Privacidad</h1>
+          <p class="legal-updated">Última actualización: {{ updated_es }}</p>
+
+          <dl class="legal-meta">
+            <div class="legal-meta-item">
+              <dt>Responsable del tratamiento</dt>
+              <dd>{{ company_name }}</dd>
+            </div>
+            <div class="legal-meta-item">
+              <dt>Aplicación</dt>
+              <dd>Panic Button (com.keycodelogics.panicbutton)</dd>
+            </div>
+            <div class="legal-meta-item">
+              <dt>Correo de contacto</dt>
+              <dd><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></dd>
+            </div>
+            <div class="legal-meta-item">
+              <dt>Sitio web</dt>
+              <dd><a href="{{ website }}" target="_blank" rel="noopener">{{ website }}</a></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="legal-body">
+          <h2>1. Introducción</h2>
+          <p>Panic Button ("la App") es una aplicación de seguridad personal. Al mantener presionado un botón, la App captura la ubicación del usuario y notifica a sus contactos de emergencia por correo electrónico, Telegram, WhatsApp y/o SMS con un enlace a esa ubicación. Esta Política de Privacidad explica qué datos recopilamos, cómo los usamos, con quién los compartimos y qué derechos tienes sobre ellos.</p>
+          <p>Al crear una cuenta y usar la App, aceptas las prácticas descritas aquí.</p>
+
+          <section class="legal-safety">
+            <h2>2. Aviso importante de seguridad</h2>
+            <p><strong>Panic Button no es un servicio de emergencias ni un sustituto de los cuerpos de seguridad, policía o servicios médicos oficiales.</strong> La App depende de tu conexión a internet, del GPS del dispositivo y de servicios de terceros; la entrega de las alertas <strong>no está garantizada</strong>. En una emergencia real, contacta siempre a los servicios de emergencia oficiales de tu país.</p>
+          </section>
+
+          <h2>3. Qué información recopilamos</h2>
+          <p>Recopilamos únicamente la información necesaria para que la App cumpla su función:</p>
+
+          <h3>3.1. Datos de tu cuenta</h3>
+          <ul>
+            <li><strong>Nombre</strong>, <strong>número de teléfono</strong> y <strong>correo electrónico</strong> que proporcionas al registrarte.</li>
+            <li><strong>Contraseña</strong>, almacenada siempre de forma <strong>cifrada (hash bcrypt)</strong> — nunca guardamos tu contraseña en texto plano.</li>
+          </ul>
+
+          <h3>3.2. Contactos de emergencia</h3>
+          <ul>
+            <li>El <strong>nombre, teléfono y/o correo electrónico</strong> de las personas que tú agregas como contactos de emergencia.</li>
+            <li>El estado de vinculación de cada canal (confirmado por correo, vinculado a Telegram/WhatsApp, o habilitado para SMS).</li>
+          </ul>
+          <p class="legal-note">Al agregar a un contacto de emergencia, declaras que cuentas con su consentimiento para proporcionar sus datos y para que reciba alertas tuyas.</p>
+
+          <h3>3.3. Ubicación</h3>
+          <ul>
+            <li>Tu <strong>ubicación GPS precisa</strong>, capturada <strong>en el momento en que activas una alerta de pánico</strong>. Se envía a tus contactos de emergencia como parte de la alerta y se guarda asociada a esa alerta.</li>
+            <li>La App <strong>no</strong> rastrea tu ubicación de forma continua ni en segundo plano en su versión actual. <em>(Si en el futuro se añade el seguimiento en tiempo real, esta política se actualizará y se solicitará el permiso correspondiente.)</em></li>
+          </ul>
+
+          <h3>3.4. Datos de uso y técnicos</h3>
+          <ul>
+            <li><strong>Historial de alertas</strong> (fecha, hora y ubicación de cada alerta) y su <strong>estado de entrega</strong> por contacto y canal.</li>
+            <li><strong>Registros técnicos (logs)</strong> como identificadores de petición, marcas de tiempo y errores, usados para operar y depurar el servicio.</li>
+          </ul>
+          <p>No recopilamos datos de fuentes distintas a las que tú nos proporcionas o generas al usar la App.</p>
+
+          <h2>4. Cómo usamos la información</h2>
+          <p>Usamos tus datos exclusivamente para:</p>
+          <ul>
+            <li><strong>Entregar tus alertas de pánico</strong> a tus contactos de emergencia por los canales que hayas configurado.</li>
+            <li><strong>Autenticarte</strong> y mantener tu sesión.</li>
+            <li><strong>Enviarte correos transaccionales</strong>: confirmación de cuenta, confirmación de contactos, restablecimiento de contraseña y avisos de seguridad cuando cambian datos sensibles de tu cuenta.</li>
+            <li><strong>Operar, mantener y mejorar</strong> el servicio y su seguridad.</li>
+          </ul>
+          <p><strong>No usamos tus datos para publicidad ni los vendemos a terceros.</strong></p>
+
+          <h2>5. Con quién compartimos la información</h2>
+
+          <h3>5.1. Tus contactos de emergencia</h3>
+          <p>Cuando activas una alerta, tus contactos confirmados reciben tu <strong>nombre</strong>, la <strong>fecha y hora</strong>, y un <strong>enlace a tu ubicación</strong>. Esto es el propósito central de la App.</p>
+
+          <h3>5.2. Proveedores de servicio</h3>
+          <p>Para entregar los mensajes usamos proveedores externos que procesan los datos estrictamente necesarios para ese fin:</p>
+          <ul>
+            <li><strong>Correo electrónico:</strong> Google (SMTP de Gmail/Workspace).</li>
+            <li><strong>Telegram:</strong> Telegram Messenger.</li>
+            <li><strong>WhatsApp y SMS:</strong> Twilio.</li>
+            <li><strong>Alojamiento e infraestructura:</strong> nuestro proveedor de alojamiento en la nube.</li>
+          </ul>
+          <p>Estos proveedores tratan los datos conforme a sus propias políticas de privacidad.</p>
+
+          <h3>5.3. Requerimientos legales</h3>
+          <p>Podemos divulgar información si la ley lo exige, o para proteger derechos, seguridad o integridad de las personas.</p>
+          <p><strong>No vendemos ni alquilamos tus datos personales.</strong></p>
+
+          <h2>6. Base del tratamiento y consentimiento</h2>
+          <p>Tratamos tus datos sobre la base de la <strong>ejecución del servicio que solicitas</strong> y de tu <strong>consentimiento</strong>, otorgado al registrarte y configurar tus contactos y canales. Puedes retirar tu consentimiento en cualquier momento eliminando tu cuenta (ver sección 9).</p>
+
+          <h2>7. Conservación de los datos</h2>
+          <ul>
+            <li>Conservamos los datos de tu cuenta y tu historial de alertas mientras tu cuenta esté <strong>activa</strong>.</li>
+            <li>Las cuentas registradas que <strong>nunca se confirman</strong> se eliminan automáticamente a las 24 horas.</li>
+            <li>Cuando eliminas tu cuenta, borramos tus datos personales asociados en un plazo máximo de 30 días, salvo lo que debamos conservar por obligación legal.</li>
+          </ul>
+
+          <h2>8. Seguridad</h2>
+          <p>Aplicamos medidas razonables para proteger tu información:</p>
+          <ul>
+            <li>Las contraseñas se almacenan con <strong>hash bcrypt</strong> (nunca en texto plano).</li>
+            <li>La comunicación con nuestro servidor viaja <strong>cifrada por HTTPS/TLS</strong>.</li>
+            <li>El acceso a las rutas sensibles requiere autenticación, y ciertos cambios de cuenta exigen re-autenticación con tu contraseña actual.</li>
+          </ul>
+          <p>Ningún sistema es 100 % seguro; no podemos garantizar seguridad absoluta.</p>
+
+          <h2>9. Tus derechos</h2>
+          <p>De acuerdo con la legislación aplicable, tienes derecho a:</p>
+          <ul>
+            <li><strong>Acceder</strong> a los datos personales que tenemos sobre ti.</li>
+            <li><strong>Rectificar</strong> datos inexactos (puedes editar tu perfil y contactos en la App).</li>
+            <li><strong>Eliminar</strong> tu cuenta y tus datos personales.</li>
+            <li><strong>Retirar tu consentimiento</strong> en cualquier momento.</li>
+          </ul>
+          <p>Para ejercer estos derechos, edítalos directamente en la App o escríbenos a <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. Responderemos en un plazo razonable conforme a la ley aplicable.</p>
+
+          <h2>10. Eliminación de cuenta y datos</h2>
+          <p>Puedes solicitar la eliminación de tu cuenta desde la propia App o enviando una solicitud por correo a <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. Al hacerlo, se eliminan tu cuenta, tus contactos de emergencia y tus datos personales asociados, salvo lo requerido por ley.</p>
+
+          <h2>11. Transferencias internacionales</h2>
+          <p>Algunos de nuestros proveedores (Google, Telegram, Twilio) operan servidores fuera de tu país de residencia. Al usar la App, entiendes que tus datos pueden procesarse en esas jurisdicciones, sujetos a salvaguardas conforme a la ley aplicable.</p>
+
+          <h2>12. Menores de edad</h2>
+          <p>La App no está dirigida a menores de 13 años y no recopilamos conscientemente datos de menores de esa edad. Si crees que un menor nos ha proporcionado datos, contáctanos para eliminarlos.</p>
+
+          <h2>13. Cambios a esta política</h2>
+          <p>Podemos actualizar esta Política de Privacidad. Publicaremos la versión vigente con su fecha de "última actualización" y, cuando el cambio sea significativo, lo notificaremos por los medios razonables. El uso continuado de la App tras un cambio implica la aceptación de la política actualizada.</p>
+
+          <section class="legal-contact">
+            <h2>14. Contacto</h2>
+            <p>Para cualquier duda sobre esta Política de Privacidad o el tratamiento de tus datos:</p>
+            <p><strong>{{ company_name }}</strong></p>
+            <p>Correo: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+            <p>Sitio web: <a href="{{ website }}" target="_blank" rel="noopener">{{ website }}</a></p>
+          </section>
+        </div>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <img class="brand-mark brand-mark-sm" src="/static/img/brand-mark.png" alt="" />
+      <p class="footnote">PANIC BUTTON &middot; Emergency alert system</p>
+      <a class="footer-link" href="/">← Back to home</a>
+
+      <div class="footer-contact">
+        <span class="footer-contact-title">Contact</span>
+        <a class="footer-contact-link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+        <a class="footer-contact-link" href="{{ website }}" target="_blank" rel="noopener">About us</a>
+      </div>
+    </footer>
+
+    <script src="/static/js/privacy.js"></script>
+  </body>
+</html>
