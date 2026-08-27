@@ -160,6 +160,13 @@ def privacy():
     })
 
 
+@app.get("/delete-account", response_class=HTMLResponse)
+def delete_account_page():
+    return Pages.Render("delete_account", {
+        "base_url": _credentials['api_base_url'],
+    })
+
+
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
     base_url: str = _credentials['api_base_url']
@@ -181,6 +188,7 @@ def sitemap():
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f'  <url><loc>{base_url}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n'
         f'  <url><loc>{base_url}/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
+        f'  <url><loc>{base_url}/delete-account</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
         '</urlset>\n'
     )
     return Response(content=xml, media_type="application/xml")
