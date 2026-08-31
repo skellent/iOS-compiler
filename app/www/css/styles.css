@@ -308,6 +308,7 @@ button {
 }
 
 .field input {
+  width: 100%;
   border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 13px 14px;
@@ -318,6 +319,49 @@ button {
   color: var(--text-100);
   background: var(--surface);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.field > div {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field > div input {
+  padding-right: 44px;
+}
+
+#show-password,
+.show-password {
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-500);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hide-password {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#show-password:hover,
+.show-password:hover {
+  color: var(--text-100);
+}
+
+#show-password .icon,
+.show-password .icon {
+  width: 20px;
+  height: 20px;
 }
 
 .field input::placeholder {

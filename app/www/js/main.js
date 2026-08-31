@@ -2535,6 +2535,15 @@ function shake(el) {
   el.offsetWidth;
   el.classList.add("shake");
 }
+function togglePasswordVisibility(showPasswordSpan) {
+  const input = showPasswordSpan.previousElementSibling;
+  if (!input || input.tagName !== "INPUT") return;
+  const isPassword = input.type === "password";
+  input.type = isPassword ? "text" : "password";
+  showPasswordSpan.classList.toggle("show-password", isPassword);
+  showPasswordSpan.classList.toggle("hide-password", !isPassword);
+  showPasswordSpan.innerHTML = isPassword ? Icon.eye() : Icon.eyeOff();
+}
 
 // src/views/login.js
 async function renderLogin(container2, { navigate, refreshUser }) {
@@ -2551,7 +2560,10 @@ async function renderLogin(container2, { navigate, refreshUser }) {
         </label>
         <label class="field">
           <span>${t("login.password")}</span>
-          <input type="password" name="password" autocomplete="current-password" required />
+          <div>
+            <input type="password" name="password" autocomplete="current-password" required />
+            <span id="show-password" class="show-password"></span>
+          </div>
         </label>
         <button type="submit" class="btn btn-primary btn-block">
           <span class="btn-label">${t("login.submit")}</span>
@@ -2565,6 +2577,10 @@ async function renderLogin(container2, { navigate, refreshUser }) {
   `;
   const form = container2.querySelector("#login-form");
   const button = form.querySelector('button[type="submit"]');
+  const showPasswordSpan = form.querySelector("#show-password");
+  const passwordInput = form.querySelector('input[name="password"]');
+  showPasswordSpan.innerHTML = Icon.eyeOff();
+  showPasswordSpan.addEventListener("click", () => togglePasswordVisibility(showPasswordSpan));
   const forgotLink = container2.querySelector("#forgot-link");
   forgotLink.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -2622,7 +2638,9 @@ var Icon = {
   whatsapp: () => icon("M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z", "0 0 448 512"),
   sms: () => icon("M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"),
   info: () => icon("M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"),
-  help: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z")
+  help: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"),
+  eye: () => icon("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"),
+  eyeOff: () => icon("M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.75-2.88 3.54-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm7.98-.82c.05.21.08.43.08.65 0 1.66-1.34 3-3 3-.22 0-.44-.03-.65-.08l-3.15-3.15c.21-.05.43-.08.65-.08 1.66 0 3 1.34 3 3z"),
 };
 
 // src/lib/phone.js
@@ -2714,11 +2732,17 @@ async function renderRegister(container2, { navigate }) {
         </label>
         <label class="field">
           <span>${t("register.password")}</span>
-          <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+          <div>
+            <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+            <span class="show-password"></span>
+          </div>
         </label>
         <label class="field">
           <span>${t("register.confirmPassword")}</span>
-          <input type="password" name="confirm_password" autocomplete="new-password" required />
+          <div>
+            <input type="password" name="confirm_password" autocomplete="new-password" required />
+            <span class="show-password"></span>
+          </div>
         </label>
         <button type="submit" class="btn btn-primary btn-block">
           <span class="btn-label">${t("register.submit")}</span>
@@ -2735,6 +2759,11 @@ async function renderRegister(container2, { navigate }) {
   const emailInput = form.querySelector('input[name="email"]');
   form.querySelectorAll(".email-domain-chip").forEach((chip) => {
     chip.addEventListener("click", () => insertEmailDomain(emailInput, chip.dataset.domain));
+  });
+  const passwordShowSpans = form.querySelectorAll(".show-password");
+  passwordShowSpans.forEach((span) => {
+    span.innerHTML = Icon.eyeOff();
+    span.addEventListener("click", () => togglePasswordVisibility(span));
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
