@@ -2,10 +2,7 @@
   "name": "panicbutton-app",
   "private": true,
   "scripts": {
-    "build": "bun build.js",
-    "sync": "bun run build && bunx cap sync",
-    "android": "bun run sync && bunx cap open android",
-    "ios": "bun run sync && bunx cap open ios"
+    "build": "bun build.js"
   },
   "dependencies": {
     "@capacitor-community/contacts": "^8.0.0",

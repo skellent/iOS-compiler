@@ -3,6 +3,7 @@ import { setToken } from "../lib/session.js";
 import { showToast } from "../lib/toast.js";
 import { setLoading, shake } from "../lib/dom.js";
 import { t } from "../lib/i18n.js";
+import { Icon } from "../lib/icons.js";
 
 export async function renderLogin(container, { navigate, refreshUser }) {
   container.innerHTML = `
@@ -18,7 +19,10 @@ export async function renderLogin(container, { navigate, refreshUser }) {
         </label>
         <label class="field">
           <span>${t("login.password")}</span>
-          <input type="password" name="password" autocomplete="current-password" required />
+          <div>
+            <input type="password" name="password" autocomplete="current-password" required />
+            <span id="show-password" class="show-password"></span>
+          </div>
         </label>
         <button type="submit" class="btn btn-primary btn-block">
           <span class="btn-label">${t("login.submit")}</span>
@@ -66,4 +70,20 @@ export async function renderLogin(container, { navigate, refreshUser }) {
       setLoading(button, false);
     }
   });
+
+  const passwordShowSpans = form.querySelectorAll(".show-password");
+  passwordShowSpans.forEach((span) => {
+    span.innerHTML = Icon.eyeOff();
+    span.addEventListener("click", () => togglePasswordVisibility(span));
+  });
+  function togglePasswordVisibility(span) {
+    const input = span.previousElementSibling;
+    if (input.type === "password") {
+      input.type = "text";
+      span.innerHTML = Icon.eye();
+    } else {
+      input.type = "password";
+      span.innerHTML = Icon.eyeOff();
+    }
+  }
 }
