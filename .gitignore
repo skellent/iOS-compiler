@@ -16,4 +16,5 @@ app/android/.idea/workspace.xml
 # Resources
 *.keystore
 *.pem
+resources/keys/local.properties
 panicbutton-app-update-kit.zip

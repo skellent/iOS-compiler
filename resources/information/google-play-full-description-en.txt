@@ -1,0 +1,28 @@
+Panic Button — Help is one press away.
+
+Panic Button turns your phone into a personal safety alarm. When you feel unsafe, press and hold one button and Panic Button instantly shares your live GPS location with the emergency contacts you trust — by email, Telegram, WhatsApp and SMS, all at the same time. No menus to dig through, no forms to fill in. Just press, hold, and your people know where you are.
+
+WHY PANIC BUTTON?
+In a real emergency, seconds matter and you shouldn't be fumbling with your phone. One deliberate press-and-hold sends everything your contacts need: who you are, when it happened, and a map link to exactly where you are.
+
+KEY FEATURES
+• One-press panic alert — press and hold the home button to send an alert. The press-and-hold prevents accidental taps.
+• Live GPS location — every alert carries your precise coordinates as a map link, so your people know where to find you, not just that something is wrong.
+• Multiple channels at once — confirmed contacts are notified in parallel by email, Telegram, WhatsApp and SMS, so one missed message never means a missed alert.
+• Up to 4 trusted contacts — add them by hand or straight from your address book. Each one confirms by email before they can be alerted, so nobody is added by mistake.
+• Alert history — review your past alerts and see which contacts were notified on which channel.
+• In your language — full English and Spanish support.
+• Free — no ads, no subscriptions, and we never sell your data.
+
+HOW IT WORKS
+1. Create an account with your email.
+2. Add up to 4 emergency contacts and let them confirm.
+3. Whenever you need help, press and hold the panic button — your contacts get your location instantly.
+
+PRIVACY & SECURITY
+Your data is only ever used to deliver your alerts. We don't sell it and we don't use it for advertising. Passwords are stored encrypted (bcrypt), all traffic is protected with HTTPS/TLS, and your GPS location is captured only at the moment you trigger an alert — Panic Button does not track you in the background. You can delete your account and all associated data at any time.
+
+IMPORTANT
+Panic Button is a personal safety tool, not an emergency service, and it is not a substitute for the police or official emergency responders. Alert delivery depends on your internet connection, your device's GPS and third-party services, and cannot be guaranteed. In a real emergency, always contact your country's official emergency number.
+
+Stay connected to the people who matter, exactly when it matters most. Download Panic Button and feel safer today.
