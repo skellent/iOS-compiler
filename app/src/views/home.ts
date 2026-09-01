@@ -177,3 +177,4 @@ async function loadStatusChip(chip, onCount) {
     // Leave the count unknown so the panic button still works if this lookup failed.
   }
 }
+// TypeScript source.

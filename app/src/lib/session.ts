@@ -25,3 +25,4 @@ export function getUser() {
 export function setUser(user) {
   cachedUser = user;
 }
+// TypeScript source.

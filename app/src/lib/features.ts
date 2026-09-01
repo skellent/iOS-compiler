@@ -8,3 +8,4 @@ export function getFeatures() {
   }
   return cached;
 }
+// TypeScript source.

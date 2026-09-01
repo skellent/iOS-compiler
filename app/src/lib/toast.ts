@@ -22,3 +22,4 @@ export function showToast(message, type = "info") {
     el.addEventListener("transitionend", () => el.remove(), { once: true });
   }, 3400);
 }
+// TypeScript source.

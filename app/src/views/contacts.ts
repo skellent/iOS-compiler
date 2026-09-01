@@ -250,7 +250,7 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
 
   attachPhoneSanitizer(form.querySelector('input[name="phone_number"]'));
   const emailInput = form.querySelector('input[name="email"]');
-  form.querySelectorAll(".email-domain-chip").forEach((chip) => {
+  form.querySelectorAll<HTMLElement>(".email-domain-chip").forEach((chip) => {
     chip.addEventListener("click", () => insertEmailDomain(emailInput, chip.dataset.domain));
   });
 
@@ -260,7 +260,7 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
     const data = {
       name: formData.name,
       phone: combinePhone(formData.phone_country, formData.phone_number),
-      email: formData.email.trim(),
+      email: String(formData.email ?? "").trim(),
     };
 
     if (!data.email) {
@@ -417,3 +417,4 @@ function diffFields(original, updated) {
   }
   return changes;
 }
+// TypeScript source.

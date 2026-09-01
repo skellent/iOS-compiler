@@ -11,3 +11,4 @@ export async function pickDeviceContact() {
     email: contact.emails?.[0]?.address ?? "",
   };
 }
+// TypeScript source.

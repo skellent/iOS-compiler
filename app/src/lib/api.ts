@@ -4,20 +4,22 @@ import { t } from "./i18n.js";
 const BASE_URL = import.meta.env.API_BASE_URL;
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  status: number;
+
+  constructor(message: string, status: number) {
     super(message);
     this.status = status;
   }
 }
 
-function extractMessage(body) {
+function extractMessage(body: any): string {
   if (!body) return t("errors.generic");
   if (typeof body.detail === "string") return body.detail;
   if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
   return t("errors.generic");
 }
 
-async function request(path, { method = "GET", body, auth = false } = {}) {
+async function request(path: string, { method = "GET", body, auth = false }: { method?: string; body?: unknown; auth?: boolean } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth) {
     const token = await getToken();
@@ -69,3 +71,4 @@ export const Api = {
 
   getFeatures: () => request("/features"),
 };
+// TypeScript source.

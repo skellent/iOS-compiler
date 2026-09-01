@@ -24,3 +24,4 @@ export async function renderHelp(container, { navigate }) {
 
   container.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
 }
+// TypeScript source.

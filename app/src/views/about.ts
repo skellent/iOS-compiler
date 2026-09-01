@@ -25,3 +25,4 @@ export async function renderAbout(container, { navigate }) {
 
   container.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
 }
+// TypeScript source.

@@ -136,3 +136,4 @@ export function getTheme() {
 if (_media) {
   _media.addEventListener("change", () => applyAccentColor(currentAccent));
 }
+// TypeScript source.

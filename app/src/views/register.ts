@@ -125,3 +125,4 @@ function renderConfirmEmail(container, email, navigate) {
 
   container.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
 }
+// TypeScript source.

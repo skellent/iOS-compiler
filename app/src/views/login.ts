@@ -87,3 +87,4 @@ export async function renderLogin(container, { navigate, refreshUser }) {
     }
   }
 }
+// TypeScript source.

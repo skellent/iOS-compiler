@@ -129,10 +129,10 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
+    const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
     if (!data.password) delete data.password;
 
-    const changes = {};
+    const changes: Record<string, string> = {};
     for (const key of ["name", "phone", "email", "password"]) {
       if (data[key] !== undefined && data[key] !== (user?.[key] ?? "")) {
         changes[key] = data[key];
@@ -175,3 +175,4 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
   container.querySelector("#help-btn").addEventListener("click", () => navigate("help"));
   container.querySelector("#about-btn").addEventListener("click", () => navigate("about"));
 }
+// TypeScript source.

@@ -15,3 +15,4 @@ export function shake(el) {
   void el.offsetWidth;
   el.classList.add("shake");
 }
+// TypeScript source.

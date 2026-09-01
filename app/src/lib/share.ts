@@ -23,3 +23,4 @@ export async function shareLink({ url, title, text }) {
     return copyToClipboard(url);
   }
 }
+// TypeScript source.

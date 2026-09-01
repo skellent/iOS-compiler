@@ -11,3 +11,4 @@ export async function getCurrentCoordinates() {
     throw new Error("Couldn't get your location. Make sure location access is enabled for Panic Button.");
   }
 }
+// TypeScript source.

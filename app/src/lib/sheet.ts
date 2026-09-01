@@ -21,3 +21,4 @@ export function openSheet(bodyElement) {
 
   return { close, sheet };
 }
+// TypeScript source.

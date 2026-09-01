@@ -55,3 +55,4 @@ export function attachPhoneSanitizer(input) {
     if (digitsOnly !== input.value) input.value = digitsOnly;
   });
 }
+// TypeScript source.

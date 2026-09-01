@@ -14,9 +14,9 @@ import { renderProfile } from "./views/profile.js";
 import { renderAbout } from "./views/about.js";
 import { renderHelp } from "./views/help.js";
 
-const viewEl = document.getElementById("view");
-const bottomNav = document.getElementById("bottom-nav");
-const navTabs = [...document.querySelectorAll("#bottom-nav .nav-tab")];
+const viewEl = document.getElementById("view") as HTMLElement;
+const bottomNav = document.getElementById("bottom-nav") as HTMLElement;
+const navTabs = [...document.querySelectorAll<HTMLButtonElement>("#bottom-nav .nav-tab")];
 
 const ROUTES = {
   login: { render: renderLogin, titleKey: "route.login.title", public: true },
@@ -136,3 +136,4 @@ async function boot() {
 }
 
 boot();
+// TypeScript source.

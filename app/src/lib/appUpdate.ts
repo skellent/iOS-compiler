@@ -35,3 +35,4 @@ export function initAppUpdates() {
   checkForUpdate();
   App.addListener("resume", checkForUpdate);
 }
+// TypeScript source.

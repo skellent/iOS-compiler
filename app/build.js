@@ -1,7 +1,7 @@
 const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:8000";
 
 const result = await Bun.build({
-  entrypoints: ["src/main.js"],
+  entrypoints: ["src/main.ts"],
   outdir: "www/js",
   target: "browser",
   format: "esm",
