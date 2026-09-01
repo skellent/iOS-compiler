@@ -1,15 +1,19 @@
-app/node_modules/
-app/bun.lock
-app/.env
+# Node Modules
+node_modules/
+
+# Bun resources
+bun.lock
+
+# Enviroment
+*.env
+
+# App compilation
 app/android/.gradle/
 app/android/**/build/
 app/android/.idea/caches/
 app/android/.idea/workspace.xml
-app/ios/App/build/
-app/ios/App/Pods/
-app/ios/App/output/
-app/ios/DerivedData/
-app/ios/xcuserdata/
-.claude/
+
+# Resources
+*.keystore
 *.pem
 panicbutton-app-update-kit.zip
