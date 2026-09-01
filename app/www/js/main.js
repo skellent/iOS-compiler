@@ -1,814 +1,17 @@
-var __defProp = Object.defineProperty;
-var __returnValue = (v) => v;
-function __exportSetter(name, newValue) {
-  this[name] = __returnValue.bind(null, newValue);
-}
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, {
-      get: all[name],
-      enumerable: true,
-      configurable: true,
-      set: __exportSetter.bind(all, name)
-    });
-};
-var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-
-// node_modules/@capacitor/core/dist/index.js
-class WebPlugin {
-  constructor() {
-    this.listeners = {};
-    this.retainedEventArguments = {};
-    this.windowListeners = {};
-  }
-  addListener(eventName, listenerFunc) {
-    let firstListener = false;
-    const listeners = this.listeners[eventName];
-    if (!listeners) {
-      this.listeners[eventName] = [];
-      firstListener = true;
-    }
-    this.listeners[eventName].push(listenerFunc);
-    const windowListener = this.windowListeners[eventName];
-    if (windowListener && !windowListener.registered) {
-      this.addWindowListener(windowListener);
-    }
-    if (firstListener) {
-      this.sendRetainedArgumentsForEvent(eventName);
-    }
-    const remove = async () => this.removeListener(eventName, listenerFunc);
-    const p = Promise.resolve({ remove });
-    return p;
-  }
-  async removeAllListeners() {
-    this.listeners = {};
-    for (const listener in this.windowListeners) {
-      this.removeWindowListener(this.windowListeners[listener]);
-    }
-    this.windowListeners = {};
-  }
-  notifyListeners(eventName, data, retainUntilConsumed) {
-    const listeners = this.listeners[eventName];
-    if (!listeners) {
-      if (retainUntilConsumed) {
-        let args = this.retainedEventArguments[eventName];
-        if (!args) {
-          args = [];
-        }
-        args.push(data);
-        this.retainedEventArguments[eventName] = args;
-      }
-      return;
-    }
-    listeners.forEach((listener) => listener(data));
-  }
-  hasListeners(eventName) {
-    var _a;
-    return !!((_a = this.listeners[eventName]) === null || _a === undefined ? undefined : _a.length);
-  }
-  registerWindowListener(windowEventName, pluginEventName) {
-    this.windowListeners[pluginEventName] = {
-      registered: false,
-      windowEventName,
-      pluginEventName,
-      handler: (event) => {
-        this.notifyListeners(pluginEventName, event);
-      }
-    };
-  }
-  unimplemented(msg = "not implemented") {
-    return new Capacitor.Exception(msg, ExceptionCode.Unimplemented);
-  }
-  unavailable(msg = "not available") {
-    return new Capacitor.Exception(msg, ExceptionCode.Unavailable);
-  }
-  async removeListener(eventName, listenerFunc) {
-    const listeners = this.listeners[eventName];
-    if (!listeners) {
-      return;
-    }
-    const index = listeners.indexOf(listenerFunc);
-    this.listeners[eventName].splice(index, 1);
-    if (!this.listeners[eventName].length) {
-      this.removeWindowListener(this.windowListeners[eventName]);
-    }
-  }
-  addWindowListener(handle) {
-    window.addEventListener(handle.windowEventName, handle.handler);
-    handle.registered = true;
-  }
-  removeWindowListener(handle) {
-    if (!handle) {
-      return;
-    }
-    window.removeEventListener(handle.windowEventName, handle.handler);
-    handle.registered = false;
-  }
-  sendRetainedArgumentsForEvent(eventName) {
-    const args = this.retainedEventArguments[eventName];
-    if (!args) {
-      return;
-    }
-    delete this.retainedEventArguments[eventName];
-    args.forEach((arg) => {
-      this.notifyListeners(eventName, arg);
-    });
-  }
-}
-var ExceptionCode, CapacitorException, getPlatformId = (win) => {
-  var _a, _b;
-  if (win === null || win === undefined ? undefined : win.androidBridge) {
-    return "android";
-  } else if ((_b = (_a = win === null || win === undefined ? undefined : win.webkit) === null || _a === undefined ? undefined : _a.messageHandlers) === null || _b === undefined ? undefined : _b.bridge) {
-    return "ios";
-  } else {
-    return "web";
-  }
-}, createCapacitor = (win) => {
-  const capCustomPlatform = win.CapacitorCustomPlatform || null;
-  const cap = win.Capacitor || {};
-  const Plugins = cap.Plugins = cap.Plugins || {};
-  const getPlatform = () => {
-    return capCustomPlatform !== null ? capCustomPlatform.name : getPlatformId(win);
-  };
-  const isNativePlatform = () => getPlatform() !== "web";
-  const isPluginAvailable = (pluginName) => {
-    const plugin = registeredPlugins.get(pluginName);
-    if (plugin === null || plugin === undefined ? undefined : plugin.platforms.has(getPlatform())) {
-      return true;
-    }
-    if (getPluginHeader(pluginName)) {
-      return true;
-    }
-    return false;
-  };
-  const getPluginHeader = (pluginName) => {
-    var _a;
-    return (_a = cap.PluginHeaders) === null || _a === undefined ? undefined : _a.find((h) => h.name === pluginName);
-  };
-  const handleError = (err) => win.console.error(err);
-  const registeredPlugins = new Map;
-  const registerPlugin = (pluginName, jsImplementations = {}) => {
-    const registeredPlugin = registeredPlugins.get(pluginName);
-    if (registeredPlugin) {
-      console.warn(`Capacitor plugin "${pluginName}" already registered. Cannot register plugins twice.`);
-      return registeredPlugin.proxy;
-    }
-    const platform = getPlatform();
-    const pluginHeader = getPluginHeader(pluginName);
-    let jsImplementation;
-    const loadPluginImplementation = async () => {
-      if (!jsImplementation && platform in jsImplementations) {
-        jsImplementation = typeof jsImplementations[platform] === "function" ? jsImplementation = await jsImplementations[platform]() : jsImplementation = jsImplementations[platform];
-      } else if (capCustomPlatform !== null && !jsImplementation && "web" in jsImplementations) {
-        jsImplementation = typeof jsImplementations["web"] === "function" ? jsImplementation = await jsImplementations["web"]() : jsImplementation = jsImplementations["web"];
-      }
-      return jsImplementation;
-    };
-    const createPluginMethod = (impl, prop) => {
-      var _a, _b;
-      if (pluginHeader) {
-        const methodHeader = pluginHeader === null || pluginHeader === undefined ? undefined : pluginHeader.methods.find((m) => prop === m.name);
-        if (methodHeader) {
-          if (methodHeader.rtype === "promise") {
-            return (options) => cap.nativePromise(pluginName, prop.toString(), options);
-          } else {
-            return (options, callback) => cap.nativeCallback(pluginName, prop.toString(), options, callback);
-          }
-        } else if (impl) {
-          return (_a = impl[prop]) === null || _a === undefined ? undefined : _a.bind(impl);
-        }
-      } else if (impl) {
-        return (_b = impl[prop]) === null || _b === undefined ? undefined : _b.bind(impl);
-      } else {
-        throw new CapacitorException(`"${pluginName}" plugin is not implemented on ${platform}`, ExceptionCode.Unimplemented);
-      }
-    };
-    const createPluginMethodWrapper = (prop) => {
-      let remove;
-      const wrapper = (...args) => {
-        const p = loadPluginImplementation().then((impl) => {
-          const fn = createPluginMethod(impl, prop);
-          if (fn) {
-            const p2 = fn(...args);
-            remove = p2 === null || p2 === undefined ? undefined : p2.remove;
-            return p2;
-          } else {
-            throw new CapacitorException(`"${pluginName}.${prop}()" is not implemented on ${platform}`, ExceptionCode.Unimplemented);
-          }
-        });
-        if (prop === "addListener") {
-          p.remove = async () => remove();
-        }
-        return p;
-      };
-      wrapper.toString = () => `${prop.toString()}() { [capacitor code] }`;
-      Object.defineProperty(wrapper, "name", {
-        value: prop,
-        writable: false,
-        configurable: false
-      });
-      return wrapper;
-    };
-    const addListener = createPluginMethodWrapper("addListener");
-    const removeListener = createPluginMethodWrapper("removeListener");
-    const addListenerNative = (eventName, callback) => {
-      const call = addListener({ eventName }, callback);
-      const remove = async () => {
-        const callbackId = await call;
-        removeListener({
-          eventName,
-          callbackId
-        }, callback);
-      };
-      const p = new Promise((resolve) => call.then(() => resolve({ remove })));
-      p.remove = async () => {
-        console.warn(`Using addListener() without 'await' is deprecated.`);
-        await remove();
-      };
-      return p;
-    };
-    const proxy = new Proxy({}, {
-      get(_, prop) {
-        switch (prop) {
-          case "$$typeof":
-            return;
-          case "toJSON":
-            return () => ({});
-          case "addListener":
-            return pluginHeader ? addListenerNative : addListener;
-          case "removeListener":
-            return removeListener;
-          default:
-            return createPluginMethodWrapper(prop);
-        }
-      }
-    });
-    Plugins[pluginName] = proxy;
-    registeredPlugins.set(pluginName, {
-      name: pluginName,
-      proxy,
-      platforms: new Set([...Object.keys(jsImplementations), ...pluginHeader ? [platform] : []])
-    });
-    return proxy;
-  };
-  if (!cap.convertFileSrc) {
-    cap.convertFileSrc = (filePath) => filePath;
-  }
-  cap.getPlatform = getPlatform;
-  cap.handleError = handleError;
-  cap.isNativePlatform = isNativePlatform;
-  cap.isPluginAvailable = isPluginAvailable;
-  cap.registerPlugin = registerPlugin;
-  cap.Exception = CapacitorException;
-  cap.DEBUG = !!cap.DEBUG;
-  cap.isLoggingEnabled = !!cap.isLoggingEnabled;
-  return cap;
-}, initCapacitorGlobal = (win) => win.Capacitor = createCapacitor(win), Capacitor, registerPlugin, encode = (str) => encodeURIComponent(str).replace(/%(2[346B]|5E|60|7C)/g, decodeURIComponent).replace(/[()]/g, escape), decode = (str) => str.replace(/(%[\dA-F]{2})+/gi, decodeURIComponent), CapacitorCookiesPluginWeb, CapacitorCookies, readBlobAsBase64 = async (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader;
-  reader.onload = () => {
-    const base64String = reader.result;
-    resolve(base64String.indexOf(",") >= 0 ? base64String.split(",")[1] : base64String);
-  };
-  reader.onerror = (error) => reject(error);
-  reader.readAsDataURL(blob);
-}), normalizeHttpHeaders = (headers = {}) => {
-  const originalKeys = Object.keys(headers);
-  const loweredKeys = Object.keys(headers).map((k) => k.toLocaleLowerCase());
-  const normalized = loweredKeys.reduce((acc, key, index) => {
-    acc[key] = headers[originalKeys[index]];
-    return acc;
-  }, {});
-  return normalized;
-}, buildUrlParams = (params, shouldEncode = true) => {
-  if (!params)
-    return null;
-  const output = Object.entries(params).reduce((accumulator, entry) => {
-    const [key, value] = entry;
-    let encodedValue;
-    let item;
-    if (Array.isArray(value)) {
-      item = "";
-      value.forEach((str) => {
-        encodedValue = shouldEncode ? encodeURIComponent(str) : str;
-        item += `${key}=${encodedValue}&`;
-      });
-      item.slice(0, -1);
-    } else {
-      encodedValue = shouldEncode ? encodeURIComponent(value) : value;
-      item = `${key}=${encodedValue}`;
-    }
-    return `${accumulator}&${item}`;
-  }, "");
-  return output.substr(1);
-}, buildRequestInit = (options, extra = {}) => {
-  const output = Object.assign({ method: options.method || "GET", headers: options.headers }, extra);
-  const headers = normalizeHttpHeaders(options.headers);
-  const type = headers["content-type"] || "";
-  if (typeof options.data === "string") {
-    output.body = options.data;
-  } else if (type.includes("application/x-www-form-urlencoded")) {
-    const params = new URLSearchParams;
-    for (const [key, value] of Object.entries(options.data || {})) {
-      params.set(key, value);
-    }
-    output.body = params.toString();
-  } else if (type.includes("multipart/form-data") || options.data instanceof FormData) {
-    const form = new FormData;
-    if (options.data instanceof FormData) {
-      options.data.forEach((value, key) => {
-        form.append(key, value);
-      });
-    } else {
-      for (const key of Object.keys(options.data)) {
-        form.append(key, options.data[key]);
-      }
-    }
-    output.body = form;
-    const headers2 = new Headers(output.headers);
-    headers2.delete("content-type");
-    output.headers = headers2;
-  } else if (type.includes("application/json") || typeof options.data === "object") {
-    output.body = JSON.stringify(options.data);
-  }
-  return output;
-}, CapacitorHttpPluginWeb, CapacitorHttp, SystemBarsStyle, SystemBarType, SystemBarsPluginWeb, SystemBars;
-var init_dist = __esm(() => {
-  /*! Capacitor: https://capacitorjs.com/ - MIT License */
-  (function(ExceptionCode2) {
-    ExceptionCode2["Unimplemented"] = "UNIMPLEMENTED";
-    ExceptionCode2["Unavailable"] = "UNAVAILABLE";
-  })(ExceptionCode || (ExceptionCode = {}));
-  CapacitorException = class CapacitorException extends Error {
-    constructor(message, code, data) {
-      super(message);
-      this.message = message;
-      this.code = code;
-      this.data = data;
-    }
-  };
-  Capacitor = /* @__PURE__ */ initCapacitorGlobal(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : {});
-  registerPlugin = Capacitor.registerPlugin;
-  CapacitorCookiesPluginWeb = class CapacitorCookiesPluginWeb extends WebPlugin {
-    async getCookies() {
-      const cookies = document.cookie;
-      const cookieMap = {};
-      cookies.split(";").forEach((cookie) => {
-        if (cookie.length <= 0)
-          return;
-        let [key, value] = cookie.replace(/=/, "CAP_COOKIE").split("CAP_COOKIE");
-        key = decode(key).trim();
-        value = decode(value).trim();
-        cookieMap[key] = value;
-      });
-      return cookieMap;
-    }
-    async setCookie(options) {
-      try {
-        const encodedKey = encode(options.key);
-        const encodedValue = encode(options.value);
-        const expires = options.expires ? `; expires=${options.expires.replace("expires=", "")}` : "";
-        const path = (options.path || "/").replace("path=", "");
-        const domain = options.url != null && options.url.length > 0 ? `domain=${options.url}` : "";
-        document.cookie = `${encodedKey}=${encodedValue || ""}${expires}; path=${path}; ${domain};`;
-      } catch (error) {
-        return Promise.reject(error);
-      }
-    }
-    async deleteCookie(options) {
-      try {
-        document.cookie = `${options.key}=; Max-Age=0`;
-      } catch (error) {
-        return Promise.reject(error);
-      }
-    }
-    async clearCookies() {
-      try {
-        const cookies = document.cookie.split(";") || [];
-        for (const cookie of cookies) {
-          document.cookie = cookie.replace(/^ +/, "").replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
-        }
-      } catch (error) {
-        return Promise.reject(error);
-      }
-    }
-    async clearAllCookies() {
-      try {
-        await this.clearCookies();
-      } catch (error) {
-        return Promise.reject(error);
-      }
-    }
-  };
-  CapacitorCookies = registerPlugin("CapacitorCookies", {
-    web: () => new CapacitorCookiesPluginWeb
-  });
-  CapacitorHttpPluginWeb = class CapacitorHttpPluginWeb extends WebPlugin {
-    async request(options) {
-      const requestInit = buildRequestInit(options, options.webFetchExtra);
-      const urlParams = buildUrlParams(options.params, options.shouldEncodeUrlParams);
-      const url = urlParams ? `${options.url}?${urlParams}` : options.url;
-      const response = await fetch(url, requestInit);
-      const contentType = response.headers.get("content-type") || "";
-      let { responseType = "text" } = response.ok ? options : {};
-      if (contentType.includes("application/json")) {
-        responseType = "json";
-      }
-      let data;
-      let blob;
-      switch (responseType) {
-        case "arraybuffer":
-        case "blob":
-          blob = await response.blob();
-          data = await readBlobAsBase64(blob);
-          break;
-        case "json":
-          data = await response.json();
-          break;
-        case "document":
-        case "text":
-        default:
-          data = await response.text();
-      }
-      const headers = {};
-      response.headers.forEach((value, key) => {
-        headers[key] = value;
-      });
-      return {
-        data,
-        headers,
-        status: response.status,
-        url: response.url
-      };
-    }
-    async get(options) {
-      return this.request(Object.assign(Object.assign({}, options), { method: "GET" }));
-    }
-    async post(options) {
-      return this.request(Object.assign(Object.assign({}, options), { method: "POST" }));
-    }
-    async put(options) {
-      return this.request(Object.assign(Object.assign({}, options), { method: "PUT" }));
-    }
-    async patch(options) {
-      return this.request(Object.assign(Object.assign({}, options), { method: "PATCH" }));
-    }
-    async delete(options) {
-      return this.request(Object.assign(Object.assign({}, options), { method: "DELETE" }));
-    }
-  };
-  CapacitorHttp = registerPlugin("CapacitorHttp", {
-    web: () => new CapacitorHttpPluginWeb
-  });
-  (function(SystemBarsStyle2) {
-    SystemBarsStyle2["Dark"] = "DARK";
-    SystemBarsStyle2["Light"] = "LIGHT";
-    SystemBarsStyle2["Default"] = "DEFAULT";
-  })(SystemBarsStyle || (SystemBarsStyle = {}));
-  (function(SystemBarType2) {
-    SystemBarType2["StatusBar"] = "StatusBar";
-    SystemBarType2["NavigationBar"] = "NavigationBar";
-  })(SystemBarType || (SystemBarType = {}));
-  SystemBarsPluginWeb = class SystemBarsPluginWeb extends WebPlugin {
-    async setStyle() {
-      this.unavailable("not available for web");
-    }
-    async setAnimation() {
-      this.unavailable("not available for web");
-    }
-    async show() {
-      this.unavailable("not available for web");
-    }
-    async hide() {
-      this.unavailable("not available for web");
-    }
-  };
-  SystemBars = registerPlugin("SystemBars", {
-    web: () => new SystemBarsPluginWeb
-  });
-});
-
-// node_modules/@capacitor/splash-screen/dist/esm/web.js
-var exports_web = {};
-__export(exports_web, {
-  SplashScreenWeb: () => SplashScreenWeb
-});
-var SplashScreenWeb;
-var init_web = __esm(() => {
-  init_dist();
-  SplashScreenWeb = class SplashScreenWeb extends WebPlugin {
-    async show(_options) {
-      return;
-    }
-    async hide(_options) {
-      return;
-    }
-  };
-});
-
-// node_modules/@capacitor/preferences/dist/esm/web.js
-var exports_web2 = {};
-__export(exports_web2, {
-  PreferencesWeb: () => PreferencesWeb
-});
-var PreferencesWeb;
-var init_web2 = __esm(() => {
-  init_dist();
-  PreferencesWeb = class PreferencesWeb extends WebPlugin {
-    constructor() {
-      super(...arguments);
-      this.group = "CapacitorStorage";
-    }
-    async configure({ group }) {
-      if (typeof group === "string") {
-        this.group = group;
-      }
-    }
-    async get(options) {
-      const value = this.impl.getItem(this.applyPrefix(options.key));
-      return { value };
-    }
-    async set(options) {
-      this.impl.setItem(this.applyPrefix(options.key), options.value);
-    }
-    async remove(options) {
-      this.impl.removeItem(this.applyPrefix(options.key));
-    }
-    async keys() {
-      const keys = this.rawKeys().map((k) => k.substring(this.prefix.length));
-      return { keys };
-    }
-    async clear() {
-      for (const key of this.rawKeys()) {
-        this.impl.removeItem(key);
-      }
-    }
-    async migrate() {
-      var _a;
-      const migrated = [];
-      const existing = [];
-      const oldprefix = "_cap_";
-      const keys = Object.keys(this.impl).filter((k) => k.indexOf(oldprefix) === 0);
-      for (const oldkey of keys) {
-        const key = oldkey.substring(oldprefix.length);
-        const value = (_a = this.impl.getItem(oldkey)) !== null && _a !== undefined ? _a : "";
-        const { value: currentValue } = await this.get({ key });
-        if (typeof currentValue === "string") {
-          existing.push(key);
-        } else {
-          await this.set({ key, value });
-          migrated.push(key);
-        }
-      }
-      return { migrated, existing };
-    }
-    async removeOld() {
-      const oldprefix = "_cap_";
-      const keys = Object.keys(this.impl).filter((k) => k.indexOf(oldprefix) === 0);
-      for (const oldkey of keys) {
-        this.impl.removeItem(oldkey);
-      }
-    }
-    get impl() {
-      return window.localStorage;
-    }
-    get prefix() {
-      return this.group === "NativeStorage" ? "" : `${this.group}.`;
-    }
-    rawKeys() {
-      return Object.keys(this.impl).filter((k) => k.indexOf(this.prefix) === 0);
-    }
-    applyPrefix(key) {
-      return this.prefix + key;
-    }
-  };
-});
-
-// node_modules/@capacitor/app/dist/esm/web.js
-var exports_web3 = {};
-__export(exports_web3, {
-  AppWeb: () => AppWeb
-});
-var AppWeb;
-var init_web3 = __esm(() => {
-  init_dist();
-  AppWeb = class AppWeb extends WebPlugin {
-    constructor() {
-      super();
-      this.handleVisibilityChange = () => {
-        const data = {
-          isActive: document.hidden !== true
-        };
-        this.notifyListeners("appStateChange", data);
-        if (document.hidden) {
-          this.notifyListeners("pause", null);
-        } else {
-          this.notifyListeners("resume", null);
-        }
-      };
-      document.addEventListener("visibilitychange", this.handleVisibilityChange, false);
-    }
-    exitApp() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async getInfo() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async getLaunchUrl() {
-      return { url: "" };
-    }
-    async getState() {
-      return { isActive: document.hidden !== true };
-    }
-    async minimizeApp() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async toggleBackButtonHandler() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async getAppLanguage() {
-      return {
-        value: navigator.language.split("-")[0].toLowerCase()
-      };
-    }
-  };
-});
-
-// node_modules/@capacitor/geolocation/dist/esm/web.js
-var exports_web4 = {};
-__export(exports_web4, {
-  GeolocationWeb: () => GeolocationWeb,
-  Geolocation: () => Geolocation
-});
-var GeolocationWeb, Geolocation;
-var init_web4 = __esm(() => {
-  init_dist();
-  GeolocationWeb = class GeolocationWeb extends WebPlugin {
-    constructor() {
-      super();
-      this.latestOrientation = null;
-      if (typeof window !== "undefined") {
-        const win = window;
-        if ("ondeviceorientationabsolute" in win) {
-          win.addEventListener("deviceorientationabsolute", (event) => this.updateOrientation(event, true), true);
-        } else if ("ondeviceorientation" in win) {
-          win.addEventListener("deviceorientation", (event) => this.updateOrientation(event, false), true);
-        }
-      }
-    }
-    updateOrientation(event, isAbsolute) {
-      let trueHeading = null;
-      let magneticHeading = null;
-      let headingAccuracy = null;
-      if (isAbsolute && event.alpha !== null) {
-        trueHeading = (360 - event.alpha) % 360;
-      } else if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
-        magneticHeading = event.webkitCompassHeading;
-        headingAccuracy = event.webkitCompassAccuracy;
-      } else if (event.alpha !== null && event.absolute === true) {
-        trueHeading = (360 - event.alpha) % 360;
-      } else if (event.alpha !== null) {
-        magneticHeading = (360 - event.alpha) % 360;
-      }
-      if (trueHeading !== null || magneticHeading !== null) {
-        this.latestOrientation = {
-          trueHeading,
-          magneticHeading,
-          headingAccuracy
-        };
-      }
-    }
-    augmentPosition(pos, isWatch = false) {
-      var _a, _b, _c, _d, _e, _f, _g;
-      const coords = pos.coords;
-      const orientation = isWatch ? this.latestOrientation : null;
-      const heading = (_c = (_b = (_a = orientation === null || orientation === undefined ? undefined : orientation.trueHeading) !== null && _a !== undefined ? _a : orientation === null || orientation === undefined ? undefined : orientation.magneticHeading) !== null && _b !== undefined ? _b : isWatch ? coords.heading : null) !== null && _c !== undefined ? _c : null;
-      return {
-        timestamp: pos.timestamp,
-        coords: {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracy: coords.accuracy,
-          altitude: coords.altitude,
-          altitudeAccuracy: coords.altitudeAccuracy,
-          speed: coords.speed,
-          heading,
-          magneticHeading: (_d = orientation === null || orientation === undefined ? undefined : orientation.magneticHeading) !== null && _d !== undefined ? _d : null,
-          trueHeading: (_e = orientation === null || orientation === undefined ? undefined : orientation.trueHeading) !== null && _e !== undefined ? _e : null,
-          headingAccuracy: (_f = orientation === null || orientation === undefined ? undefined : orientation.headingAccuracy) !== null && _f !== undefined ? _f : null,
-          course: (_g = isWatch ? coords.heading : null) !== null && _g !== undefined ? _g : null
-        }
-      };
-    }
-    async getCurrentPosition(options) {
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          resolve(this.augmentPosition(pos, false));
-        }, (err) => {
-          reject(err);
-        }, Object.assign({ enableHighAccuracy: false, timeout: 1e4, maximumAge: 0 }, options));
-      });
-    }
-    async watchPosition(options, callback) {
-      const id = navigator.geolocation.watchPosition((pos) => {
-        callback(this.augmentPosition(pos, true));
-      }, (err) => {
-        callback(null, err);
-      }, Object.assign({ enableHighAccuracy: false, timeout: 1e4, maximumAge: 0, minimumUpdateInterval: 5000 }, options));
-      return `${id}`;
-    }
-    async clearWatch(options) {
-      navigator.geolocation.clearWatch(parseInt(options.id, 10));
-    }
-    async checkPermissions() {
-      if (typeof navigator === "undefined" || !navigator.permissions) {
-        throw this.unavailable("Permissions API not available in this browser");
-      }
-      const permission = await navigator.permissions.query({
-        name: "geolocation"
-      });
-      return { location: permission.state, coarseLocation: permission.state };
-    }
-    async requestPermissions() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-  };
-  Geolocation = new GeolocationWeb;
-});
-
-// node_modules/@capacitor-community/contacts/dist/esm/web.js
-var exports_web5 = {};
-__export(exports_web5, {
-  ContactsWeb: () => ContactsWeb
-});
-var ContactsWeb;
-var init_web5 = __esm(() => {
-  init_dist();
-  ContactsWeb = class ContactsWeb extends WebPlugin {
-    async checkPermissions() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async requestPermissions() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async getContact() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async getContacts() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async createContact() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async deleteContact() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-    async pickContact() {
-      throw this.unimplemented("Not implemented on web.");
-    }
-  };
-});
-
-// node_modules/@capacitor/share/dist/esm/web.js
-var exports_web6 = {};
-__export(exports_web6, {
-  ShareWeb: () => ShareWeb
-});
-var ShareWeb;
-var init_web6 = __esm(() => {
-  init_dist();
-  ShareWeb = class ShareWeb extends WebPlugin {
-    async canShare() {
-      if (typeof navigator === "undefined" || !navigator.share) {
-        return { value: false };
-      } else {
-        return { value: true };
-      }
-    }
-    async share(options) {
-      if (typeof navigator === "undefined" || !navigator.share) {
-        throw this.unavailable("Share API not available in this browser");
-      }
-      await navigator.share({
-        title: options.title,
-        text: options.text,
-        url: options.url
-      });
-      return {};
-    }
-  };
-});
+import {
+  Capacitor,
+  __require,
+  registerPlugin
+} from "./chunk-sgmc5hz5.js";
 
 // node_modules/@capacitor/splash-screen/dist/esm/index.js
-init_dist();
 var SplashScreen = registerPlugin("SplashScreen", {
-  web: () => Promise.resolve().then(() => (init_web(), exports_web)).then((m) => new m.SplashScreenWeb)
+  web: () => import("./chunk-z2bbn0w9.js").then((m) => new m.SplashScreenWeb)
 });
 
 // node_modules/@capacitor/preferences/dist/esm/index.js
-init_dist();
 var Preferences = registerPlugin("Preferences", {
-  web: () => Promise.resolve().then(() => (init_web2(), exports_web2)).then((m) => new m.PreferencesWeb)
+  web: () => import("./chunk-81zrdkny.js").then((m) => new m.PreferencesWeb)
 });
 
 // src/lib/session.js
@@ -2458,9 +1661,8 @@ if (_media) {
 }
 
 // node_modules/@capacitor/app/dist/esm/index.js
-init_dist();
 var App = registerPlugin("App", {
-  web: () => Promise.resolve().then(() => (init_web3(), exports_web3)).then((m) => new m.AppWeb)
+  web: () => import("./chunk-ykxa70x1.js").then((m) => new m.AppWeb)
 });
 
 // src/lib/appUpdate.js
@@ -2535,15 +1737,37 @@ function shake(el) {
   el.offsetWidth;
   el.classList.add("shake");
 }
-function togglePasswordVisibility(showPasswordSpan) {
-  const input = showPasswordSpan.previousElementSibling;
-  if (!input || input.tagName !== "INPUT") return;
-  const isPassword = input.type === "password";
-  input.type = isPassword ? "text" : "password";
-  showPasswordSpan.classList.toggle("show-password", isPassword);
-  showPasswordSpan.classList.toggle("hide-password", !isPassword);
-  showPasswordSpan.innerHTML = isPassword ? Icon.eye() : Icon.eyeOff();
+
+// src/lib/icons.js
+function icon(path, viewBox = "0 0 24 24") {
+  return `<svg class="icon" viewBox="${viewBox}" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
 }
+var Icon = {
+  home: () => icon("M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"),
+  contacts: () => icon("M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"),
+  settings: () => icon("M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z"),
+  add: () => icon("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"),
+  delete: () => icon("M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"),
+  checkCircle: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"),
+  mail: () => icon("M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"),
+  arrowBack: () => icon("M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"),
+  close: () => icon("M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"),
+  schedule: () => icon("M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"),
+  phone: () => icon("M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"),
+  personAdd: () => icon("M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"),
+  edit: () => icon("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"),
+  logout: () => icon("M17 7l-1.41 1.41L17.17 10H8v2h9.17l-1.58 1.59L17 15l4-4zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"),
+  language: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-.61.08-1.21.21-1.78L8.99 15v1c0 1.1.9 2 2 2v1.93C7.06 19.44 4 16.08 4 12zm13.89 5.4c-.26-.81-1-1.4-1.89-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.11 5.4z"),
+  theme: () => icon("M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z"),
+  palette: () => icon("M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"),
+  telegram: () => icon("M248 8C111 8 0 119 0 256S111 504 248 504 496 393 496 256 385 8 248 8zM362 176.7c-3.7 39.2-19.9 134.4-28.1 178.3-3.5 18.6-10.4 24.8-17 25.4-14.4 1.3-25.3-9.5-39.3-18.7-21.8-14.3-34.2-23.2-55.3-37.2-24.5-16.1-8.6-25 5.3-39.5 3.7-3.8 67.1-61.5 68.3-66.7 .2-.7 .3-3.1-1.2-4.4s-3.6-.8-5.1-.5q-3.3 .7-104.6 69.1-14.8 10.2-26.9 9.9c-8.9-.2-25.9-5-38.6-9.1-15.5-5-27.9-7.7-26.8-16.3q.8-6.7 18.5-13.7 108.4-47.2 144.6-62.3c68.9-28.6 83.2-33.6 92.5-33.8 2.1 0 6.6 .5 9.6 2.9a10.5 10.5 0 0 1 3.5 6.7A43.8 43.8 0 0 1 362 176.7z", "0 0 496 512"),
+  whatsapp: () => icon("M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z", "0 0 448 512"),
+  sms: () => icon("M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"),
+  info: () => icon("M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"),
+  help: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"),
+  eye: () => icon("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"),
+  eyeOff: () => icon("M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.75-2.88 3.54-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm7.98-.82c.05.21.08.43.08.65 0 1.66-1.34 3-3 3-.22 0-.44-.03-.65-.08l-3.15-3.15c.21-.05.43-.08.65-.08 1.66 0 3 1.34 3 3z")
+};
 
 // src/views/login.js
 async function renderLogin(container2, { navigate, refreshUser }) {
@@ -2577,10 +1801,6 @@ async function renderLogin(container2, { navigate, refreshUser }) {
   `;
   const form = container2.querySelector("#login-form");
   const button = form.querySelector('button[type="submit"]');
-  const showPasswordSpan = form.querySelector("#show-password");
-  const passwordInput = form.querySelector('input[name="password"]');
-  showPasswordSpan.innerHTML = Icon.eyeOff();
-  showPasswordSpan.addEventListener("click", () => togglePasswordVisibility(showPasswordSpan));
   const forgotLink = container2.querySelector("#forgot-link");
   forgotLink.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -2610,38 +1830,22 @@ async function renderLogin(container2, { navigate, refreshUser }) {
       setLoading(button, false);
     }
   });
+  const passwordShowSpans = form.querySelectorAll(".show-password");
+  passwordShowSpans.forEach((span) => {
+    span.innerHTML = Icon.eyeOff();
+    span.addEventListener("click", () => togglePasswordVisibility(span));
+  });
+  function togglePasswordVisibility(span) {
+    const input = span.previousElementSibling;
+    if (input.type === "password") {
+      input.type = "text";
+      span.innerHTML = Icon.eye();
+    } else {
+      input.type = "password";
+      span.innerHTML = Icon.eyeOff();
+    }
+  }
 }
-
-// src/lib/icons.js
-function icon(path, viewBox = "0 0 24 24") {
-  return `<svg class="icon" viewBox="${viewBox}" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
-}
-var Icon = {
-  home: () => icon("M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"),
-  contacts: () => icon("M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"),
-  settings: () => icon("M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z"),
-  add: () => icon("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"),
-  delete: () => icon("M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"),
-  checkCircle: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"),
-  mail: () => icon("M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"),
-  arrowBack: () => icon("M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"),
-  close: () => icon("M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"),
-  schedule: () => icon("M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"),
-  phone: () => icon("M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"),
-  personAdd: () => icon("M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"),
-  edit: () => icon("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"),
-  logout: () => icon("M17 7l-1.41 1.41L17.17 10H8v2h9.17l-1.58 1.59L17 15l4-4zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"),
-  language: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-.61.08-1.21.21-1.78L8.99 15v1c0 1.1.9 2 2 2v1.93C7.06 19.44 4 16.08 4 12zm13.89 5.4c-.26-.81-1-1.4-1.89-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.11 5.4z"),
-  theme: () => icon("M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z"),
-  palette: () => icon("M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"),
-  telegram: () => icon("M248 8C111 8 0 119 0 256S111 504 248 504 496 393 496 256 385 8 248 8zM362 176.7c-3.7 39.2-19.9 134.4-28.1 178.3-3.5 18.6-10.4 24.8-17 25.4-14.4 1.3-25.3-9.5-39.3-18.7-21.8-14.3-34.2-23.2-55.3-37.2-24.5-16.1-8.6-25 5.3-39.5 3.7-3.8 67.1-61.5 68.3-66.7 .2-.7 .3-3.1-1.2-4.4s-3.6-.8-5.1-.5q-3.3 .7-104.6 69.1-14.8 10.2-26.9 9.9c-8.9-.2-25.9-5-38.6-9.1-15.5-5-27.9-7.7-26.8-16.3q.8-6.7 18.5-13.7 108.4-47.2 144.6-62.3c68.9-28.6 83.2-33.6 92.5-33.8 2.1 0 6.6 .5 9.6 2.9a10.5 10.5 0 0 1 3.5 6.7A43.8 43.8 0 0 1 362 176.7z", "0 0 496 512"),
-  whatsapp: () => icon("M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z", "0 0 448 512"),
-  sms: () => icon("M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"),
-  info: () => icon("M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"),
-  help: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"),
-  eye: () => icon("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"),
-  eyeOff: () => icon("M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.75-2.88 3.54-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm7.98-.82c.05.21.08.43.08.65 0 1.66-1.34 3-3 3-.22 0-.44-.03-.65-.08l-3.15-3.15c.21-.05.43-.08.65-.08 1.66 0 3 1.34 3 3z"),
-};
 
 // src/lib/phone.js
 var DEFAULT_COUNTRY_CODE = "+1";
@@ -2734,14 +1938,14 @@ async function renderRegister(container2, { navigate }) {
           <span>${t("register.password")}</span>
           <div>
             <input type="password" name="password" autocomplete="new-password" minlength="8" required />
-            <span class="show-password"></span>
+            <span id="show-password" class="show-password"></span>
           </div>
         </label>
         <label class="field">
           <span>${t("register.confirmPassword")}</span>
           <div>
             <input type="password" name="confirm_password" autocomplete="new-password" required />
-            <span class="show-password"></span>
+            <span id="show-password" class="show-password"></span>
           </div>
         </label>
         <button type="submit" class="btn btn-primary btn-block">
@@ -2759,11 +1963,6 @@ async function renderRegister(container2, { navigate }) {
   const emailInput = form.querySelector('input[name="email"]');
   form.querySelectorAll(".email-domain-chip").forEach((chip) => {
     chip.addEventListener("click", () => insertEmailDomain(emailInput, chip.dataset.domain));
-  });
-  const passwordShowSpans = form.querySelectorAll(".show-password");
-  passwordShowSpans.forEach((span) => {
-    span.innerHTML = Icon.eyeOff();
-    span.addEventListener("click", () => togglePasswordVisibility(span));
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -2784,6 +1983,21 @@ async function renderRegister(container2, { navigate }) {
       setLoading(button, false);
     }
   });
+  const passwordShowSpans = form.querySelectorAll(".show-password");
+  passwordShowSpans.forEach((span) => {
+    span.innerHTML = Icon.eyeOff();
+    span.addEventListener("click", () => togglePasswordVisibility(span));
+  });
+  function togglePasswordVisibility(span) {
+    const input = span.previousElementSibling;
+    if (input.type === "password") {
+      input.type = "text";
+      span.innerHTML = Icon.eye();
+    } else {
+      input.type = "password";
+      span.innerHTML = Icon.eyeOff();
+    }
+  }
 }
 function renderConfirmEmail(container2, email, navigate) {
   container2.innerHTML = `
@@ -2796,9 +2010,6 @@ function renderConfirmEmail(container2, email, navigate) {
   `;
   container2.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
 }
-
-// node_modules/@capacitor/geolocation/dist/esm/index.js
-init_dist();
 
 // node_modules/@capacitor/synapse/dist/synapse.mjs
 function s(t2) {
@@ -2842,15 +2053,15 @@ function f(t2 = false) {
 }
 
 // node_modules/@capacitor/geolocation/dist/esm/index.js
-var Geolocation2 = registerPlugin("Geolocation", {
-  web: () => Promise.resolve().then(() => (init_web4(), exports_web4)).then((m) => new m.GeolocationWeb)
+var Geolocation = registerPlugin("Geolocation", {
+  web: () => import("./chunk-nck56p8g.js").then((m) => new m.GeolocationWeb)
 });
 f();
 
 // src/lib/geolocation.js
 async function getCurrentCoordinates() {
   try {
-    const position = await Geolocation2.getCurrentPosition({
+    const position = await Geolocation.getCurrentPosition({
       enableHighAccuracy: true,
       timeout: 15000
     });
@@ -3017,9 +2228,6 @@ function getFeatures() {
   return cached;
 }
 
-// node_modules/@capacitor-community/contacts/dist/esm/index.js
-init_dist();
-
 // node_modules/@capacitor-community/contacts/dist/esm/definitions.js
 var PhoneType;
 (function(PhoneType2) {
@@ -3063,7 +2271,7 @@ var PostalAddressType;
 
 // node_modules/@capacitor-community/contacts/dist/esm/index.js
 var Contacts = registerPlugin("Contacts", {
-  web: () => Promise.resolve().then(() => (init_web5(), exports_web5)).then((m) => new m.ContactsWeb)
+  web: () => import("./chunk-qvga0x2k.js").then((m) => new m.ContactsWeb)
 });
 
 // src/lib/contactsPicker.js
@@ -3099,13 +2307,9 @@ function openSheet(bodyElement) {
   return { close, sheet };
 }
 
-// src/lib/share.js
-init_dist();
-
 // node_modules/@capacitor/share/dist/esm/index.js
-init_dist();
 var Share = registerPlugin("Share", {
-  web: () => Promise.resolve().then(() => (init_web6(), exports_web6)).then((m) => new m.ShareWeb)
+  web: () => import("./chunk-arx3gy18.js").then((m) => new m.ShareWeb)
 });
 
 // src/lib/share.js

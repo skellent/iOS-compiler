@@ -43,11 +43,17 @@ export async function renderRegister(container, { navigate }) {
         </label>
         <label class="field">
           <span>${t("register.password")}</span>
-          <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+          <div>
+            <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+            <span id="show-password" class="show-password"></span>
+          </div>
         </label>
         <label class="field">
           <span>${t("register.confirmPassword")}</span>
-          <input type="password" name="confirm_password" autocomplete="new-password" required />
+          <div>
+            <input type="password" name="confirm_password" autocomplete="new-password" required />
+            <span id="show-password" class="show-password"></span>
+          </div>
         </label>
         <button type="submit" class="btn btn-primary btn-block">
           <span class="btn-label">${t("register.submit")}</span>
@@ -89,6 +95,22 @@ export async function renderRegister(container, { navigate }) {
       setLoading(button, false);
     }
   });
+
+  const passwordShowSpans = form.querySelectorAll(".show-password");
+  passwordShowSpans.forEach((span) => {
+    span.innerHTML = Icon.eyeOff();
+    span.addEventListener("click", () => togglePasswordVisibility(span));
+  });
+  function togglePasswordVisibility(span) {
+    const input = span.previousElementSibling;
+    if (input.type === "password") {
+      input.type = "text";
+      span.innerHTML = Icon.eye();
+    } else {
+      input.type = "password";
+      span.innerHTML = Icon.eyeOff();
+    }
+  }
 }
 
 function renderConfirmEmail(container, email, navigate) {
