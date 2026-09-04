@@ -1,33 +1,41 @@
-USERNAME=''
-PASSWORD=''
-HOST=''
+###########################
+### MAIN CONFIGURATIONS ###
+###########################
+# RUNNING MODE
+APP_MODE=
+LOG_LEVEL=
+# URLs
+API_BASE_URL=
+PLAY_STORE_URL=
+# AUTHENTICATION
+JWT_SECRET_KEY=
+# DATABASE
+USERNAME=
+PASSWORD=
+HOST=
 PORT=
-DATABASE=''
-JWT_SECRET_KEY=''
-SMTP_USER=''
-SMTP_PASSWORD=''
+DATABASE=
+
+#######################
+### CHANNELS ALERTS ###
+#######################
+# EMAIL
+SMTP_USER=
+SMTP_FROM=
+SMTP_PASSWORD=
 SMTP_HOST='smtp.gmail.com'
 SMTP_PORT=587
-SMTP_FROM=''
-# Set to false in local development to log outgoing mail instead of sending it.
-SMTP_ENABLED='true'
-# Set to false only for offline development where DNS lookups can't be made.
-SMTP_VERIFY_DELIVERABILITY='true'
-TELEGRAM_BOT_TOKEN=''
-TELEGRAM_BOT_USERNAME=''
-TELEGRAM_WEBHOOK_SECRET=''
-TWILIO_ACCOUNT_SID=''
-TWILIO_AUTH_TOKEN=''
-TWILIO_WHATSAPP_FROM='whatsapp:+14155238886'
-TWILIO_WHATSAPP_JOIN_KEYWORD=''
-TWILIO_WHATSAPP_TEMPLATE_SID=''
-# Set to false in local development to log outgoing WhatsApp messages instead of sending them.
-TWILIO_WHATSAPP_ENABLED='true'
-# Set to false only for local development where Twilio can't sign the webhook.
-TWILIO_VALIDATE_SIGNATURE='true'
-TWILIO_SMS_FROM=''
-# Set to false in local development to log outgoing SMS instead of sending them.
-TWILIO_SMS_ENABLED='true'
-API_BASE_URL='http://127.0.0.1:8000'
-APP_MODE='Debug'
-LOG_LEVEL='INFO'
+# TELEGRAM
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_BOT_USERNAME=
+TELEGRAM_WEBHOOK_SECRET=
+# TWILIO
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_VALIDATE_SIGNATURE=
+# WHATSAPP & SMS
+TWILIO_WHATSAPP_FROM=
+TWILIO_WHATSAPP_JOIN_KEYWORD=
+TWILIO_WHATSAPP_ENABLED=
+TWILIO_SMS_FROM=
+TWILIO_SMS_ENABLED=
