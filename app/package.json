@@ -2,12 +2,7 @@
   "name": "panicbutton-app",
   "private": true,
   "scripts": {
-<<<<<<< HEAD
     "build": "bun build.js"
-=======
-    "build": "bun build.js",
-    "typecheck": "tsc --noEmit"
->>>>>>> app-online
   },
   "dependencies": {
     "@capacitor-community/contacts": "^8.0.0",

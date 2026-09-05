@@ -124,9 +124,4 @@ function renderConfirmEmail(container, email, navigate) {
   `;
 
   container.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
-<<<<<<< HEAD:app/src/views/register.js
 }
-=======
-}
-// TypeScript source.
->>>>>>> app-online:app/src/views/register.ts

@@ -86,9 +86,4 @@ export async function renderLogin(container, { navigate, refreshUser }) {
       span.innerHTML = Icon.eyeOff();
     }
   }
-<<<<<<< HEAD:app/src/views/login.js
 }
-=======
-}
-// TypeScript source.
->>>>>>> app-online:app/src/views/login.ts
