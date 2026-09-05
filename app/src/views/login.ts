@@ -8,8 +8,8 @@ import { Icon } from "../lib/icons.js";
 export async function renderLogin(container, { navigate, refreshUser }) {
   container.innerHTML = `
     <div class="auth-screen">
-      <img class="brand-mark" src="assets/brand-mark.png" alt="" />
-      <h1 class="auth-title">Panic Button</h1>
+      <img class="brand-mark" src="assets/icon.png" alt="" />
+      <img class="auth-title" src="assets/title.png" />
       <p class="auth-subtitle">${t("login.subtitle")}</p>
 
       <form id="login-form" class="form" novalidate>

@@ -18,8 +18,8 @@ function insertEmailDomain(input, domain) {
 export async function renderRegister(container, { navigate }) {
   container.innerHTML = `
     <div class="auth-screen">
-      <img class="brand-mark" src="assets/brand-mark.png" alt="" />
-      <h1 class="auth-title">${t("route.register.title")}</h1>
+      <img class="auth-title" src="assets/title.png" alt="" />
+      <h2 class="auth-title">${t("route.register.title")}</h2>
       <p class="auth-subtitle">${t("register.subtitle")}</p>
 
       <form id="register-form" class="form" novalidate>
