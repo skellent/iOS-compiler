@@ -2,16 +2,16 @@ import {
   Capacitor,
   __require,
   registerPlugin
-} from "./chunk-sgmc5hz5.js";
+} from "./chunk-3ehvvyd5.js";
 
 // node_modules/@capacitor/splash-screen/dist/esm/index.js
 var SplashScreen = registerPlugin("SplashScreen", {
-  web: () => import("./chunk-z2bbn0w9.js").then((m) => new m.SplashScreenWeb)
+  web: () => import("./chunk-nvj7zn98.js").then((m) => new m.SplashScreenWeb)
 });
 
 // node_modules/@capacitor/preferences/dist/esm/index.js
 var Preferences = registerPlugin("Preferences", {
-  web: () => import("./chunk-81zrdkny.js").then((m) => new m.PreferencesWeb)
+  web: () => import("./chunk-nzk5qex2.js").then((m) => new m.PreferencesWeb)
 });
 
 // src/lib/session.ts
@@ -655,7 +655,7 @@ if (_media) {
 
 // node_modules/@capacitor/app/dist/esm/index.js
 var App = registerPlugin("App", {
-  web: () => import("./chunk-ykxa70x1.js").then((m) => new m.AppWeb)
+  web: () => import("./chunk-trq3kj8p.js").then((m) => new m.AppWeb)
 });
 
 // src/lib/appUpdate.ts
@@ -1047,7 +1047,7 @@ function f(t2 = false) {
 
 // node_modules/@capacitor/geolocation/dist/esm/index.js
 var Geolocation = registerPlugin("Geolocation", {
-  web: () => import("./chunk-nck56p8g.js").then((m) => new m.GeolocationWeb)
+  web: () => import("./chunk-xce4gvhz.js").then((m) => new m.GeolocationWeb)
 });
 f();
 
@@ -1264,7 +1264,7 @@ var PostalAddressType;
 
 // node_modules/@capacitor-community/contacts/dist/esm/index.js
 var Contacts = registerPlugin("Contacts", {
-  web: () => import("./chunk-qvga0x2k.js").then((m) => new m.ContactsWeb)
+  web: () => import("./chunk-1h47ppk8.js").then((m) => new m.ContactsWeb)
 });
 
 // src/lib/contactsPicker.ts
@@ -1302,7 +1302,7 @@ function openSheet(bodyElement) {
 
 // node_modules/@capacitor/share/dist/esm/index.js
 var Share = registerPlugin("Share", {
-  web: () => import("./chunk-arx3gy18.js").then((m) => new m.ShareWeb)
+  web: () => import("./chunk-axk9xybx.js").then((m) => new m.ShareWeb)
 });
 
 // src/lib/share.ts
