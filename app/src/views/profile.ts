@@ -16,7 +16,6 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
 
   container.innerHTML = `
     <div class="profile-screen">
-      <div class="profile-avatar">${escapeHtml((user?.name ?? "?").charAt(0).toUpperCase())}</div>
 
       <form id="profile-form" class="form" novalidate>
         <label class="field">
@@ -45,7 +44,7 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
           <span class="btn-spinner" hidden></span>
         </button>
       </form>
-
+      <div class="form">
       <div class="lang-switcher">
         <span class="lang-switcher-label">${Icon.language()} ${t("profile.language")}</span>
         <select id="lang-select" class="lang-select">
@@ -78,7 +77,8 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
           </label>
         </div>
       </div>
-
+      </div>
+      <div class="form configs">
       <button id="help-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.help()}
         <span class="btn-label">${t("profile.help")}</span>
@@ -88,6 +88,7 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
         ${Icon.info()}
         <span class="btn-label">${t("profile.about")}</span>
       </button>
+      </div>
 
       <button id="logout-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.logout()}

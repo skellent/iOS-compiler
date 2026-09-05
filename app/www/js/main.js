@@ -535,7 +535,7 @@ var Api = {
 var COLOR_KEY = "panicbutton.accentColor";
 var THEME_KEY = "panicbutton.theme";
 var DEFAULT_ACCENT = "#ea2052";
-var DEFAULT_THEME = "auto";
+var DEFAULT_THEME = "light";
 var THEMES = ["auto", "light", "dark"];
 var SHADE_LIGHTNESS = {
   dark: { 900: 0.3, 800: 0.38, 700: 0.45, 600: 0.5, 500: 0.55, 400: 0.65, 300: 0.78 },
@@ -1674,7 +1674,6 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
   const theme = getTheme2();
   container2.innerHTML = `
     <div class="profile-screen">
-      <div class="profile-avatar">${escapeHtml((user?.name ?? "?").charAt(0).toUpperCase())}</div>
 
       <form id="profile-form" class="form" novalidate>
         <label class="field">
@@ -1703,7 +1702,7 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
           <span class="btn-spinner" hidden></span>
         </button>
       </form>
-
+      <div class="form">
       <div class="lang-switcher">
         <span class="lang-switcher-label">${Icon.language()} ${t("profile.language")}</span>
         <select id="lang-select" class="lang-select">
@@ -1734,7 +1733,8 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
           </label>
         </div>
       </div>
-
+      </div>
+      <div class="form configs">
       <button id="help-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.help()}
         <span class="btn-label">${t("profile.help")}</span>
@@ -1744,6 +1744,7 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
         ${Icon.info()}
         <span class="btn-label">${t("profile.about")}</span>
       </button>
+      </div>
 
       <button id="logout-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.logout()}
@@ -1829,7 +1830,10 @@ async function renderAbout(container2, { navigate }) {
         <h1 class="info-title">${t("route.about.title")}</h1>
       </div>
 
-      <img class="about-mark" src="assets/brand-mark.png" alt="" />
+      <center>
+        <img class="brand-mark" src="assets/icon.png" alt="" />
+        <img class="auth-title" src="assets/title.png" alt"" />
+      </center>
 
       <section class="info-section">
         <p class="info-section-body">${t("about.description")}</p>

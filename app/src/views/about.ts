@@ -9,7 +9,10 @@ export async function renderAbout(container, { navigate }) {
         <h1 class="info-title">${t("route.about.title")}</h1>
       </div>
 
-      <img class="about-mark" src="assets/brand-mark.png" alt="" />
+      <center>
+        <img class="brand-mark" src="assets/icon.png" alt="" />
+        <img class="auth-title" src="assets/title.png" alt"" />
+      </center>
 
       <section class="info-section">
         <p class="info-section-body">${t("about.description")}</p>

@@ -3,7 +3,7 @@ import { Preferences } from "@capacitor/preferences";
 const COLOR_KEY = "panicbutton.accentColor";
 const THEME_KEY = "panicbutton.theme";
 export const DEFAULT_ACCENT = "#ea2052";
-export const DEFAULT_THEME = "auto";
+export const DEFAULT_THEME = "light";
 export const THEMES = ["auto", "light", "dark"];
 
 const SHADE_LIGHTNESS = {
