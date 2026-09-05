@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const apiBaseUrl = (process.env.API_BASE_URL || "http://10.0.2.2:8000").replace(/\/+$/, "");
+const apiBaseUrl = (process.env.API_BASE_URL || "http://192.168.0.113:8000").replace(/\/+$/, "");
 
 const config = {
   appId: "com.keycodelogics.panicbutton",
@@ -14,13 +14,13 @@ const config = {
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
-      backgroundColor: "#ea2052",
+      backgroundColor: "#ff0040",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: true,
       androidSpinnerStyle: "large",
       iosSpinnerStyle: "small",
-      spinnerColor: "#f3f3f3ff",
+      spinnerColor: "#ffffff",
       splashFullScreen: true,
       splashImmersive: true,
     },

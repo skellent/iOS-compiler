@@ -2,19 +2,31 @@ import {
   Capacitor,
   __require,
   registerPlugin
+<<<<<<< HEAD
 } from "./chunk-sgmc5hz5.js";
 
 // node_modules/@capacitor/splash-screen/dist/esm/index.js
 var SplashScreen = registerPlugin("SplashScreen", {
   web: () => import("./chunk-z2bbn0w9.js").then((m) => new m.SplashScreenWeb)
+=======
+} from "./chunk-3ehvvyd5.js";
+
+// node_modules/@capacitor/splash-screen/dist/esm/index.js
+var SplashScreen = registerPlugin("SplashScreen", {
+  web: () => import("./chunk-nvj7zn98.js").then((m) => new m.SplashScreenWeb)
+>>>>>>> app-online
 });
 
 // node_modules/@capacitor/preferences/dist/esm/index.js
 var Preferences = registerPlugin("Preferences", {
+<<<<<<< HEAD
   web: () => import("./chunk-81zrdkny.js").then((m) => new m.PreferencesWeb)
+=======
+  web: () => import("./chunk-nzk5qex2.js").then((m) => new m.PreferencesWeb)
+>>>>>>> app-online
 });
 
-// src/lib/session.js
+// src/lib/session.ts
 var TOKEN_KEY = "panicbutton.token";
 var cachedUser = null;
 async function getToken() {
@@ -35,21 +47,12 @@ function setUser(user) {
   cachedUser = user;
 }
 
-// src/lib/i18n.js
+// src/lib/i18n.ts
 var LANG_KEY = "panicbutton.lang";
 var LANGUAGES = [
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
-  { code: "pt-BR", label: "Português (Brasil)" },
-  { code: "pt-PT", label: "Português (Portugal)" },
-  { code: "fr", label: "Français" },
-  { code: "de", label: "Deutsch" },
-  { code: "it", label: "Italiano" },
-  { code: "ru", label: "Русский" },
-  { code: "zh", label: "中文（简体）" },
-  { code: "ja", label: "日本語" },
-  { code: "ko", label: "한국어" },
-  { code: "hi", label: "हिन्दी" }
+  { code: "pt-BR", label: "Português (Brasil)" }
 ];
 var SUPPORTED = LANGUAGES.map((l) => l.code);
 var STRINGS = {
@@ -443,1005 +446,6 @@ var STRINGS = {
     "about.developedBy": "Desenvolvido por Skellent",
     "about.rights": "© Keycodelogics. Todos os direitos reservados.",
     "about.version": "Versão BETA"
-  },
-  "pt-PT": {
-    "nav.home": "Início",
-    "nav.contacts": "Contactos",
-    "nav.profile": "Perfil",
-    "route.login.title": "Iniciar Sessão",
-    "route.register.title": "Criar Conta",
-    "route.contacts.title": "Contactos de Emergência",
-    "route.profile.title": "O Meu Perfil",
-    "route.about.title": "Sobre",
-    "route.help.title": "Ajuda",
-    "errors.generic": "Algo correu mal. Tenta novamente.",
-    "errors.network": "Não foi possível ligar ao servidor. Verifica a tua ligação.",
-    "login.subtitle": "Inicia sessão para teres os teus contactos de emergência a um toque de distância.",
-    "login.email": "Correio eletrónico",
-    "login.password": "Palavra-passe",
-    "login.submit": "Iniciar Sessão",
-    "login.switch": "Não tens conta?",
-    "login.switchLink": "Cria uma",
-    "register.subtitle": "Alguns dados e ficas pronto para adicionar os teus contactos de emergência.",
-    "register.name": "Nome completo",
-    "register.phone": "Telefone",
-    "register.email": "Correio eletrónico",
-    "register.password": "Palavra-passe",
-    "register.confirmPassword": "Confirmar palavra-passe",
-    "register.submit": "Criar Conta",
-    "register.switch": "Já tens conta?",
-    "register.switchLink": "Inicia sessão",
-    "register.passwordMismatch": "As palavras-passe não coincidem.",
-    "confirmMail.title": "Verifica o teu correio",
-    "confirmMail.subtitle": 'Enviámos uma ligação de confirmação para<br /><span class="confirm-mail-email">{email}</span>. Abre-a neste dispositivo para ativares a tua conta e depois volta para iniciar sessão.',
-    "confirmMail.back": "Voltar a Iniciar Sessão",
-    "home.greeting": "Olá, {name}",
-    "home.panicAria": "Mantém premido para enviar um alerta de pânico",
-    "home.idle": "Mantém premido para alertar os teus contactos",
-    "home.holding": "Continua a premir para confirmar...",
-    "home.locating": "A obter a tua localização...",
-    "home.sending": "A enviar alerta...",
-    "home.sent": "Alerta enviado — os teus contactos estão a ser notificados",
-    "home.sentToast": "Alerta de pânico enviado com sucesso.",
-    "home.errorFallback": "Não foi possível enviar o alerta.",
-    "home.statusReady": "{count} contacto pronto a ser alertado",
-    "home.statusReadyPlural": "{count} contactos prontos a ser alertados",
-    "home.statusNone": "Ainda não tens contactos confirmados",
-    "contacts.empty": "Ainda não tens contactos de emergência. Toca no botão + para adicionares alguém que deva ser notificado quando ativares um alerta de pânico.",
-    "contacts.loadError": "Não foi possível carregar os teus contactos. Reabre este separador para tentar novamente.",
-    "contacts.loadErrorToast": "Não foi possível carregar os contactos.",
-    "contacts.limitReached": "Atingiste o limite de {max} contactos de emergência.",
-    "contacts.confirmed": "Confirmado",
-    "contacts.pending": "Pendente",
-    "contacts.addTitle": "Adicionar Contacto de Emergência",
-    "contacts.pickDevice": "Escolher dos contactos do dispositivo",
-    "contacts.addManually": "Adicionar manualmente",
-    "contacts.editTitle": "Editar Contacto",
-    "contacts.name": "Nome",
-    "contacts.phone": "Telefone",
-    "contacts.email": "Correio eletrónico",
-    "contacts.emailRequired": "Indica um correio eletrónico para este contacto.",
-    "contacts.emailHint": "Vamos enviar a este contacto uma ligação de confirmação por correio eletrónico — só os contactos confirmados são notificados durante um alerta de pânico.",
-    "contacts.save": "Guardar Alterações",
-    "contacts.add": "Adicionar Contacto",
-    "contacts.delete": "Eliminar Contacto",
-    "contacts.updated": "Contacto atualizado.",
-    "contacts.addedWithEmail": "Contacto adicionado — correio de confirmação enviado.",
-    "contacts.removed": "Contacto removido.",
-    "contacts.removeError": "Não foi possível remover o contacto.",
-    "contacts.removeConfirm": "Remover {name} dos teus contactos de emergência?",
-    "contacts.pickError": "Não foi possível aceder aos teus contactos.",
-    "contacts.telegramLinked": "Telegram associado",
-    "contacts.telegramNotLinked": "Telegram não associado",
-    "contacts.telegramConnect": "Associar Telegram",
-    "contacts.telegramDisconnect": "Desassociar Telegram",
-    "contacts.telegramEmailSent": "Ligação do Telegram enviada para o correio dele.",
-    "contacts.telegramLinkReady": "Ligação do Telegram pronta — copiada, partilha-a com o teu contacto.",
-    "contacts.telegramDisconnected": "Telegram desassociado.",
-    "contacts.telegramEnableError": "Não foi possível iniciar a associação ao Telegram.",
-    "contacts.telegramDisableError": "Não foi possível desassociar o Telegram.",
-    "profile.name": "Nome",
-    "profile.phone": "Telefone",
-    "profile.email": "Correio eletrónico",
-    "profile.newPassword": "Nova palavra-passe (opcional)",
-    "profile.newPasswordPlaceholder": "Deixa em branco para manteres a palavra-passe atual",
-    "profile.save": "Guardar Alterações",
-    "profile.logout": "Terminar Sessão",
-    "profile.noChanges": "Não há alterações para guardar.",
-    "profile.updated": "Perfil atualizado.",
-    "profile.language": "Idioma",
-    "profile.theme": "Tema",
-    "profile.themeAuto": "Automático",
-    "profile.themeLight": "Claro",
-    "profile.themeDark": "Escuro",
-    "profile.color": "Cor da aplicação",
-    "profile.colorCustom": "Personalizada",
-    "profile.help": "Ajuda",
-    "profile.about": "Sobre",
-    "info.back": "Voltar",
-    "help.intro": "Tudo o que precisas de saber para tirar o máximo partido da Panic Button.",
-    "help.section.account.title": "Criar a tua conta",
-    "help.section.account.body": "Regista-te com o teu nome, telefone, correio eletrónico e uma palavra-passe. Vamos enviar uma ligação de confirmação para o teu correio — abre-a neste dispositivo para ativares a conta e depois volta para iniciar sessão.",
-    "help.section.panic.title": "Enviar um alerta de pânico",
-    "help.section.panic.body": "No ecrã Início, mantém premido o botão SOS durante cerca de um segundo e meio — um anel preenche-se à volta do botão enquanto o premes, e soltá-lo antes cancela o envio. Ao completar-se, a aplicação obtém a tua localização atual e notifica cada contacto de emergência confirmado por correio eletrónico e, para quem associou o Telegram, também por aí.",
-    "help.section.contacts.title": "Gerir contactos de emergência",
-    "help.section.contacts.body": "No separador Contactos, toca no botão + para adicionares alguém, escolhendo dos contactos do teu telefone ou introduzindo os dados manualmente. Toca em qualquer contacto existente para editares os dados, associares ou desassociares o Telegram, ou o removeres.",
-    "help.section.channels.title": "Contactos confirmados vs. pendentes",
-    "help.section.channels.body": "Adicionar um contacto não o notifica automaticamente — cada contacto mostra um ícone de correio e, quando disponível, um do Telegram; um ícone aceso significa que esse canal está confirmado e vai receber alertas, um apagado significa que ainda não. O correio confirma-se quando o contacto clica na ligação que enviámos; o Telegram confirma-se no momento em que abre a ligação e prime Iniciar na conversa com o nosso bot.",
-    "help.section.profile.title": "O teu perfil",
-    "help.section.profile.body": "Atualiza o teu nome, telefone, correio eletrónico ou palavra-passe no separador Perfil. Também podes mudar o idioma e a cor da aplicação a partir daí — ambos ficam guardados só neste dispositivo.",
-    "about.description": "Panic Button é uma aplicação de segurança pessoal: mantém premido um botão para partilhares a tua localização e alertares os teus contactos de confiança por correio eletrónico e Telegram, no momento em que mais precisares deles.",
-    "about.developedBy": "Desenvolvido por Skellent",
-    "about.rights": "© Keycodelogics. Todos os direitos reservados.",
-    "about.version": "Versão BETA"
-  },
-  fr: {
-    "nav.home": "Accueil",
-    "nav.contacts": "Contacts",
-    "nav.profile": "Profil",
-    "route.login.title": "Connexion",
-    "route.register.title": "Créer un compte",
-    "route.contacts.title": "Contacts d'urgence",
-    "route.profile.title": "Mon profil",
-    "route.about.title": "À propos",
-    "route.help.title": "Aide",
-    "errors.generic": "Une erreur est survenue. Réessaie.",
-    "errors.network": "Impossible de joindre le serveur. Vérifie ta connexion.",
-    "login.subtitle": "Connecte-toi pour garder tes contacts d'urgence à portée de main.",
-    "login.email": "E-mail",
-    "login.password": "Mot de passe",
-    "login.submit": "Se connecter",
-    "login.switch": "Pas encore de compte ?",
-    "login.switchLink": "En créer un",
-    "register.subtitle": "Quelques informations et tu pourras ajouter tes contacts d'urgence.",
-    "register.name": "Nom complet",
-    "register.phone": "Téléphone",
-    "register.email": "E-mail",
-    "register.password": "Mot de passe",
-    "register.confirmPassword": "Confirmer le mot de passe",
-    "register.submit": "Créer un compte",
-    "register.switch": "Déjà un compte ?",
-    "register.switchLink": "Se connecter",
-    "register.passwordMismatch": "Les mots de passe ne correspondent pas.",
-    "confirmMail.title": "Vérifie tes e-mails",
-    "confirmMail.subtitle": 'Nous avons envoyé un lien de confirmation à<br /><span class="confirm-mail-email">{email}</span>. Ouvre-le sur cet appareil pour activer ton compte, puis reviens te connecter.',
-    "confirmMail.back": "Retour à la connexion",
-    "home.greeting": "Salut, {name}",
-    "home.panicAria": "Maintiens appuyé pour envoyer une alerte panique",
-    "home.idle": "Maintiens appuyé pour alerter tes contacts",
-    "home.holding": "Continue à appuyer pour confirmer...",
-    "home.locating": "Récupération de ta position...",
-    "home.sending": "Envoi de l'alerte...",
-    "home.sent": "Alerte envoyée — tes contacts sont en train d'être prévenus",
-    "home.sentToast": "Alerte panique envoyée avec succès.",
-    "home.errorFallback": "Impossible d'envoyer l'alerte.",
-    "home.statusReady": "{count} contact prêt à être alerté",
-    "home.statusReadyPlural": "{count} contacts prêts à être alertés",
-    "home.statusNone": "Aucun contact confirmé pour l'instant",
-    "contacts.empty": "Tu n'as pas encore de contact d'urgence. Appuie sur le bouton + pour ajouter quelqu'un à prévenir quand tu déclenches une alerte panique.",
-    "contacts.loadError": "Impossible de charger tes contacts. Rouvre cet onglet pour réessayer.",
-    "contacts.loadErrorToast": "Impossible de charger les contacts.",
-    "contacts.limitReached": "Tu as atteint la limite de {max} contacts d'urgence.",
-    "contacts.confirmed": "Confirmé",
-    "contacts.pending": "En attente",
-    "contacts.addTitle": "Ajouter un contact d'urgence",
-    "contacts.pickDevice": "Choisir parmi les contacts de l'appareil",
-    "contacts.addManually": "Ajouter manuellement",
-    "contacts.editTitle": "Modifier le contact",
-    "contacts.name": "Nom",
-    "contacts.phone": "Téléphone",
-    "contacts.email": "E-mail",
-    "contacts.emailRequired": "Indique un e-mail pour ce contact.",
-    "contacts.emailHint": "Nous enverrons à ce contact un lien de confirmation par e-mail — seuls les contacts confirmés sont prévenus lors d'une alerte panique.",
-    "contacts.save": "Enregistrer",
-    "contacts.add": "Ajouter le contact",
-    "contacts.delete": "Supprimer le contact",
-    "contacts.updated": "Contact mis à jour.",
-    "contacts.addedWithEmail": "Contact ajouté — e-mail de confirmation envoyé.",
-    "contacts.removed": "Contact supprimé.",
-    "contacts.removeError": "Impossible de supprimer le contact.",
-    "contacts.removeConfirm": "Retirer {name} de tes contacts d'urgence ?",
-    "contacts.pickError": "Impossible d'accéder à tes contacts.",
-    "contacts.telegramLinked": "Telegram lié",
-    "contacts.telegramNotLinked": "Telegram non lié",
-    "contacts.telegramConnect": "Lier Telegram",
-    "contacts.telegramDisconnect": "Délier Telegram",
-    "contacts.telegramEmailSent": "Lien Telegram envoyé à son e-mail.",
-    "contacts.telegramLinkReady": "Lien Telegram prêt — copié, partage-le avec ton contact.",
-    "contacts.telegramDisconnected": "Telegram délié.",
-    "contacts.telegramEnableError": "Impossible de démarrer la liaison Telegram.",
-    "contacts.telegramDisableError": "Impossible de délier Telegram.",
-    "profile.name": "Nom",
-    "profile.phone": "Téléphone",
-    "profile.email": "E-mail",
-    "profile.newPassword": "Nouveau mot de passe (facultatif)",
-    "profile.newPasswordPlaceholder": "Laisse vide pour garder ton mot de passe actuel",
-    "profile.save": "Enregistrer",
-    "profile.logout": "Se déconnecter",
-    "profile.noChanges": "Aucune modification à enregistrer.",
-    "profile.updated": "Profil mis à jour.",
-    "profile.language": "Langue",
-    "profile.theme": "Thème",
-    "profile.themeAuto": "Auto",
-    "profile.themeLight": "Clair",
-    "profile.themeDark": "Sombre",
-    "profile.color": "Couleur de l'application",
-    "profile.colorCustom": "Personnalisée",
-    "profile.help": "Aide",
-    "profile.about": "À propos",
-    "info.back": "Retour",
-    "help.intro": "Tout ce qu'il faut savoir pour profiter au mieux de Panic Button.",
-    "help.section.account.title": "Créer ton compte",
-    "help.section.account.body": "Inscris-toi avec ton nom, ton téléphone, ton e-mail et un mot de passe. Nous t'enverrons un lien de confirmation par e-mail — ouvre-le sur cet appareil pour activer ton compte, puis reviens te connecter.",
-    "help.section.panic.title": "Envoyer une alerte panique",
-    "help.section.panic.body": "Sur l'écran d'accueil, maintiens appuyé le bouton SOS pendant environ une seconde et demie — un anneau se remplit autour du bouton pendant l'appui, et relâcher trop tôt annule l'envoi. Une fois l'appui terminé, l'application récupère ta position actuelle et prévient chaque contact d'urgence confirmé par e-mail et, pour ceux qui ont lié Telegram, également par ce biais.",
-    "help.section.contacts.title": "Gérer tes contacts d'urgence",
-    "help.section.contacts.body": "Dans l'onglet Contacts, appuie sur le bouton + pour ajouter quelqu'un, en le choisissant dans le carnet d'adresses de ton téléphone ou en saisissant ses informations manuellement. Appuie sur un contact existant pour modifier ses informations, lier ou délier Telegram, ou le supprimer.",
-    "help.section.channels.title": "Contacts confirmés vs en attente",
-    "help.section.channels.body": "Ajouter un contact ne le prévient pas automatiquement — chaque contact affiche une icône e-mail et, si disponible, une icône Telegram ; une icône allumée signifie que ce canal est confirmé et recevra les alertes, une icône éteinte signifie que ce n'est pas encore le cas. L'e-mail se confirme quand le contact clique sur le lien envoyé ; Telegram se confirme dès qu'il ouvre le lien et appuie sur Démarrer dans la conversation avec notre bot.",
-    "help.section.profile.title": "Ton profil",
-    "help.section.profile.body": "Mets à jour ton nom, ton téléphone, ton e-mail ou ton mot de passe depuis l'onglet Profil. Tu peux aussi y changer la langue et la couleur de l'application — les deux ne sont enregistrées que sur cet appareil.",
-    "about.description": "Panic Button est une application de sécurité personnelle : maintiens appuyé un bouton pour partager ta position et alerter tes contacts de confiance par e-mail et Telegram, au moment où tu as le plus besoin d'eux.",
-    "about.developedBy": "Développé par Skellent",
-    "about.rights": "© Keycodelogics. Tous droits réservés.",
-    "about.version": "Version BÊTA"
-  },
-  de: {
-    "nav.home": "Start",
-    "nav.contacts": "Kontakte",
-    "nav.profile": "Profil",
-    "route.login.title": "Anmelden",
-    "route.register.title": "Konto erstellen",
-    "route.contacts.title": "Notfallkontakte",
-    "route.profile.title": "Mein Profil",
-    "route.about.title": "Über",
-    "route.help.title": "Hilfe",
-    "errors.generic": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
-    "errors.network": "Server nicht erreichbar. Überprüfe deine Verbindung.",
-    "login.subtitle": "Melde dich an, damit deine Notfallkontakte nur einen Klick entfernt sind.",
-    "login.email": "E-Mail",
-    "login.password": "Passwort",
-    "login.submit": "Anmelden",
-    "login.switch": "Noch kein Konto?",
-    "login.switchLink": "Jetzt erstellen",
-    "register.subtitle": "Ein paar Angaben, und schon kannst du deine Notfallkontakte hinzufügen.",
-    "register.name": "Vollständiger Name",
-    "register.phone": "Telefon",
-    "register.email": "E-Mail",
-    "register.password": "Passwort",
-    "register.confirmPassword": "Passwort bestätigen",
-    "register.submit": "Konto erstellen",
-    "register.switch": "Schon ein Konto?",
-    "register.switchLink": "Anmelden",
-    "register.passwordMismatch": "Die Passwörter stimmen nicht überein.",
-    "confirmMail.title": "Überprüfe deine E-Mails",
-    "confirmMail.subtitle": 'Wir haben einen Bestätigungslink an<br /><span class="confirm-mail-email">{email}</span> gesendet. Öffne ihn auf diesem Gerät, um dein Konto zu aktivieren, und melde dich danach an.',
-    "confirmMail.back": "Zurück zur Anmeldung",
-    "home.greeting": "Hallo, {name}",
-    "home.panicAria": "Gedrückt halten, um einen Notfallalarm zu senden",
-    "home.idle": "Gedrückt halten, um deine Kontakte zu alarmieren",
-    "home.holding": "Weiter gedrückt halten, um zu bestätigen...",
-    "home.locating": "Standort wird ermittelt...",
-    "home.sending": "Alarm wird gesendet...",
-    "home.sent": "Alarm gesendet — deine Kontakte werden benachrichtigt",
-    "home.sentToast": "Notfallalarm erfolgreich gesendet.",
-    "home.errorFallback": "Der Alarm konnte nicht gesendet werden.",
-    "home.statusReady": "{count} Kontakt bereit, alarmiert zu werden",
-    "home.statusReadyPlural": "{count} Kontakte bereit, alarmiert zu werden",
-    "home.statusNone": "Noch keine bestätigten Kontakte",
-    "contacts.empty": "Du hast noch keine Notfallkontakte. Tippe auf das +, um jemanden hinzuzufügen, der bei einem Notfallalarm benachrichtigt werden soll.",
-    "contacts.loadError": "Deine Kontakte konnten nicht geladen werden. Öffne diesen Tab erneut, um es noch einmal zu versuchen.",
-    "contacts.loadErrorToast": "Kontakte konnten nicht geladen werden.",
-    "contacts.limitReached": "Du hast das Limit von {max} Notfallkontakten erreicht.",
-    "contacts.confirmed": "Bestätigt",
-    "contacts.pending": "Ausstehend",
-    "contacts.addTitle": "Notfallkontakt hinzufügen",
-    "contacts.pickDevice": "Aus den Gerätekontakten wählen",
-    "contacts.addManually": "Manuell hinzufügen",
-    "contacts.editTitle": "Kontakt bearbeiten",
-    "contacts.name": "Name",
-    "contacts.phone": "Telefon",
-    "contacts.email": "E-Mail",
-    "contacts.emailRequired": "Bitte gib eine E-Mail-Adresse für diesen Kontakt ein.",
-    "contacts.emailHint": "Wir senden diesem Kontakt einen Bestätigungslink per E-Mail — nur bestätigte Kontakte werden bei einem Notfallalarm benachrichtigt.",
-    "contacts.save": "Änderungen speichern",
-    "contacts.add": "Kontakt hinzufügen",
-    "contacts.delete": "Kontakt löschen",
-    "contacts.updated": "Kontakt aktualisiert.",
-    "contacts.addedWithEmail": "Kontakt hinzugefügt — Bestätigungs-E-Mail gesendet.",
-    "contacts.removed": "Kontakt entfernt.",
-    "contacts.removeError": "Kontakt konnte nicht entfernt werden.",
-    "contacts.removeConfirm": "{name} aus deinen Notfallkontakten entfernen?",
-    "contacts.pickError": "Auf deine Kontakte konnte nicht zugegriffen werden.",
-    "contacts.telegramLinked": "Telegram verknüpft",
-    "contacts.telegramNotLinked": "Telegram nicht verknüpft",
-    "contacts.telegramConnect": "Telegram verknüpfen",
-    "contacts.telegramDisconnect": "Telegram trennen",
-    "contacts.telegramEmailSent": "Telegram-Link an seine E-Mail gesendet.",
-    "contacts.telegramLinkReady": "Telegram-Link bereit — kopiert, teile ihn mit deinem Kontakt.",
-    "contacts.telegramDisconnected": "Telegram getrennt.",
-    "contacts.telegramEnableError": "Telegram-Verknüpfung konnte nicht gestartet werden.",
-    "contacts.telegramDisableError": "Telegram konnte nicht getrennt werden.",
-    "profile.name": "Name",
-    "profile.phone": "Telefon",
-    "profile.email": "E-Mail",
-    "profile.newPassword": "Neues Passwort (optional)",
-    "profile.newPasswordPlaceholder": "Leer lassen, um das aktuelle Passwort zu behalten",
-    "profile.save": "Änderungen speichern",
-    "profile.logout": "Abmelden",
-    "profile.noChanges": "Keine Änderungen zum Speichern.",
-    "profile.updated": "Profil aktualisiert.",
-    "profile.language": "Sprache",
-    "profile.theme": "Design",
-    "profile.themeAuto": "Automatisch",
-    "profile.themeLight": "Hell",
-    "profile.themeDark": "Dunkel",
-    "profile.color": "App-Farbe",
-    "profile.colorCustom": "Benutzerdefiniert",
-    "profile.help": "Hilfe",
-    "profile.about": "Über",
-    "info.back": "Zurück",
-    "help.intro": "Alles, was du wissen musst, um Panic Button optimal zu nutzen.",
-    "help.section.account.title": "Dein Konto erstellen",
-    "help.section.account.body": "Registriere dich mit deinem Namen, deiner Telefonnummer, E-Mail-Adresse und einem Passwort. Wir senden dir einen Bestätigungslink per E-Mail — öffne ihn auf diesem Gerät, um dein Konto zu aktivieren, und melde dich danach an.",
-    "help.section.panic.title": "Einen Notfallalarm senden",
-    "help.section.panic.body": "Halte auf dem Startbildschirm den SOS-Button etwa anderthalb Sekunden gedrückt — während du ihn hältst, füllt sich ein Ring um den Button, und zu frühes Loslassen bricht den Vorgang ab. Sobald der Vorgang abgeschlossen ist, ermittelt die App deinen aktuellen Standort und benachrichtigt jeden bestätigten Notfallkontakt per E-Mail sowie, bei verknüpftem Telegram, zusätzlich darüber.",
-    "help.section.contacts.title": "Notfallkontakte verwalten",
-    "help.section.contacts.body": "Tippe im Tab Kontakte auf das +, um jemanden hinzuzufügen — entweder aus deinem Adressbuch ausgewählt oder manuell eingegeben. Tippe auf einen bestehenden Kontakt, um seine Daten zu bearbeiten, Telegram zu verknüpfen oder zu trennen, oder ihn zu entfernen.",
-    "help.section.channels.title": "Bestätigte vs. ausstehende Kontakte",
-    "help.section.channels.body": "Das Hinzufügen eines Kontakts benachrichtigt ihn nicht automatisch — jeder Kontakt zeigt ein E-Mail-Symbol und, falls verfügbar, ein Telegram-Symbol; ein leuchtendes Symbol bedeutet, dass dieser Kanal bestätigt ist und Alarme erhält, ein blasses bedeutet, dass es noch nicht so weit ist. E-Mail wird bestätigt, sobald der Kontakt auf den gesendeten Link klickt; Telegram wird bestätigt, sobald er den Link öffnet und im Chat mit unserem Bot auf Start tippt.",
-    "help.section.profile.title": "Dein Profil",
-    "help.section.profile.body": "Aktualisiere deinen Namen, deine Telefonnummer, E-Mail-Adresse oder dein Passwort im Tab Profil. Dort kannst du auch die Sprache und die Farbe der App ändern — beides wird nur auf diesem Gerät gespeichert.",
-    "about.description": "Panic Button ist eine App für persönliche Sicherheit: Halte einen Button gedrückt, um deinen Standort zu teilen und deine vertrauten Notfallkontakte per E-Mail und Telegram zu alarmieren — genau dann, wenn du sie am meisten brauchst.",
-    "about.developedBy": "Entwickelt von Skellent",
-    "about.rights": "© Keycodelogics. Alle Rechte vorbehalten.",
-    "about.version": "Version BETA"
-  },
-  it: {
-    "nav.home": "Home",
-    "nav.contacts": "Contatti",
-    "nav.profile": "Profilo",
-    "route.login.title": "Accedi",
-    "route.register.title": "Crea account",
-    "route.contacts.title": "Contatti di emergenza",
-    "route.profile.title": "Il mio profilo",
-    "route.about.title": "Informazioni",
-    "route.help.title": "Aiuto",
-    "errors.generic": "Qualcosa è andato storto. Riprova.",
-    "errors.network": "Impossibile raggiungere il server. Controlla la connessione.",
-    "login.subtitle": "Accedi per avere i tuoi contatti di emergenza a portata di tocco.",
-    "login.email": "E-mail",
-    "login.password": "Password",
-    "login.submit": "Accedi",
-    "login.switch": "Non hai un account?",
-    "login.switchLink": "Creane uno",
-    "register.subtitle": "Pochi dati e sarai pronto ad aggiungere i tuoi contatti di emergenza.",
-    "register.name": "Nome completo",
-    "register.phone": "Telefono",
-    "register.email": "E-mail",
-    "register.password": "Password",
-    "register.confirmPassword": "Conferma password",
-    "register.submit": "Crea account",
-    "register.switch": "Hai già un account?",
-    "register.switchLink": "Accedi",
-    "register.passwordMismatch": "Le password non coincidono.",
-    "confirmMail.title": "Controlla la tua e-mail",
-    "confirmMail.subtitle": 'Abbiamo inviato un link di conferma a<br /><span class="confirm-mail-email">{email}</span>. Aprilo su questo dispositivo per attivare il tuo account, poi torna ad accedere.',
-    "confirmMail.back": "Torna al login",
-    "home.greeting": "Ciao, {name}",
-    "home.panicAria": "Tieni premuto per inviare un allarme di emergenza",
-    "home.idle": "Tieni premuto per allertare i tuoi contatti",
-    "home.holding": "Continua a tenere premuto per confermare...",
-    "home.locating": "Rilevamento della posizione...",
-    "home.sending": "Invio dell'allarme...",
-    "home.sent": "Allarme inviato — i tuoi contatti stanno per essere avvisati",
-    "home.sentToast": "Allarme di emergenza inviato con successo.",
-    "home.errorFallback": "Impossibile inviare l'allarme.",
-    "home.statusReady": "{count} contatto pronto a essere allertato",
-    "home.statusReadyPlural": "{count} contatti pronti a essere allertati",
-    "home.statusNone": "Nessun contatto confermato per ora",
-    "contacts.empty": "Non hai ancora contatti di emergenza. Tocca il pulsante + per aggiungere qualcuno da avvisare quando attivi un allarme di emergenza.",
-    "contacts.loadError": "Impossibile caricare i tuoi contatti. Riapri questa scheda per riprovare.",
-    "contacts.loadErrorToast": "Impossibile caricare i contatti.",
-    "contacts.limitReached": "Hai raggiunto il limite di {max} contatti di emergenza.",
-    "contacts.confirmed": "Confermato",
-    "contacts.pending": "In attesa",
-    "contacts.addTitle": "Aggiungi contatto di emergenza",
-    "contacts.pickDevice": "Scegli dai contatti del dispositivo",
-    "contacts.addManually": "Aggiungi manualmente",
-    "contacts.editTitle": "Modifica contatto",
-    "contacts.name": "Nome",
-    "contacts.phone": "Telefono",
-    "contacts.email": "E-mail",
-    "contacts.emailRequired": "Inserisci un'e-mail per questo contatto.",
-    "contacts.emailHint": "Invieremo a questo contatto un link di conferma via e-mail — solo i contatti confermati vengono avvisati durante un allarme di emergenza.",
-    "contacts.save": "Salva modifiche",
-    "contacts.add": "Aggiungi contatto",
-    "contacts.delete": "Elimina contatto",
-    "contacts.updated": "Contatto aggiornato.",
-    "contacts.addedWithEmail": "Contatto aggiunto — e-mail di conferma inviata.",
-    "contacts.removed": "Contatto rimosso.",
-    "contacts.removeError": "Impossibile rimuovere il contatto.",
-    "contacts.removeConfirm": "Rimuovere {name} dai tuoi contatti di emergenza?",
-    "contacts.pickError": "Impossibile accedere ai tuoi contatti.",
-    "contacts.telegramLinked": "Telegram collegato",
-    "contacts.telegramNotLinked": "Telegram non collegato",
-    "contacts.telegramConnect": "Collega Telegram",
-    "contacts.telegramDisconnect": "Scollega Telegram",
-    "contacts.telegramEmailSent": "Link di Telegram inviato alla sua e-mail.",
-    "contacts.telegramLinkReady": "Link di Telegram pronto — copiato, condividilo con il tuo contatto.",
-    "contacts.telegramDisconnected": "Telegram scollegato.",
-    "contacts.telegramEnableError": "Impossibile avviare il collegamento a Telegram.",
-    "contacts.telegramDisableError": "Impossibile scollegare Telegram.",
-    "profile.name": "Nome",
-    "profile.phone": "Telefono",
-    "profile.email": "E-mail",
-    "profile.newPassword": "Nuova password (facoltativa)",
-    "profile.newPasswordPlaceholder": "Lascia vuoto per mantenere la password attuale",
-    "profile.save": "Salva modifiche",
-    "profile.logout": "Esci",
-    "profile.noChanges": "Nessuna modifica da salvare.",
-    "profile.updated": "Profilo aggiornato.",
-    "profile.language": "Lingua",
-    "profile.theme": "Tema",
-    "profile.themeAuto": "Automatico",
-    "profile.themeLight": "Chiaro",
-    "profile.themeDark": "Scuro",
-    "profile.color": "Colore dell'app",
-    "profile.colorCustom": "Personalizzato",
-    "profile.help": "Aiuto",
-    "profile.about": "Informazioni",
-    "info.back": "Indietro",
-    "help.intro": "Tutto quello che devi sapere per sfruttare al meglio Panic Button.",
-    "help.section.account.title": "Creare il tuo account",
-    "help.section.account.body": "Registrati con nome, telefono, e-mail e una password. Ti invieremo un link di conferma via e-mail — aprilo su questo dispositivo per attivare l'account, poi torna ad accedere.",
-    "help.section.panic.title": "Inviare un allarme di emergenza",
-    "help.section.panic.body": "Nella schermata Home, tieni premuto il pulsante SOS per circa un secondo e mezzo — un anello si riempie intorno al pulsante mentre lo tieni premuto, e rilasciarlo prima annulla l'invio. Al termine, l'app rileva la tua posizione attuale e avvisa ogni contatto di emergenza confermato via e-mail e, per chi ha collegato Telegram, anche lì.",
-    "help.section.contacts.title": "Gestire i contatti di emergenza",
-    "help.section.contacts.body": "Nella scheda Contatti, tocca il pulsante + per aggiungere qualcuno, scegliendolo dalla rubrica del telefono o inserendo i dati manualmente. Tocca un contatto esistente per modificarne i dati, collegare o scollegare Telegram, oppure rimuoverlo.",
-    "help.section.channels.title": "Contatti confermati e in attesa",
-    "help.section.channels.body": "Aggiungere un contatto non lo avvisa automaticamente — ogni contatto mostra un'icona e-mail e, quando disponibile, una di Telegram; un'icona accesa significa che quel canale è confermato e riceverà gli allarmi, una spenta significa che non lo è ancora. L'e-mail si conferma quando il contatto clicca sul link inviato; Telegram si conferma nel momento in cui apre il link e preme Start nella chat con il nostro bot.",
-    "help.section.profile.title": "Il tuo profilo",
-    "help.section.profile.body": "Aggiorna nome, telefono, e-mail o password dalla scheda Profilo. Da lì puoi anche cambiare la lingua e il colore dell'app — entrambi vengono salvati solo su questo dispositivo.",
-    "about.description": "Panic Button è un'app per la sicurezza personale: tieni premuto un pulsante per condividere la tua posizione e allertare i tuoi contatti di fiducia via e-mail e Telegram, proprio nel momento in cui ne hai più bisogno.",
-    "about.developedBy": "Sviluppato da Skellent",
-    "about.rights": "© Keycodelogics. Tutti i diritti riservati.",
-    "about.version": "Versione BETA"
-  },
-  ru: {
-    "nav.home": "Главная",
-    "nav.contacts": "Контакты",
-    "nav.profile": "Профиль",
-    "route.login.title": "Вход",
-    "route.register.title": "Создать аккаунт",
-    "route.contacts.title": "Контакты для экстренной связи",
-    "route.profile.title": "Мой профиль",
-    "route.about.title": "О приложении",
-    "route.help.title": "Помощь",
-    "errors.generic": "Что-то пошло не так. Попробуй ещё раз.",
-    "errors.network": "Не удалось подключиться к серверу. Проверь соединение.",
-    "login.subtitle": "Войди, чтобы твои экстренные контакты были всегда под рукой.",
-    "login.email": "Эл. почта",
-    "login.password": "Пароль",
-    "login.submit": "Войти",
-    "login.switch": "Нет аккаунта?",
-    "login.switchLink": "Создать",
-    "register.subtitle": "Немного данных — и можно добавлять экстренные контакты.",
-    "register.name": "Полное имя",
-    "register.phone": "Телефон",
-    "register.email": "Эл. почта",
-    "register.password": "Пароль",
-    "register.confirmPassword": "Подтвердите пароль",
-    "register.submit": "Создать аккаунт",
-    "register.switch": "Уже есть аккаунт?",
-    "register.switchLink": "Войти",
-    "register.passwordMismatch": "Пароли не совпадают.",
-    "confirmMail.title": "Проверь почту",
-    "confirmMail.subtitle": 'Мы отправили ссылку для подтверждения на<br /><span class="confirm-mail-email">{email}</span>. Открой её на этом устройстве, чтобы активировать аккаунт, а затем вернись и войди.',
-    "confirmMail.back": "Назад ко входу",
-    "home.greeting": "Привет, {name}",
-    "home.panicAria": "Удерживай, чтобы отправить сигнал тревоги",
-    "home.idle": "Удерживай, чтобы оповестить контакты",
-    "home.holding": "Продолжай удерживать для подтверждения...",
-    "home.locating": "Определяем твоё местоположение...",
-    "home.sending": "Отправка сигнала...",
-    "home.sent": "Сигнал отправлен — твои контакты уведомляются",
-    "home.sentToast": "Сигнал тревоги успешно отправлен.",
-    "home.errorFallback": "Не удалось отправить сигнал.",
-    "home.statusReady": "{count} контакт готов получить оповещение",
-    "home.statusReadyPlural": "{count} контактов готовы получить оповещение",
-    "home.statusNone": "Пока нет подтверждённых контактов",
-    "contacts.empty": "У тебя пока нет экстренных контактов. Нажми +, чтобы добавить того, кого нужно оповещать при сигнале тревоги.",
-    "contacts.loadError": "Не удалось загрузить контакты. Открой вкладку заново, чтобы повторить попытку.",
-    "contacts.loadErrorToast": "Не удалось загрузить контакты.",
-    "contacts.limitReached": "Достигнут лимит в {max} экстренных контакта.",
-    "contacts.confirmed": "Подтверждён",
-    "contacts.pending": "Ожидает",
-    "contacts.addTitle": "Добавить экстренный контакт",
-    "contacts.pickDevice": "Выбрать из контактов устройства",
-    "contacts.addManually": "Добавить вручную",
-    "contacts.editTitle": "Изменить контакт",
-    "contacts.name": "Имя",
-    "contacts.phone": "Телефон",
-    "contacts.email": "Эл. почта",
-    "contacts.emailRequired": "Укажи адрес эл. почты для этого контакта.",
-    "contacts.emailHint": "Мы отправим этому контакту ссылку для подтверждения по эл. почте — оповещения при сигнале тревоги получают только подтверждённые контакты.",
-    "contacts.save": "Сохранить изменения",
-    "contacts.add": "Добавить контакт",
-    "contacts.delete": "Удалить контакт",
-    "contacts.updated": "Контакт обновлён.",
-    "contacts.addedWithEmail": "Контакт добавлен — письмо с подтверждением отправлено.",
-    "contacts.removed": "Контакт удалён.",
-    "contacts.removeError": "Не удалось удалить контакт.",
-    "contacts.removeConfirm": "Удалить {name} из экстренных контактов?",
-    "contacts.pickError": "Не удалось получить доступ к контактам.",
-    "contacts.telegramLinked": "Telegram привязан",
-    "contacts.telegramNotLinked": "Telegram не привязан",
-    "contacts.telegramConnect": "Привязать Telegram",
-    "contacts.telegramDisconnect": "Отвязать Telegram",
-    "contacts.telegramEmailSent": "Ссылка на Telegram отправлена на его почту.",
-    "contacts.telegramLinkReady": "Ссылка на Telegram готова — скопирована, поделись ею с контактом.",
-    "contacts.telegramDisconnected": "Telegram отвязан.",
-    "contacts.telegramEnableError": "Не удалось начать привязку Telegram.",
-    "contacts.telegramDisableError": "Не удалось отвязать Telegram.",
-    "profile.name": "Имя",
-    "profile.phone": "Телефон",
-    "profile.email": "Эл. почта",
-    "profile.newPassword": "Новый пароль (необязательно)",
-    "profile.newPasswordPlaceholder": "Оставь пустым, чтобы сохранить текущий пароль",
-    "profile.save": "Сохранить изменения",
-    "profile.logout": "Выйти",
-    "profile.noChanges": "Нет изменений для сохранения.",
-    "profile.updated": "Профиль обновлён.",
-    "profile.language": "Язык",
-    "profile.theme": "Тема",
-    "profile.themeAuto": "Авто",
-    "profile.themeLight": "Светлая",
-    "profile.themeDark": "Тёмная",
-    "profile.color": "Цвет приложения",
-    "profile.colorCustom": "Свой цвет",
-    "profile.help": "Помощь",
-    "profile.about": "О приложении",
-    "info.back": "Назад",
-    "help.intro": "Всё, что нужно знать, чтобы использовать Panic Button по максимуму.",
-    "help.section.account.title": "Создание аккаунта",
-    "help.section.account.body": "Зарегистрируйся, указав имя, телефон, эл. почту и пароль. Мы отправим ссылку для подтверждения на почту — открой её на этом устройстве, чтобы активировать аккаунт, а затем войди.",
-    "help.section.panic.title": "Отправка сигнала тревоги",
-    "help.section.panic.body": "На главном экране удерживай кнопку SOS около полутора секунд — вокруг кнопки заполняется кольцо, пока ты её удерживаешь, а отпускание раньше времени отменяет отправку. По завершении приложение определяет твоё текущее местоположение и оповещает каждый подтверждённый экстренный контакт по эл. почте, а тех, кто привязал Telegram, — ещё и там.",
-    "help.section.contacts.title": "Управление экстренными контактами",
-    "help.section.contacts.body": "На вкладке «Контакты» нажми +, чтобы добавить человека — выбрав его из адресной книги телефона или введя данные вручную. Нажми на существующий контакт, чтобы изменить его данные, привязать или отвязать Telegram, либо удалить его.",
-    "help.section.channels.title": "Подтверждённые и ожидающие контакты",
-    "help.section.channels.body": "Добавление контакта не оповещает его автоматически — у каждого контакта есть значок почты и, если доступно, значок Telegram; горящий значок означает, что этот канал подтверждён и будет получать оповещения, а тусклый — что пока нет. Почта подтверждается, когда контакт переходит по отправленной ссылке; Telegram подтверждается, как только он открывает ссылку и нажимает «Старт» в чате с нашим ботом.",
-    "help.section.profile.title": "Твой профиль",
-    "help.section.profile.body": "Обнови имя, телефон, эл. почту или пароль на вкладке «Профиль». Там же можно изменить язык и цвет приложения — оба параметра сохраняются только на этом устройстве.",
-    "about.description": "Panic Button — приложение для личной безопасности: удерживай кнопку, чтобы поделиться своим местоположением и оповестить доверенные экстренные контакты по эл. почте и Telegram именно тогда, когда они нужны тебе больше всего.",
-    "about.developedBy": "Разработано Skellent",
-    "about.rights": "© Keycodelogics. Все права защищены.",
-    "about.version": "Версия БЕТА"
-  },
-  zh: {
-    "nav.home": "首页",
-    "nav.contacts": "联系人",
-    "nav.profile": "我的",
-    "route.login.title": "登录",
-    "route.register.title": "创建账户",
-    "route.contacts.title": "紧急联系人",
-    "route.profile.title": "我的资料",
-    "route.about.title": "关于",
-    "route.help.title": "帮助",
-    "errors.generic": "出了点问题，请重试。",
-    "errors.network": "无法连接服务器，请检查网络连接。",
-    "login.subtitle": "登录后即可随时联系你的紧急联系人。",
-    "login.email": "邮箱",
-    "login.password": "密码",
-    "login.submit": "登录",
-    "login.switch": "还没有账户？",
-    "login.switchLink": "立即创建",
-    "register.subtitle": "填写几项信息，即可添加你的紧急联系人。",
-    "register.name": "姓名",
-    "register.phone": "电话",
-    "register.email": "邮箱",
-    "register.password": "密码",
-    "register.confirmPassword": "确认密码",
-    "register.submit": "创建账户",
-    "register.switch": "已有账户？",
-    "register.switchLink": "去登录",
-    "register.passwordMismatch": "两次输入的密码不一致。",
-    "confirmMail.title": "请查收邮件",
-    "confirmMail.subtitle": '我们已将确认链接发送至<br /><span class="confirm-mail-email">{email}</span>。请在本设备上打开该链接以激活账户，然后返回登录。',
-    "confirmMail.back": "返回登录",
-    "home.greeting": "你好，{name}",
-    "home.panicAria": "长按发送紧急警报",
-    "home.idle": "长按以提醒你的联系人",
-    "home.holding": "继续按住以确认……",
-    "home.locating": "正在获取你的位置……",
-    "home.sending": "正在发送警报……",
-    "home.sent": "警报已发送 — 正在通知你的联系人",
-    "home.sentToast": "紧急警报发送成功。",
-    "home.errorFallback": "警报发送失败。",
-    "home.statusReady": "{count} 位联系人可接收警报",
-    "home.statusReadyPlural": "{count} 位联系人可接收警报",
-    "home.statusNone": "暂无已确认的联系人",
-    "contacts.empty": "你还没有添加紧急联系人。点击 + 按钮添加一位在你触发紧急警报时应被通知的人。",
-    "contacts.loadError": "无法加载你的联系人，请重新打开此页面重试。",
-    "contacts.loadErrorToast": "无法加载联系人。",
-    "contacts.limitReached": "已达到 {max} 位紧急联系人的上限。",
-    "contacts.confirmed": "已确认",
-    "contacts.pending": "待确认",
-    "contacts.addTitle": "添加紧急联系人",
-    "contacts.pickDevice": "从设备通讯录选择",
-    "contacts.addManually": "手动添加",
-    "contacts.editTitle": "编辑联系人",
-    "contacts.name": "姓名",
-    "contacts.phone": "电话",
-    "contacts.email": "邮箱",
-    "contacts.emailRequired": "请输入该联系人的邮箱地址。",
-    "contacts.emailHint": "我们会向该联系人发送一封确认邮件 — 只有已确认的联系人才会在紧急警报时收到通知。",
-    "contacts.save": "保存更改",
-    "contacts.add": "添加联系人",
-    "contacts.delete": "删除联系人",
-    "contacts.updated": "联系人已更新。",
-    "contacts.addedWithEmail": "联系人已添加 — 确认邮件已发送。",
-    "contacts.removed": "联系人已删除。",
-    "contacts.removeError": "无法删除该联系人。",
-    "contacts.removeConfirm": "确定要将 {name} 从你的紧急联系人中移除吗？",
-    "contacts.pickError": "无法访问你的通讯录。",
-    "contacts.telegramLinked": "已绑定 Telegram",
-    "contacts.telegramNotLinked": "未绑定 Telegram",
-    "contacts.telegramConnect": "绑定 Telegram",
-    "contacts.telegramDisconnect": "解绑 Telegram",
-    "contacts.telegramEmailSent": "Telegram 链接已发送至其邮箱。",
-    "contacts.telegramLinkReady": "Telegram 链接已生成并复制，请分享给你的联系人。",
-    "contacts.telegramDisconnected": "已解绑 Telegram。",
-    "contacts.telegramEnableError": "无法发起 Telegram 绑定。",
-    "contacts.telegramDisableError": "无法解绑 Telegram。",
-    "profile.name": "姓名",
-    "profile.phone": "电话",
-    "profile.email": "邮箱",
-    "profile.newPassword": "新密码（选填）",
-    "profile.newPasswordPlaceholder": "留空则保持当前密码不变",
-    "profile.save": "保存更改",
-    "profile.logout": "退出登录",
-    "profile.noChanges": "没有需要保存的更改。",
-    "profile.updated": "资料已更新。",
-    "profile.language": "语言",
-    "profile.theme": "主题",
-    "profile.themeAuto": "自动",
-    "profile.themeLight": "浅色",
-    "profile.themeDark": "深色",
-    "profile.color": "应用主题色",
-    "profile.colorCustom": "自定义",
-    "profile.help": "帮助",
-    "profile.about": "关于",
-    "info.back": "返回",
-    "help.intro": "充分使用 Panic Button 所需了解的一切。",
-    "help.section.account.title": "创建账户",
-    "help.section.account.body": "使用你的姓名、电话、邮箱和密码注册。我们会向你的邮箱发送确认链接 — 请在本设备上打开以激活账户，然后返回登录。",
-    "help.section.panic.title": "发送紧急警报",
-    "help.section.panic.body": "在首页长按 SOS 按钮约一秒半 — 按住时按钮周围会出现一个逐渐填满的圆环，提前松开则取消发送。按住完成后，应用会获取你当前的位置，并通过邮件通知每一位已确认的紧急联系人；对于已绑定 Telegram 的联系人，还会通过 Telegram 通知。",
-    "help.section.contacts.title": "管理紧急联系人",
-    "help.section.contacts.body": "在联系人页面，点击 + 按钮添加联系人 — 可以从手机通讯录中选择，也可以手动输入信息。点击已有联系人可编辑其信息、绑定或解绑 Telegram，或将其移除。",
-    "help.section.channels.title": "已确认与待确认的联系人",
-    "help.section.channels.body": "添加联系人并不会自动通知对方 — 每位联系人会显示一个邮件图标，以及（若可用）一个 Telegram 图标；图标点亮表示该渠道已确认、将会收到警报，图标暗淡则表示尚未确认。联系人点击我们发送的链接即可确认邮件；打开链接并在与我们机器人的对话中点击“开始”即可确认 Telegram。",
-    "help.section.profile.title": "你的资料",
-    "help.section.profile.body": "在“我的”页面更新你的姓名、电话、邮箱或密码。你也可以在那里更改应用的语言和主题色 — 这两项设置仅保存在本设备上。",
-    "about.description": "Panic Button 是一款个人安全应用：长按一个按钮即可分享你的位置，并在你最需要的时刻，通过邮件和 Telegram 提醒你信任的紧急联系人。",
-    "about.developedBy": "由 Skellent 开发",
-    "about.rights": "© Keycodelogics 保留所有权利。",
-    "about.version": "测试版（BETA）"
-  },
-  ja: {
-    "nav.home": "ホーム",
-    "nav.contacts": "連絡先",
-    "nav.profile": "プロフィール",
-    "route.login.title": "ログイン",
-    "route.register.title": "アカウント作成",
-    "route.contacts.title": "緊急連絡先",
-    "route.profile.title": "マイプロフィール",
-    "route.about.title": "アプリについて",
-    "route.help.title": "ヘルプ",
-    "errors.generic": "問題が発生しました。もう一度お試しください。",
-    "errors.network": "サーバーに接続できません。通信環境をご確認ください。",
-    "login.subtitle": "ログインして、緊急連絡先にいつでもすぐ連絡できるようにしましょう。",
-    "login.email": "メールアドレス",
-    "login.password": "パスワード",
-    "login.submit": "ログイン",
-    "login.switch": "アカウントをお持ちでないですか？",
-    "login.switchLink": "作成する",
-    "register.subtitle": "いくつかの情報を入力すれば、緊急連絡先を追加できます。",
-    "register.name": "氏名",
-    "register.phone": "電話番号",
-    "register.email": "メールアドレス",
-    "register.password": "パスワード",
-    "register.confirmPassword": "パスワード（確認）",
-    "register.submit": "アカウントを作成",
-    "register.switch": "すでにアカウントをお持ちですか？",
-    "register.switchLink": "ログイン",
-    "register.passwordMismatch": "パスワードが一致しません。",
-    "confirmMail.title": "メールをご確認ください",
-    "confirmMail.subtitle": '確認リンクを<br /><span class="confirm-mail-email">{email}</span> 宛に送信しました。このデバイスで開いてアカウントを有効化し、その後ログインしてください。',
-    "confirmMail.back": "ログイン画面に戻る",
-    "home.greeting": "こんにちは、{name}さん",
-    "home.panicAria": "長押しして緊急通報を送信",
-    "home.idle": "長押しして連絡先に通報",
-    "home.holding": "確定するにはそのまま押し続けてください…",
-    "home.locating": "現在地を取得しています…",
-    "home.sending": "通報を送信しています…",
-    "home.sent": "通報を送信しました — 連絡先に通知しています",
-    "home.sentToast": "緊急通報を送信しました。",
-    "home.errorFallback": "通報を送信できませんでした。",
-    "home.statusReady": "通報可能な連絡先：{count}件",
-    "home.statusReadyPlural": "通報可能な連絡先：{count}件",
-    "home.statusNone": "確認済みの連絡先がまだありません",
-    "contacts.empty": "緊急連絡先がまだ登録されていません。＋ボタンをタップして、緊急通報時に通知したい相手を追加しましょう。",
-    "contacts.loadError": "連絡先を読み込めませんでした。このタブを開き直して再試行してください。",
-    "contacts.loadErrorToast": "連絡先を読み込めませんでした。",
-    "contacts.limitReached": "緊急連絡先の上限（{max}件）に達しました。",
-    "contacts.confirmed": "確認済み",
-    "contacts.pending": "未確認",
-    "contacts.addTitle": "緊急連絡先を追加",
-    "contacts.pickDevice": "端末の連絡先から選択",
-    "contacts.addManually": "手動で追加",
-    "contacts.editTitle": "連絡先を編集",
-    "contacts.name": "名前",
-    "contacts.phone": "電話番号",
-    "contacts.email": "メールアドレス",
-    "contacts.emailRequired": "この連絡先のメールアドレスを入力してください。",
-    "contacts.emailHint": "この連絡先にメールで確認リンクを送信します — 緊急通報の通知は確認済みの連絡先にのみ届きます。",
-    "contacts.save": "変更を保存",
-    "contacts.add": "連絡先を追加",
-    "contacts.delete": "連絡先を削除",
-    "contacts.updated": "連絡先を更新しました。",
-    "contacts.addedWithEmail": "連絡先を追加しました — 確認メールを送信しました。",
-    "contacts.removed": "連絡先を削除しました。",
-    "contacts.removeError": "連絡先を削除できませんでした。",
-    "contacts.removeConfirm": "{name}さんを緊急連絡先から削除しますか？",
-    "contacts.pickError": "連絡先にアクセスできませんでした。",
-    "contacts.telegramLinked": "Telegram連携済み",
-    "contacts.telegramNotLinked": "Telegram未連携",
-    "contacts.telegramConnect": "Telegramと連携",
-    "contacts.telegramDisconnect": "Telegram連携を解除",
-    "contacts.telegramEmailSent": "Telegramのリンクを相手のメールに送信しました。",
-    "contacts.telegramLinkReady": "Telegramのリンクをコピーしました — 連絡先の相手に共有してください。",
-    "contacts.telegramDisconnected": "Telegram連携を解除しました。",
-    "contacts.telegramEnableError": "Telegram連携を開始できませんでした。",
-    "contacts.telegramDisableError": "Telegram連携を解除できませんでした。",
-    "profile.name": "名前",
-    "profile.phone": "電話番号",
-    "profile.email": "メールアドレス",
-    "profile.newPassword": "新しいパスワード（任意）",
-    "profile.newPasswordPlaceholder": "変更しない場合は空欄のままにしてください",
-    "profile.save": "変更を保存",
-    "profile.logout": "ログアウト",
-    "profile.noChanges": "保存する変更がありません。",
-    "profile.updated": "プロフィールを更新しました。",
-    "profile.language": "言語",
-    "profile.theme": "テーマ",
-    "profile.themeAuto": "自動",
-    "profile.themeLight": "ライト",
-    "profile.themeDark": "ダーク",
-    "profile.color": "アプリの色",
-    "profile.colorCustom": "カスタム",
-    "profile.help": "ヘルプ",
-    "profile.about": "アプリについて",
-    "info.back": "戻る",
-    "help.intro": "Panic Buttonを最大限に活用するために知っておきたいこと。",
-    "help.section.account.title": "アカウントを作成する",
-    "help.section.account.body": "氏名、電話番号、メールアドレス、パスワードを入力して登録してください。メールで確認リンクをお送りしますので、このデバイスで開いてアカウントを有効化し、その後ログインしてください。",
-    "help.section.panic.title": "緊急通報を送信する",
-    "help.section.panic.body": "ホーム画面でSOSボタンを約1.5秒間長押しします。押している間はボタンの周りにリングが表示されて満ちていき、途中で離すと送信はキャンセルされます。長押しが完了すると、アプリは現在地を取得し、確認済みのすべての緊急連絡先にメールで通知します。Telegramを連携している連絡先には、Telegramでも通知が届きます。",
-    "help.section.contacts.title": "緊急連絡先を管理する",
-    "help.section.contacts.body": "連絡先タブで＋ボタンをタップし、端末の連絡先から選ぶか、手動で情報を入力して相手を追加します。既存の連絡先をタップすると、情報の編集、Telegramの連携・解除、削除ができます。",
-    "help.section.channels.title": "確認済みと未確認の連絡先",
-    "help.section.channels.body": "連絡先を追加しただけでは自動的に通知されません。各連絡先にはメールのアイコンと、利用可能な場合はTelegramのアイコンが表示されます。アイコンが点灯していればそのチャネルは確認済みで通報を受け取り、暗いままであればまだ確認されていません。メールは相手が送られたリンクをクリックすると確認され、Telegramは相手がリンクを開き、ボットとのチャットで「開始」を押すと確認されます。",
-    "help.section.profile.title": "あなたのプロフィール",
-    "help.section.profile.body": "プロフィールタブから、名前、電話番号、メールアドレス、パスワードを更新できます。同じ画面からアプリの言語やテーマカラーも変更できますが、どちらもこのデバイスにのみ保存されます。",
-    "about.description": "Panic Buttonは、個人の安全を守るためのアプリです。ボタンを長押しするだけで現在地を共有し、あなたが最も必要としている瞬間に、信頼できる緊急連絡先へメールとTelegramで通報します。",
-    "about.developedBy": "開発：Skellent",
-    "about.rights": "© Keycodelogics 全著作権所有。",
-    "about.version": "バージョン：ベータ版"
-  },
-  ko: {
-    "nav.home": "홈",
-    "nav.contacts": "연락처",
-    "nav.profile": "프로필",
-    "route.login.title": "로그인",
-    "route.register.title": "계정 만들기",
-    "route.contacts.title": "비상 연락처",
-    "route.profile.title": "내 프로필",
-    "route.about.title": "정보",
-    "route.help.title": "도움말",
-    "errors.generic": "문제가 발생했습니다. 다시 시도해 주세요.",
-    "errors.network": "서버에 연결할 수 없습니다. 연결 상태를 확인해 주세요.",
-    "login.subtitle": "로그인하면 비상 연락처에 한 번의 터치로 연락할 수 있습니다.",
-    "login.email": "이메일",
-    "login.password": "비밀번호",
-    "login.submit": "로그인",
-    "login.switch": "계정이 없으신가요?",
-    "login.switchLink": "계정 만들기",
-    "register.subtitle": "몇 가지 정보만 입력하면 비상 연락처를 추가할 수 있습니다.",
-    "register.name": "이름",
-    "register.phone": "전화번호",
-    "register.email": "이메일",
-    "register.password": "비밀번호",
-    "register.confirmPassword": "비밀번호 확인",
-    "register.submit": "계정 만들기",
-    "register.switch": "이미 계정이 있으신가요?",
-    "register.switchLink": "로그인",
-    "register.passwordMismatch": "비밀번호가 일치하지 않습니다.",
-    "confirmMail.title": "이메일을 확인해 주세요",
-    "confirmMail.subtitle": '<span class="confirm-mail-email">{email}</span>(으)로 확인 링크를 보내드렸습니다.<br />이 기기에서 링크를 열어 계정을 활성화한 뒤 다시 로그인해 주세요.',
-    "confirmMail.back": "로그인으로 돌아가기",
-    "home.greeting": "안녕하세요, {name}님",
-    "home.panicAria": "길게 눌러 긴급 알림 보내기",
-    "home.idle": "길게 눌러 연락처에 알리기",
-    "home.holding": "확정하려면 계속 누르고 있으세요...",
-    "home.locating": "위치를 확인하는 중...",
-    "home.sending": "알림을 보내는 중...",
-    "home.sent": "알림 전송 완료 — 연락처에 알리는 중입니다",
-    "home.sentToast": "긴급 알림을 성공적으로 보냈습니다.",
-    "home.errorFallback": "알림을 보내지 못했습니다.",
-    "home.statusReady": "알림을 받을 준비된 연락처 {count}명",
-    "home.statusReadyPlural": "알림을 받을 준비된 연락처 {count}명",
-    "home.statusNone": "아직 확인된 연락처가 없습니다",
-    "contacts.empty": "아직 등록된 비상 연락처가 없습니다. + 버튼을 눌러 긴급 알림 시 알려야 할 사람을 추가하세요.",
-    "contacts.loadError": "연락처를 불러오지 못했습니다. 이 탭을 다시 열어 재시도해 주세요.",
-    "contacts.loadErrorToast": "연락처를 불러오지 못했습니다.",
-    "contacts.limitReached": "비상 연락처 한도({max}명)에 도달했습니다.",
-    "contacts.confirmed": "확인됨",
-    "contacts.pending": "대기 중",
-    "contacts.addTitle": "비상 연락처 추가",
-    "contacts.pickDevice": "기기 연락처에서 선택",
-    "contacts.addManually": "직접 추가",
-    "contacts.editTitle": "연락처 수정",
-    "contacts.name": "이름",
-    "contacts.phone": "전화번호",
-    "contacts.email": "이메일",
-    "contacts.emailRequired": "이 연락처의 이메일 주소를 입력해 주세요.",
-    "contacts.emailHint": "이 연락처에 확인 링크를 이메일로 보내드립니다 — 확인된 연락처만 긴급 알림을 받습니다.",
-    "contacts.save": "변경사항 저장",
-    "contacts.add": "연락처 추가",
-    "contacts.delete": "연락처 삭제",
-    "contacts.updated": "연락처가 업데이트되었습니다.",
-    "contacts.addedWithEmail": "연락처가 추가되었습니다 — 확인 이메일을 보냈습니다.",
-    "contacts.removed": "연락처가 삭제되었습니다.",
-    "contacts.removeError": "연락처를 삭제하지 못했습니다.",
-    "contacts.removeConfirm": "{name}님을 비상 연락처에서 삭제할까요?",
-    "contacts.pickError": "연락처에 접근하지 못했습니다.",
-    "contacts.telegramLinked": "Telegram 연결됨",
-    "contacts.telegramNotLinked": "Telegram 연결 안 됨",
-    "contacts.telegramConnect": "Telegram 연결",
-    "contacts.telegramDisconnect": "Telegram 연결 해제",
-    "contacts.telegramEmailSent": "Telegram 링크를 상대방 이메일로 보냈습니다.",
-    "contacts.telegramLinkReady": "Telegram 링크가 복사되었습니다 — 연락처에 공유해 주세요.",
-    "contacts.telegramDisconnected": "Telegram 연결이 해제되었습니다.",
-    "contacts.telegramEnableError": "Telegram 연결을 시작하지 못했습니다.",
-    "contacts.telegramDisableError": "Telegram 연결을 해제하지 못했습니다.",
-    "profile.name": "이름",
-    "profile.phone": "전화번호",
-    "profile.email": "이메일",
-    "profile.newPassword": "새 비밀번호 (선택 사항)",
-    "profile.newPasswordPlaceholder": "변경하지 않으려면 비워 두세요",
-    "profile.save": "변경사항 저장",
-    "profile.logout": "로그아웃",
-    "profile.noChanges": "저장할 변경사항이 없습니다.",
-    "profile.updated": "프로필이 업데이트되었습니다.",
-    "profile.language": "언어",
-    "profile.theme": "테마",
-    "profile.themeAuto": "자동",
-    "profile.themeLight": "라이트",
-    "profile.themeDark": "다크",
-    "profile.color": "앱 색상",
-    "profile.colorCustom": "사용자 지정",
-    "profile.help": "도움말",
-    "profile.about": "정보",
-    "info.back": "뒤로",
-    "help.intro": "Panic Button를 100% 활용하기 위해 알아야 할 모든 것.",
-    "help.section.account.title": "계정 만들기",
-    "help.section.account.body": "이름, 전화번호, 이메일과 비밀번호로 가입하세요. 이메일로 확인 링크를 보내드리니, 이 기기에서 열어 계정을 활성화한 뒤 다시 로그인해 주세요.",
-    "help.section.panic.title": "긴급 알림 보내기",
-    "help.section.panic.body": "홈 화면에서 SOS 버튼을 약 1.5초간 길게 누르세요 — 누르고 있는 동안 버튼 주위로 원형 링이 채워지며, 도중에 손을 떼면 전송이 취소됩니다. 완료되면 앱이 현재 위치를 확인하고, 확인된 모든 비상 연락처에 이메일로 알리며 Telegram을 연결한 연락처에는 Telegram으로도 알립니다.",
-    "help.section.contacts.title": "비상 연락처 관리",
-    "help.section.contacts.body": "연락처 탭에서 + 버튼을 눌러 사람을 추가하세요 — 휴대폰 주소록에서 선택하거나 직접 정보를 입력할 수 있습니다. 기존 연락처를 눌러 정보를 수정하거나, Telegram을 연결·해제하거나, 삭제할 수 있습니다.",
-    "help.section.channels.title": "확인됨 vs. 대기 중 연락처",
-    "help.section.channels.body": "연락처를 추가한다고 자동으로 알림이 가는 것은 아닙니다 — 각 연락처에는 이메일 아이콘과, 가능한 경우 Telegram 아이콘이 표시됩니다. 아이콘이 켜져 있으면 해당 채널이 확인되어 알림을 받는다는 뜻이고, 꺼져 있으면 아직 아니라는 뜻입니다. 이메일은 연락처가 전송된 링크를 클릭하면 확인되고, Telegram은 링크를 열어 봇과의 채팅에서 시작을 누르는 순간 확인됩니다.",
-    "help.section.profile.title": "내 프로필",
-    "help.section.profile.body": "프로필 탭에서 이름, 전화번호, 이메일, 비밀번호를 업데이트할 수 있습니다. 같은 화면에서 앱의 언어와 색상도 변경할 수 있으며, 두 설정 모두 이 기기에만 저장됩니다.",
-    "about.description": "Panic Button는 개인 안전을 위한 앱입니다. 버튼을 길게 누르는 것만으로 위치를 공유하고, 가장 필요한 순간에 신뢰하는 비상 연락처에 이메일과 Telegram으로 알릴 수 있습니다.",
-    "about.developedBy": "개발: Skellent",
-    "about.rights": "© Keycodelogics. 모든 권리 보유.",
-    "about.version": "버전: 베타"
-  },
-  hi: {
-    "nav.home": "होम",
-    "nav.contacts": "संपर्क",
-    "nav.profile": "प्रोफ़ाइल",
-    "route.login.title": "लॉग इन करें",
-    "route.register.title": "खाता बनाएँ",
-    "route.contacts.title": "आपातकालीन संपर्क",
-    "route.profile.title": "मेरी प्रोफ़ाइल",
-    "route.about.title": "ऐप के बारे में",
-    "route.help.title": "सहायता",
-    "errors.generic": "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।",
-    "errors.network": "सर्वर से कनेक्ट नहीं हो सका। अपना कनेक्शन जाँचें।",
-    "login.subtitle": "लॉग इन करें ताकि आपके आपातकालीन संपर्क हमेशा एक टैप दूर रहें।",
-    "login.email": "ईमेल",
-    "login.password": "पासवर्ड",
-    "login.submit": "लॉग इन करें",
-    "login.switch": "खाता नहीं है?",
-    "login.switchLink": "खाता बनाएँ",
-    "register.subtitle": "बस कुछ जानकारी, और आप अपने आपातकालीन संपर्क जोड़ने के लिए तैयार होंगे।",
-    "register.name": "पूरा नाम",
-    "register.phone": "फ़ोन नंबर",
-    "register.email": "ईमेल",
-    "register.password": "पासवर्ड",
-    "register.confirmPassword": "पासवर्ड की पुष्टि करें",
-    "register.submit": "खाता बनाएँ",
-    "register.switch": "पहले से खाता है?",
-    "register.switchLink": "लॉग इन करें",
-    "register.passwordMismatch": "पासवर्ड मेल नहीं खाते।",
-    "confirmMail.title": "अपना ईमेल जाँचें",
-    "confirmMail.subtitle": 'हमने<br /><span class="confirm-mail-email">{email}</span> पर एक पुष्टिकरण लिंक भेजा है। अपना खाता सक्रिय करने के लिए इसे इसी डिवाइस पर खोलें, फिर वापस आकर लॉग इन करें।',
-    "confirmMail.back": "लॉग इन पर वापस जाएँ",
-    "home.greeting": "नमस्ते, {name}",
-    "home.panicAria": "पैनिक अलर्ट भेजने के लिए दबाए रखें",
-    "home.idle": "अपने संपर्कों को सूचित करने के लिए दबाए रखें",
-    "home.holding": "पुष्टि करने के लिए दबाए रखना जारी रखें...",
-    "home.locating": "आपकी लोकेशन प्राप्त की जा रही है...",
-    "home.sending": "अलर्ट भेजा जा रहा है...",
-    "home.sent": "अलर्ट भेज दिया गया — आपके संपर्कों को सूचित किया जा रहा है",
-    "home.sentToast": "पैनिक अलर्ट सफलतापूर्वक भेजा गया।",
-    "home.errorFallback": "अलर्ट नहीं भेजा जा सका।",
-    "home.statusReady": "{count} संपर्क अलर्ट पाने के लिए तैयार",
-    "home.statusReadyPlural": "{count} संपर्क अलर्ट पाने के लिए तैयार",
-    "home.statusNone": "अभी तक कोई पुष्टि किया गया संपर्क नहीं है",
-    "contacts.empty": "अभी तक आपका कोई आपातकालीन संपर्क नहीं है। पैनिक अलर्ट भेजने पर जिसे सूचित किया जाना चाहिए, उसे जोड़ने के लिए + बटन दबाएँ।",
-    "contacts.loadError": "आपके संपर्क लोड नहीं हो सके। फिर से कोशिश करने के लिए इस टैब को दोबारा खोलें।",
-    "contacts.loadErrorToast": "संपर्क लोड नहीं हो सके।",
-    "contacts.limitReached": "आप आपातकालीन संपर्कों की सीमा ({max}) तक पहुँच चुके हैं।",
-    "contacts.confirmed": "पुष्टि हो गई",
-    "contacts.pending": "लंबित",
-    "contacts.addTitle": "आपातकालीन संपर्क जोड़ें",
-    "contacts.pickDevice": "डिवाइस के संपर्कों से चुनें",
-    "contacts.addManually": "स्वयं जोड़ें",
-    "contacts.editTitle": "संपर्क संपादित करें",
-    "contacts.name": "नाम",
-    "contacts.phone": "फ़ोन नंबर",
-    "contacts.email": "ईमेल",
-    "contacts.emailRequired": "कृपया इस संपर्क के लिए एक ईमेल दर्ज करें।",
-    "contacts.emailHint": "हम इस संपर्क को ईमेल से एक पुष्टिकरण लिंक भेजेंगे — पैनिक अलर्ट के दौरान केवल पुष्टि किए गए संपर्कों को ही सूचित किया जाता है।",
-    "contacts.save": "बदलाव सहेजें",
-    "contacts.add": "संपर्क जोड़ें",
-    "contacts.delete": "संपर्क हटाएँ",
-    "contacts.updated": "संपर्क अपडेट हो गया।",
-    "contacts.addedWithEmail": "संपर्क जोड़ा गया — पुष्टिकरण ईमेल भेज दिया गया है।",
-    "contacts.removed": "संपर्क हटा दिया गया।",
-    "contacts.removeError": "संपर्क हटाया नहीं जा सका।",
-    "contacts.removeConfirm": "क्या {name} को आपके आपातकालीन संपर्कों से हटाना है?",
-    "contacts.pickError": "आपके संपर्कों तक पहुँचा नहीं जा सका।",
-    "contacts.telegramLinked": "Telegram जुड़ा हुआ है",
-    "contacts.telegramNotLinked": "Telegram जुड़ा नहीं है",
-    "contacts.telegramConnect": "Telegram जोड़ें",
-    "contacts.telegramDisconnect": "Telegram हटाएँ",
-    "contacts.telegramEmailSent": "Telegram लिंक उनके ईमेल पर भेज दिया गया है।",
-    "contacts.telegramLinkReady": "Telegram लिंक तैयार है — कॉपी कर लिया गया है, इसे अपने संपर्क के साथ साझा करें।",
-    "contacts.telegramDisconnected": "Telegram हटा दिया गया।",
-    "contacts.telegramEnableError": "Telegram लिंकिंग शुरू नहीं हो सकी।",
-    "contacts.telegramDisableError": "Telegram हटाया नहीं जा सका।",
-    "profile.name": "नाम",
-    "profile.phone": "फ़ोन नंबर",
-    "profile.email": "ईमेल",
-    "profile.newPassword": "नया पासवर्ड (वैकल्पिक)",
-    "profile.newPasswordPlaceholder": "मौजूदा पासवर्ड रखने के लिए खाली छोड़ दें",
-    "profile.save": "बदलाव सहेजें",
-    "profile.logout": "लॉग आउट करें",
-    "profile.noChanges": "सहेजने के लिए कोई बदलाव नहीं है।",
-    "profile.updated": "प्रोफ़ाइल अपडेट हो गई।",
-    "profile.language": "भाषा",
-    "profile.theme": "थीम",
-    "profile.themeAuto": "स्वचालित",
-    "profile.themeLight": "हल्का",
-    "profile.themeDark": "गहरा",
-    "profile.color": "ऐप का रंग",
-    "profile.colorCustom": "कस्टम",
-    "profile.help": "सहायता",
-    "profile.about": "ऐप के बारे में",
-    "info.back": "वापस",
-    "help.intro": "Panic Button का पूरा फ़ायदा उठाने के लिए आपको जो कुछ जानना चाहिए।",
-    "help.section.account.title": "अपना खाता बनाना",
-    "help.section.account.body": "अपने नाम, फ़ोन नंबर, ईमेल और एक पासवर्ड के साथ रजिस्टर करें। हम आपके ईमेल पर एक पुष्टिकरण लिंक भेजेंगे — अपना खाता सक्रिय करने के लिए इसे इसी डिवाइस पर खोलें, फिर वापस आकर लॉग इन करें।",
-    "help.section.panic.title": "पैनिक अलर्ट भेजना",
-    "help.section.panic.body": "होम स्क्रीन पर, SOS बटन को लगभग डेढ़ सेकंड तक दबाए रखें — जब तक आप दबाए रखते हैं, बटन के चारों ओर एक रिंग भरती जाती है, और जल्दी छोड़ देने पर भेजना रद्द हो जाता है। पूरा होने पर, ऐप आपकी वर्तमान लोकेशन प्राप्त करता है और हर पुष्टि किए गए आपातकालीन संपर्क को ईमेल से सूचित करता है, और जिन्होंने Telegram जोड़ा है उन्हें Telegram से भी।",
-    "help.section.contacts.title": "आपातकालीन संपर्कों का प्रबंधन",
-    "help.section.contacts.body": "संपर्क टैब में, किसी को जोड़ने के लिए + बटन दबाएँ — या तो अपने फ़ोन की संपर्क सूची से चुनकर, या विवरण खुद दर्ज करके। किसी मौजूदा संपर्क को दबाकर उसका विवरण बदलें, Telegram जोड़ें या हटाएँ, या उसे हटा दें।",
-    "help.section.channels.title": "पुष्टि किए गए बनाम लंबित संपर्क",
-    "help.section.channels.body": "किसी संपर्क को जोड़ने भर से उसे अपने आप सूचना नहीं मिलती — हर संपर्क पर एक ईमेल आइकन और, यदि उपलब्ध हो तो, एक Telegram आइकन दिखता है; जलता हुआ आइकन बताता है कि वह चैनल पुष्टि किया जा चुका है और अलर्ट पाएगा, धुंधला आइकन बताता है कि अभी नहीं। ईमेल तब पुष्टि होता है जब संपर्क भेजे गए लिंक पर क्लिक करता है; Telegram तब पुष्टि होता है जब वह लिंक खोलकर हमारे बॉट के साथ चैट में Start दबाता है।",
-    "help.section.profile.title": "आपकी प्रोफ़ाइल",
-    "help.section.profile.body": "प्रोफ़ाइल टैब से अपना नाम, फ़ोन नंबर, ईमेल या पासवर्ड अपडेट करें। वहीं से आप ऐप की भाषा और रंग भी बदल सकते हैं — दोनों केवल इसी डिवाइस पर सहेजे जाते हैं।",
-    "about.description": "Panic Button एक व्यक्तिगत सुरक्षा ऐप है: एक बटन दबाए रखें और अपनी लोकेशन साझा करें, और जिस पल आपको उनकी सबसे ज़्यादा ज़रूरत हो, उस पल अपने भरोसेमंद आपातकालीन संपर्कों को ईमेल और Telegram के ज़रिए सतर्क करें।",
-    "about.developedBy": "Skellent द्वारा विकसित",
-    "about.rights": "© Keycodelogics. सर्वाधिकार सुरक्षित।",
-    "about.version": "संस्करण: बीटा"
   }
 };
 var currentLang = "en";
@@ -1449,10 +453,10 @@ function detectLanguage() {
   const nav = (typeof navigator !== "undefined" ? navigator.language : "en") || "en";
   const lower = nav.toLowerCase();
   if (lower.startsWith("pt"))
-    return lower === "pt-pt" || lower.startsWith("pt-pt") ? "pt-PT" : "pt-BR";
-  const prefixMatch = { es: "es", fr: "fr", de: "de", it: "it", ru: "ru", zh: "zh", ja: "ja", ko: "ko", hi: "hi" };
-  const prefix = lower.slice(0, 2);
-  return prefixMatch[prefix] ?? "en";
+    return "pt-BR";
+  if (lower.startsWith("es"))
+    return "es";
+  return "en";
 }
 async function loadLanguage() {
   const { value } = await Preferences.get({ key: LANG_KEY });
@@ -1475,10 +479,11 @@ function t(key, vars) {
   return template.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
 }
 
-// src/lib/api.js
+// src/lib/api.ts
 var BASE_URL = "https://devs.panicbutton.me";
 
 class ApiError extends Error {
+  status;
   constructor(message, status) {
     super(message);
     this.status = status;
@@ -1538,7 +543,7 @@ var Api = {
   getFeatures: () => request("/features")
 };
 
-// src/lib/theme.js
+// src/lib/theme.ts
 var COLOR_KEY = "panicbutton.accentColor";
 var THEME_KEY = "panicbutton.theme";
 var DEFAULT_ACCENT = "#ea2052";
@@ -1662,10 +667,14 @@ if (_media) {
 
 // node_modules/@capacitor/app/dist/esm/index.js
 var App = registerPlugin("App", {
+<<<<<<< HEAD
   web: () => import("./chunk-ykxa70x1.js").then((m) => new m.AppWeb)
+=======
+  web: () => import("./chunk-trq3kj8p.js").then((m) => new m.AppWeb)
+>>>>>>> app-online
 });
 
-// src/lib/appUpdate.js
+// src/lib/appUpdate.ts
 var VERSION_KEY = "panicbutton.appVersion";
 var BASE_URL2 = "https://devs.panicbutton.me";
 async function fetchManifestVersion() {
@@ -1699,7 +708,7 @@ function initAppUpdates() {
   App.addListener("resume", checkForUpdate);
 }
 
-// src/lib/toast.js
+// src/lib/toast.ts
 var container = null;
 function ensureContainer() {
   if (!container) {
@@ -1721,7 +730,7 @@ function showToast(message, type = "info") {
   }, 3400);
 }
 
-// src/lib/dom.js
+// src/lib/dom.ts
 function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value ?? "";
@@ -1737,6 +746,7 @@ function shake(el) {
   el.offsetWidth;
   el.classList.add("shake");
 }
+<<<<<<< HEAD
 
 // src/lib/icons.js
 function icon(path, viewBox = "0 0 24 24") {
@@ -1768,8 +778,41 @@ var Icon = {
   eye: () => icon("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"),
   eyeOff: () => icon("M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.75-2.88 3.54-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm7.98-.82c.05.21.08.43.08.65 0 1.66-1.34 3-3 3-.22 0-.44-.03-.65-.08l-3.15-3.15c.21-.05.43-.08.65-.08 1.66 0 3 1.34 3 3z")
 };
+=======
+>>>>>>> app-online
 
-// src/views/login.js
+// src/lib/icons.ts
+function icon(path, viewBox = "0 0 24 24") {
+  return `<svg class="icon" viewBox="${viewBox}" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
+}
+var Icon = {
+  home: () => icon("M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"),
+  contacts: () => icon("M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"),
+  settings: () => icon("M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z"),
+  add: () => icon("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"),
+  delete: () => icon("M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"),
+  checkCircle: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"),
+  mail: () => icon("M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"),
+  arrowBack: () => icon("M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"),
+  close: () => icon("M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"),
+  schedule: () => icon("M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"),
+  phone: () => icon("M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"),
+  personAdd: () => icon("M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"),
+  edit: () => icon("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"),
+  logout: () => icon("M17 7l-1.41 1.41L17.17 10H8v2h9.17l-1.58 1.59L17 15l4-4zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"),
+  language: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-.61.08-1.21.21-1.78L8.99 15v1c0 1.1.9 2 2 2v1.93C7.06 19.44 4 16.08 4 12zm13.89 5.4c-.26-.81-1-1.4-1.89-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.11 5.4z"),
+  theme: () => icon("M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z"),
+  palette: () => icon("M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"),
+  telegram: () => icon("M248 8C111 8 0 119 0 256S111 504 248 504 496 393 496 256 385 8 248 8zM362 176.7c-3.7 39.2-19.9 134.4-28.1 178.3-3.5 18.6-10.4 24.8-17 25.4-14.4 1.3-25.3-9.5-39.3-18.7-21.8-14.3-34.2-23.2-55.3-37.2-24.5-16.1-8.6-25 5.3-39.5 3.7-3.8 67.1-61.5 68.3-66.7 .2-.7 .3-3.1-1.2-4.4s-3.6-.8-5.1-.5q-3.3 .7-104.6 69.1-14.8 10.2-26.9 9.9c-8.9-.2-25.9-5-38.6-9.1-15.5-5-27.9-7.7-26.8-16.3q.8-6.7 18.5-13.7 108.4-47.2 144.6-62.3c68.9-28.6 83.2-33.6 92.5-33.8 2.1 0 6.6 .5 9.6 2.9a10.5 10.5 0 0 1 3.5 6.7A43.8 43.8 0 0 1 362 176.7z", "0 0 496 512"),
+  whatsapp: () => icon("M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z", "0 0 448 512"),
+  sms: () => icon("M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 11H7v-2h10v2zm0-3H7V8h10v2z"),
+  info: () => icon("M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"),
+  help: () => icon("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"),
+  eye: () => icon("M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"),
+  eyeOff: () => icon("M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.75-2.88 3.54-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm7.98-.82c.05.21.08.43.08.65 0 1.66-1.34 3-3 3-.22 0-.44-.03-.65-.08l-3.15-3.15c.21-.05.43-.08.65-.08 1.66 0 3 1.34 3 3z")
+};
+
+// src/views/login.ts
 async function renderLogin(container2, { navigate, refreshUser }) {
   container2.innerHTML = `
     <div class="auth-screen">
@@ -1847,7 +890,11 @@ async function renderLogin(container2, { navigate, refreshUser }) {
   }
 }
 
+<<<<<<< HEAD
 // src/lib/phone.js
+=======
+// src/lib/phone.ts
+>>>>>>> app-online
 var DEFAULT_COUNTRY_CODE = "+1";
 var COUNTRY_CODES = [
   { code: "+1", country: "US/CA" },
@@ -1899,7 +946,7 @@ function attachPhoneSanitizer(input) {
   });
 }
 
-// src/views/register.js
+// src/views/register.ts
 var EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
 function insertEmailDomain(input, domain) {
   const at = input.value.indexOf("@");
@@ -2054,11 +1101,15 @@ function f(t2 = false) {
 
 // node_modules/@capacitor/geolocation/dist/esm/index.js
 var Geolocation = registerPlugin("Geolocation", {
+<<<<<<< HEAD
   web: () => import("./chunk-nck56p8g.js").then((m) => new m.GeolocationWeb)
+=======
+  web: () => import("./chunk-xce4gvhz.js").then((m) => new m.GeolocationWeb)
+>>>>>>> app-online
 });
 f();
 
-// src/lib/geolocation.js
+// src/lib/geolocation.ts
 async function getCurrentCoordinates() {
   try {
     const position = await Geolocation.getCurrentPosition({
@@ -2071,7 +1122,7 @@ async function getCurrentCoordinates() {
   }
 }
 
-// src/views/home.js
+// src/views/home.ts
 var HOLD_DURATION_MS = 1400;
 var RING_RADIUS = 54;
 var RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -2219,7 +1270,7 @@ async function loadStatusChip(chip, onCount) {
   } catch {}
 }
 
-// src/lib/features.js
+// src/lib/features.ts
 var cached = null;
 function getFeatures() {
   if (!cached) {
@@ -2271,10 +1322,14 @@ var PostalAddressType;
 
 // node_modules/@capacitor-community/contacts/dist/esm/index.js
 var Contacts = registerPlugin("Contacts", {
+<<<<<<< HEAD
   web: () => import("./chunk-qvga0x2k.js").then((m) => new m.ContactsWeb)
+=======
+  web: () => import("./chunk-1h47ppk8.js").then((m) => new m.ContactsWeb)
+>>>>>>> app-online
 });
 
-// src/lib/contactsPicker.js
+// src/lib/contactsPicker.ts
 async function pickDeviceContact() {
   const { contact } = await Contacts.pickContact({
     projection: { name: true, phones: true, emails: true }
@@ -2286,7 +1341,7 @@ async function pickDeviceContact() {
   };
 }
 
-// src/lib/sheet.js
+// src/lib/sheet.ts
 function openSheet(bodyElement) {
   const backdrop = document.createElement("div");
   backdrop.className = "sheet-backdrop";
@@ -2309,10 +1364,14 @@ function openSheet(bodyElement) {
 
 // node_modules/@capacitor/share/dist/esm/index.js
 var Share = registerPlugin("Share", {
+<<<<<<< HEAD
   web: () => import("./chunk-arx3gy18.js").then((m) => new m.ShareWeb)
+=======
+  web: () => import("./chunk-axk9xybx.js").then((m) => new m.ShareWeb)
+>>>>>>> app-online
 });
 
-// src/lib/share.js
+// src/lib/share.ts
 async function copyToClipboard(url) {
   try {
     await navigator.clipboard.writeText(url);
@@ -2333,7 +1392,7 @@ async function shareLink({ url, title, text }) {
   }
 }
 
-// src/views/contacts.js
+// src/views/contacts.ts
 var EMAIL_DOMAINS2 = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"];
 var MAX_CONTACTS = 4;
 function insertEmailDomain2(input, domain) {
@@ -2521,7 +1580,7 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
     const data = {
       name: formData.name,
       phone: combinePhone(formData.phone_country, formData.phone_number),
-      email: formData.email.trim()
+      email: String(formData.email ?? "").trim()
     };
     if (!data.email) {
       shake(form);
@@ -2671,7 +1730,7 @@ function diffFields(original, updated) {
   return changes;
 }
 
-// src/views/profile.js
+// src/views/profile.ts
 var COLOR_PRESETS = [DEFAULT_ACCENT, "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
 async function renderProfile(container2, { getUser: getUser2, refreshUser, logout, navigate, getLanguage: getLanguage2, changeLanguage, getAccentColor: getAccentColor2, setAccentColor: setAccentColor2, getTheme: getTheme2, setTheme: setTheme2 }) {
   const user = getUser2();
@@ -2827,7 +1886,7 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
   container2.querySelector("#about-btn").addEventListener("click", () => navigate("about"));
 }
 
-// src/views/about.js
+// src/views/about.ts
 async function renderAbout(container2, { navigate }) {
   container2.innerHTML = `
     <div class="info-screen">
@@ -2852,7 +1911,7 @@ async function renderAbout(container2, { navigate }) {
   container2.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
 }
 
-// src/views/help.js
+// src/views/help.ts
 var SECTIONS = ["account", "panic", "contacts", "channels", "profile"];
 async function renderHelp(container2, { navigate }) {
   container2.innerHTML = `
@@ -2873,7 +1932,7 @@ async function renderHelp(container2, { navigate }) {
   container2.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
 }
 
-// src/main.js
+// src/main.ts
 var viewEl = document.getElementById("view");
 var bottomNav = document.getElementById("bottom-nav");
 var navTabs = [...document.querySelectorAll("#bottom-nav .nav-tab")];
