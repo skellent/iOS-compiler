@@ -710,7 +710,7 @@ button {
 
 .home-hud {
   position: absolute;
-  top: calc(-15px + var(--safe-top));
+  top: calc(15px + var(--safe-top));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -979,7 +979,7 @@ button {
 .contacts-screen {
   position: relative;
   height: 100%;
-  padding: calc(-20px + var(--safe-top)) 20px 90px 20px;
+  padding: calc(15px + var(--safe-top)) 20px 90px 20px;
 }
 
 .contacts-list {
@@ -1205,7 +1205,7 @@ button {
 
 
 .profile-screen {
-  padding: calc(-20px + var(--safe-top)) 24px 40px 24px;
+  padding: calc(15px + var(--safe-top)) 24px 40px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
