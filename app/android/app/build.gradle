@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
+if (!localPropertiesFile.exists()) { localPropertiesFile = project.file('local.properties') }
 if (localPropertiesFile.exists()) { localProperties.load(new FileInputStream(localPropertiesFile)) }
 
 android {
@@ -32,7 +33,7 @@ android {
     }
     buildTypes {
         release {
-            if (localProperties.containsKey('RELEASE_STORE_FILE')) { singingConfig signingConfigs.release }
+            if (localProperties.containsKey('RELEASE_STORE_FILE')) { signingConfig signingConfigs.release }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

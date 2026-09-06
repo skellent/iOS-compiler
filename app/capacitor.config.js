@@ -11,6 +11,11 @@ const config = {
     cleartext: true,
     errorPath: "offline.html",
   },
+  android: {
+    // Required by the background-geolocation plugin so background watchers
+    // continue past Android's WebView background timeout.
+    useLegacyBridge: true,
+  },
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
