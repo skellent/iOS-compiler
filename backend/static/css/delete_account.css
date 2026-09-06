@@ -1,0 +1,53 @@
+.delete-page {
+  min-height: calc(100vh - 78px);
+  max-width: 720px;
+  display: grid;
+  place-items: center;
+  padding: 64px 20px;
+}
+.delete-card {
+  width: 100%;
+  background: var(--bg-800);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: clamp(28px, 6vw, 48px);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+.delete-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: #e60012;
+  color: #fff;
+  font-size: 27px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(230, 0, 18, .26);
+}
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--primary-400);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.delete-card h1 { margin: 0 0 12px; color: var(--text-000); font-size: clamp(28px, 5vw, 38px); line-height: 1.1; }
+.message { max-width: 470px; margin: 0 auto 28px; color: var(--text-300); font-size: 15px; line-height: 1.65; }
+.del-form { display: flex; flex-direction: column; gap: 14px; margin: 22px 0 4px; text-align: left; }
+.del-form label { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-500); margin-bottom: 7px; display: block; }
+.del-form input { width: 100%; border: 1.5px solid var(--line-strong); border-radius: 11px; padding: 13px 14px; font-size: 15px; font-family: inherit; background: var(--surface); color: var(--text-100); }
+.del-form input:focus { outline: none; border-color: var(--primary-500); box-shadow: 0 0 0 4px rgba(var(--primary-rgb), .15); }
+.del-btn { border: none; border-radius: 11px; padding: 14px 20px; font-size: 14px; font-weight: 800; letter-spacing: .02em; color: #fff; background: linear-gradient(120deg, #e60012, #9b0010); cursor: pointer; margin-top: 4px; transition: transform .15s ease, box-shadow .15s ease; }
+.del-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(230, 0, 18, .28); }
+.del-btn:disabled { opacity: .6; cursor: default; transform: none; box-shadow: none; }
+.del-msg { font-size: 14px; line-height: 1.5; margin: 4px 0 0; min-height: 20px; text-align: center; }
+.del-msg.error { color: #cf1732; }.del-msg.ok { color: #15803d; }
+.del-hint { font-size: 12px; color: var(--text-500); margin: -6px 0 0; }
+.del-warn { font-size: 13.5px; line-height: 1.6; color: var(--text-300); background: rgba(230, 0, 18, .07); border: 1px solid rgba(230, 0, 18, .22); border-left: 3px solid #e60012; border-radius: 11px; padding: 14px 16px; margin: 0; text-align: left; }
+.del-warn strong { color: var(--text-100); }.back-home { display: inline-block; margin-top: 28px; color: var(--primary-400); font-size: 13px; font-weight: 700; text-decoration: none; }.back-home:hover { text-decoration: underline; }
+.delete-footer { padding-top: 0; border-top: 0; }
+@media (prefers-reduced-motion: reduce) { .del-btn:hover { transform: none; } }

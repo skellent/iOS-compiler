@@ -17,6 +17,16 @@
   padding: 56px 20px 40px 20px;
 }
 
+.legal-head::before {
+  content: "";
+  display: block;
+  width: 62px;
+  height: 4px;
+  margin-bottom: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e60012 0 42%, #0a397c 42%);
+}
+
 .legal-head {
   margin-bottom: 34px;
   padding-bottom: 26px;

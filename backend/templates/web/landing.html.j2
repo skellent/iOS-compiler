@@ -7,7 +7,7 @@
     <meta name="description" content="Press and hold one button to share your live location and alert your trusted emergency contacts by email, Telegram, WhatsApp and SMS, the moment you need them most." />
     <meta name="keywords" content="panic button, emergency alert, personal safety, SOS app, live location sharing, emergency contacts" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#ea2052" />
+    <meta name="theme-color" content="#0a397c" />
     <link rel="canonical" href="{{ base_url }}/" />
     <link rel="icon" href="/static/img/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="/static/img/favicon.png" />
@@ -18,12 +18,12 @@
     <meta property="og:title" content="Panic Button — One-press emergency alert app" />
     <meta property="og:description" content="Hold one button to share your live location and alert your emergency contacts by email, Telegram, WhatsApp and SMS." />
     <meta property="og:url" content="{{ base_url }}/" />
-    <meta property="og:image" content="{{ base_url }}/static/img/brand-mark.png" />
+    <meta property="og:image" content="{{ base_url }}/static/img/panic-button-header.png" />
 
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Panic Button — One-press emergency alert app" />
     <meta name="twitter:description" content="Hold one button to share your live location and alert your emergency contacts by email, Telegram, WhatsApp and SMS." />
-    <meta name="twitter:image" content="{{ base_url }}/static/img/brand-mark.png" />
+    <meta name="twitter:image" content="{{ base_url }}/static/img/panic-button-header.png" />
 
     <link rel="stylesheet" href="/static/css/landing.css" />
 
@@ -36,9 +36,7 @@
       "applicationCategory": "SecurityApplication",
       "description": "Hold one button to share your live location and alert your trusted emergency contacts by email, Telegram, WhatsApp and SMS.",
       "url": "{{ base_url }}/",
-      "downloadUrl": "{{ base_url }}/static/downloads/panic-button.apk",
-      "image": "{{ base_url }}/static/img/brand-mark.png",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "image": "{{ base_url }}/static/img/panic-button-header.png",
       "publisher": { "@type": "Organization", "name": "Keycodelogics", "url": "https://keycodelogics.com/" }
     }
     </script>
@@ -47,8 +45,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="/">
-          <img class="brand-mark" src="/static/img/brand-mark.png" alt="" />
-          <span class="brand-name">Panic Button</span>
+          <img class="brand-title" src="/static/img/panic-button-title.png" alt="Panic Button" />
         </a>
         <div class="topbar-actions">
           <button class="settings-btn" id="settings-btn" type="button" aria-label="Settings" title="Settings">
@@ -61,27 +58,23 @@
 
     <main>
       <section class="hero">
+        <div class="hero-brand-lockup">
+          <img src="/static/img/panic-button-header.png" alt="Panic Button — Active protection, instant response" />
+        </div>
         <h1 data-i18n="hero.title">Help, one press away.</h1>
         <p class="tagline" data-i18n="hero.tagline">Press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most.</p>
 
         <div class="cta-row">
-          <a class="btn btn-primary" href="/static/downloads/panic-button.apk" download>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.36-.61-2.83-.93-4.47-.93s-3.11.32-4.47.93L5.65 5.67c-.19-.29-.55-.38-.83-.22-.31.15-.43.53-.26.85l1.84 3.18C3.55 11.15 1.5 14.31 1.5 18h21c0-3.69-2.05-6.85-5.06-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>
-            <span class="btn-text">
-              <span class="btn-label" data-i18n="cta.download">Download APK</span>
-              <span class="btn-sub" data-i18n="cta.downloadSub">Android &middot; ~4.5 MB</span>
-            </span>
-          </a>
-          <span class="btn btn-disabled" aria-disabled="true">
+          <span class="btn btn-store" aria-label="Available soon as a paid app on Google Play">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-7.81L6.05 21.34l8.49-4.79 2.27-2.86zM20.16 10.81c.44.32.71.83.71 1.19s-.27.87-.71 1.19l-2.6 1.55-2.5-3.06L16.5 8l2.6 1.55zM6.05 2.66l10.76 6.65-2.27 2.86-9.85-9.85.84-.35c.16-.08.34-.13.52-.13.16 0 .34.04.52.13-.16-.08-.16-.08 0 0z"/></svg>
             <span class="btn-text">
               <span class="btn-label" data-i18n="cta.play">Google Play</span>
-              <span class="btn-sub" data-i18n="cta.playSub">Coming soon</span>
+              <span class="btn-sub" data-i18n="cta.playSub">Paid app &middot; Coming soon</span>
             </span>
           </span>
         </div>
 
-        <p class="cta-note" data-i18n="cta.note">Direct download &middot; no store account needed &middot; install from an unknown source when prompted.</p>
+        <p class="cta-note" data-i18n="cta.note">Panic Button will be available exclusively through Google Play.</p>
       </section>
 
       <section class="features">
@@ -119,23 +112,16 @@
 
       <section class="steps">
         <h2 class="steps-title" data-i18n="steps.title">Set up in three steps</h2>
-        <ol class="steps-list">
+        <ol class="steps-list steps-list-two">
           <li>
             <span class="step-num">1</span>
-            <div>
-              <h3 data-i18n="steps.1.title">Install &amp; create an account</h3>
-              <p data-i18n="steps.1.body">Download the APK above, install it, and register with your email.</p>
-            </div>
-          </li>
-          <li>
-            <span class="step-num">2</span>
             <div>
               <h3 data-i18n="steps.2.title">Add your contacts</h3>
               <p data-i18n="steps.2.body">Add up to 4 emergency contacts. Each one confirms by email before they can be alerted.</p>
             </div>
           </li>
           <li>
-            <span class="step-num">3</span>
+            <span class="step-num">2</span>
             <div>
               <h3 data-i18n="steps.3.title">You're covered</h3>
               <p data-i18n="steps.3.body">Hold the panic button any time you need help — your confirmed contacts get your location instantly.</p>
@@ -146,7 +132,7 @@
     </main>
 
     <footer class="site-footer">
-      <img class="brand-mark brand-mark-sm" src="/static/img/brand-mark.png" alt="" />
+      <img class="footer-brand" src="/static/img/panic-button-title.png" alt="Panic Button" />
       <p class="footnote" data-i18n="footer.tagline">PANIC BUTTON &middot; Emergency alert system</p>
       <a class="footer-link" href="/dashboard" data-i18n="footer.dashboard">Already have an account? Open the dashboard →</a>
 

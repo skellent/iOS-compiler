@@ -6,44 +6,50 @@
     <title>Delete your account — Panic Button</title>
     <meta name="description" content="Request permanent deletion of your Panic Button account and all associated data. We email you a confirmation link before anything is removed." />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#ea2052" />
+    <meta name="theme-color" content="#0a397c" />
     <link rel="canonical" href="{{ base_url }}/delete-account" />
-    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
-    <link rel="stylesheet" href="/static/css/confirmation_result.css" />
-    <style>
-      .del-form { display: flex; flex-direction: column; gap: 14px; margin: 8px 0 4px; text-align: left; }
-      .del-form label { font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #71717a; margin-bottom: 6px; display: block; }
-      .del-form input { width: 100%; box-sizing: border-box; border: 1.5px solid #e4e4e7; border-radius: 10px; padding: 12px 13px; font-size: 15px; font-family: inherit; }
-      .del-form input:focus { outline: none; border-color: #EA2052; box-shadow: 0 0 0 4px rgba(234,32,82,0.15); }
-      .del-btn { border: none; border-radius: 10px; padding: 13px 20px; font-size: 15px; font-weight: 700; color: #fff; background: #EA2052; cursor: pointer; margin-top: 4px; }
-      .del-btn:disabled { opacity: 0.6; cursor: default; }
-      .del-msg { font-size: 14px; margin: 4px 0 0; min-height: 18px; }
-      .del-msg.error { color: #EA2052; }
-      .del-msg.ok { color: #16a34a; }
-      .del-hint { font-size: 12px; color: #a1a1aa; margin: 0; }
-      .del-warn { font-size: 13.5px; line-height: 1.55; color: #3f3f46; background: #fef2f4; border: 1px solid #f7c9d4; border-radius: 10px; padding: 12px 14px; margin: 0 0 4px; text-align: left; }
-    </style>
+    <link rel="icon" type="image/png" href="/static/img/panic-button-icon.png" />
+    <link rel="stylesheet" href="/static/css/landing.css" />
+    <link rel="stylesheet" href="/static/css/delete_account.css" />
   </head>
   <body>
-    <div class="card">
-      <h1>Delete your account</h1>
-      <p class="message">Permanently delete your Panic Button account and all associated data.</p>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/">
+          <img class="brand-title" src="/static/img/panic-button-title.png" alt="Panic Button" />
+        </a>
+        <a class="dashboard-link" href="/">Home</a>
+      </div>
+    </header>
 
-      <p class="del-warn">Deleting your account removes your profile, your emergency contacts and your alert history. This cannot be undone. For your security, we'll email you a confirmation link before anything is deleted.</p>
+    <main class="delete-page">
+      <section class="delete-card" aria-labelledby="delete-title">
+        <div class="delete-icon" aria-hidden="true">!</div>
+        <p class="eyebrow">Account management</p>
+        <h1 id="delete-title">Delete your account</h1>
+        <p class="message">Request permanent deletion of your Panic Button account and associated data.</p>
 
-      <form class="del-form" id="del-form" novalidate>
-        <div>
-          <label for="email">Account email</label>
-          <input type="email" id="email" autocomplete="email" inputmode="email" required />
-        </div>
-        <p class="del-hint">Enter the email address you use to sign in.</p>
-        <button type="submit" class="del-btn" id="submit-btn">Send deletion link</button>
-        <p class="del-msg" id="msg"></p>
-      </form>
+        <p class="del-warn"><strong>This action cannot be undone.</strong> It removes your profile, emergency contacts and alert history. To protect your account, we’ll first send a confirmation link to your email.</p>
 
-      <span class="brand">PANIC BUTTON</span>
-      <p class="footnote">Emergency alert system</p>
-    </div>
+        <form class="del-form" id="del-form" novalidate>
+          <div>
+            <label for="email">Account email</label>
+            <input type="email" id="email" autocomplete="email" inputmode="email" required />
+          </div>
+          <p class="del-hint">Enter the email address you use to sign in.</p>
+          <button type="submit" class="del-btn" id="submit-btn">Send deletion link</button>
+          <p class="del-msg" id="msg" aria-live="polite"></p>
+        </form>
+
+        <a class="back-home" href="/">← Return home</a>
+      </section>
+    </main>
+
+    <footer class="site-footer delete-footer">
+      <img class="footer-brand" src="/static/img/panic-button-title.png" alt="Panic Button" />
+      <p class="footnote">ACTIVE PROTECTION · INSTANT RESPONSE</p>
+      <a class="footer-link" href="/privacy">Privacy Policy</a>
+    </footer>
 
     <script>
       (function () {

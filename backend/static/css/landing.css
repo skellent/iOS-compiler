@@ -6,12 +6,12 @@
   --surface-2: rgba(20, 16, 30, 0.065);
   --line: rgba(20, 16, 30, 0.1);
   --line-strong: rgba(20, 16, 30, 0.2);
-  --primary-rgb: 234, 32, 82;
-  --primary-900: #8c1331;
-  --primary-700: #c71b46;
-  --primary-600: #dd1e4d;
-  --primary-500: #ea2052;
-  --primary-400: #d81851;
+  --primary-rgb: 230, 0, 18;
+  --primary-900: #08336f;
+  --primary-700: #0a397c;
+  --primary-600: #e60012;
+  --primary-500: #e60012;
+  --primary-400: #bd0010;
   --glow-1: 0.12;
   --shadow-card: 0 10px 26px rgba(20, 16, 30, 0.12);
   --text-000: #14101c;
@@ -33,7 +33,7 @@
     --surface-2: rgba(255, 255, 255, 0.075);
     --line: rgba(255, 255, 255, 0.09);
     --line-strong: rgba(255, 255, 255, 0.18);
-    --primary-400: #ff4d75;
+    --primary-400: #ff5360;
     --glow-1: 0.22;
     --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
     --text-000: #ffffff;
@@ -51,7 +51,7 @@
   --surface-2: rgba(255, 255, 255, 0.075);
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.18);
-  --primary-400: #ff4d75;
+  --primary-400: #ff5360;
   --glow-1: 0.22;
   --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
   --text-000: #ffffff;
@@ -99,18 +99,13 @@ body {
   color: inherit;
   min-width: 0;
 }
-.brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+.brand-title {
   display: block;
-  object-fit: cover;
-  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.4);
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
+  width: min(226px, 42vw);
+  height: 28px;
+  object-fit: contain;
+  object-position: left center;
 }
-.brand:hover .brand-mark { transform: scale(1.08) rotate(-4deg); }
-.brand-name { font-weight: 800; letter-spacing: 0.3px; font-size: 14.5px; white-space: nowrap; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dashboard-link {
   font-size: 13px;
@@ -213,8 +208,17 @@ main { max-width: 960px; margin: 0 auto; padding: 0 20px; }
 
 .hero {
   text-align: center;
-  padding: 72px 12px 40px 12px;
+  padding: 48px 12px 40px 12px;
 }
+.hero-brand-lockup {
+  width: min(100%, 760px);
+  margin: 0 auto 38px;
+  padding: 12px 20px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 16px 34px rgba(6, 37, 85, .14);
+}
+.hero-brand-lockup img { display: block; width: 100%; height: auto; }
 .hero h1 {
   margin: 0 0 16px 0;
   font-size: clamp(32px, 5vw, 48px);
@@ -253,20 +257,12 @@ main { max-width: 960px; margin: 0 auto; padding: 0 20px; }
 .btn-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
 .btn-label { font-size: 14.5px; font-weight: 700; }
 .btn-sub { font-size: 11px; opacity: 0.8; }
-.btn-primary {
+.btn-store {
   background: linear-gradient(120deg, var(--primary-600), var(--primary-900));
   color: #fff;
-  box-shadow: 0 8px 22px rgba(var(--primary-rgb), 0.35);
-}
-.btn-primary:hover { box-shadow: 0 10px 26px rgba(var(--primary-rgb), 0.5); transform: translateY(-2px); }
-.btn-primary:active { transform: scale(0.97); }
-.btn-disabled {
-  background: var(--surface);
-  color: var(--text-500);
-  border: 1.5px dashed var(--line-strong);
+  box-shadow: 0 8px 22px rgba(6, 37, 85, 0.25);
   cursor: default;
 }
-.btn-disabled:hover { border-color: var(--text-500); }
 
 .cta-note {
   margin: 0;
@@ -377,7 +373,7 @@ main { max-width: 960px; margin: 0 auto; padding: 0 20px; }
   padding: 40px 20px 56px 20px;
   border-top: 1px solid var(--line);
 }
-.brand-mark-sm { margin: 0 auto 14px auto; }
+.footer-brand { display: block; width: min(236px, 70vw); height: auto; margin: 0 auto 16px; }
 .footnote {
   margin: 0 0 10px 0;
   font-size: 11.5px;
@@ -425,5 +421,5 @@ main { max-width: 960px; margin: 0 auto; padding: 0 20px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
-  .feature-card:hover, .btn-primary:hover, .brand:hover .brand-mark { transform: none; }
+  .feature-card:hover { transform: none; }
 }
