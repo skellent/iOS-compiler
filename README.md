@@ -1,4 +1,4 @@
-# PanicButton
+# Panic Button
 
 A panic button emergency call: hold the button in the mobile app, it captures your GPS location, and your emergency contacts get notified by email and/or Telegram with a link to it.
 
