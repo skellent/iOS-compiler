@@ -1,6 +1,6 @@
 import {
   WebPlugin
-} from "./chunk-3ehvvyd5.js";
+} from "./chunk-76h33zks.js";
 
 // node_modules/@capacitor-community/contacts/dist/esm/web.js
 class ContactsWeb extends WebPlugin {

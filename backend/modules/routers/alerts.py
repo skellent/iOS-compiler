@@ -1,7 +1,11 @@
-from datetime import datetime
+import asyncio
+from datetime import datetime, timedelta, timezone
 
-from fastapi            import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from fastapi.responses  import HTMLResponse, RedirectResponse
+from fastapi            import APIRouter, BackgroundTasks, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
+from fastapi.encoders    import jsonable_encoder
+from fastapi.responses  import HTMLResponse
+from pydantic            import ValidationError
 
 from modules.credentials  import get_credentials
 from modules.limiter      import limiter, user_or_ip
@@ -11,15 +15,18 @@ from modules.db           import cursor
 from modules.dependencies import current_user
 from modules.logs         import get_logger
 from modules.pages        import Pages
+from modules.realtime     import alert_connections
 from modules.telegram     import Telegram, TelegramNotSentError
-from modules.token        import Token
-from modules.types        import Alert, AlertCreated
+from modules.token        import ALERT_PUBLISH_EXPIRATION, Token
+from modules.types        import Alert, AlertCreated, AlertLocationUpdate
 from modules.whatsapp     import WhatsApp, WhatsAppNotSentError
 from modules.sms          import Sms, SmsNotSentError
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 _URL_BASE: str = get_credentials()['api_base_url']
+_MAP_CONFIG: dict = get_credentials()['map']
+_TRACKING_DURATION: timedelta = ALERT_PUBLISH_EXPIRATION
 _logger = get_logger(__name__)
 
 
@@ -74,9 +81,28 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
         raise HTTPException(status_code=404, detail="User not found")
     user: dict = user_rows[0]
 
-    cursor.execute(Queries.INSERT_ALERT, (user_id, data.latitude, data.longitude))
-    cursor.commit()
-    alert_id: int = cursor.lastrowid
+    created_at: datetime = datetime.now(timezone.utc)
+    tracking_expires_at: datetime = created_at + _TRACKING_DURATION
+    database_created_at: datetime = created_at.replace(tzinfo=None)
+    database_expires_at: datetime = tracking_expires_at.replace(tzinfo=None)
+    with cursor.transaction():
+        cursor.execute(Queries.INSERT_ALERT, (
+            user_id,
+            database_created_at,
+            data.latitude,
+            data.longitude,
+            database_expires_at,
+            data.latitude,
+            data.longitude,
+            data.accuracy,
+            data.speed,
+            data.bearing,
+            database_created_at,
+        ))
+        alert_id: int = cursor.lastrowid
+        cursor.execute(Queries.INSERT_ALERT_LOCATION, (
+            alert_id, 0, data.latitude, data.longitude, data.accuracy, data.speed, data.bearing, database_created_at,
+        ))
     _logger.warning(f"Panic alert {alert_id} triggered by user {user_id} at {data.latitude},{data.longitude}")
 
     contacts: list[dict] = cursor.execute(Queries.SELECT_CONFIRMED_CONTACTS_BY_USER, (user_id,))
@@ -153,7 +179,7 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
 
     return {
         "id": alert_id,
-        "created_at": datetime.now(),
+        "created_at": created_at,
         "notified_contacts": len(contacts),
         "channels": {
             "email": len(mail_recipients),
@@ -161,6 +187,8 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
             "whatsapp": len(whatsapp_recipients),
             "sms": len(sms_recipients),
         },
+        "publisher_token": Token.CreateAlertPublisher(alert_id, user_id, tracking_expires_at),
+        "tracking_expires_at": tracking_expires_at,
     }
 
 
@@ -211,5 +239,197 @@ def view_alert_notification(token: str):
         cursor.commit()
         _logger.info(f"Alert notification {notification_id} viewed for the first time")
 
-    map_url: str = f"https://www.google.com/maps?q={notification['latitude']},{notification['longitude']}"
-    return RedirectResponse(url=map_url, status_code=302)
+    response = HTMLResponse(Pages.Render("live_alert", {
+        "token": token,
+        "user_name": notification["user_name"],
+        "user_phone": notification["user_phone"],
+        "tile_url": _MAP_CONFIG["tile_url"],
+        "tile_attribution": _MAP_CONFIG["attribution"],
+    }))
+    response.headers["Cache-Control"] = "no-store"
+    # Cross-origin tile requests receive only this site's origin, never the signed path.
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+def _publisher_state(alert_id: int, user_id: int) -> dict | None:
+    cursor.execute(Queries.EXPIRE_ALERT_TRACKING, (alert_id,))
+    rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_PUBLISH_STATE, (alert_id, user_id))
+    return rows[0] if rows else None
+
+
+def _save_location(alert_id: int, user_id: int, location: AlertLocationUpdate) -> bool:
+    recorded_at: datetime = location.recorded_at.astimezone(timezone.utc).replace(tzinfo=None)
+    with cursor.transaction():
+        cursor.execute(Queries.UPDATE_ALERT_LATEST_LOCATION, (
+            location.latitude,
+            location.longitude,
+            location.accuracy,
+            location.speed,
+            location.bearing,
+            location.sequence,
+            recorded_at,
+            alert_id,
+            user_id,
+            location.sequence,
+        ))
+        if cursor.rowcount == 0:
+            return False
+        cursor.execute(Queries.INSERT_ALERT_LOCATION, (
+            alert_id,
+            location.sequence,
+            location.latitude,
+            location.longitude,
+            location.accuracy,
+            location.speed,
+            location.bearing,
+            recorded_at,
+        ))
+    return True
+
+
+def _stop_tracking(alert_id: int, user_id: int) -> bool:
+    cursor.execute(Queries.STOP_ALERT_TRACKING, (alert_id, user_id))
+    return cursor.rowcount > 0
+
+
+def _notification_snapshot(notification_id: int, mark_viewed: bool = False) -> dict | None:
+    rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+    if not rows:
+        return None
+    notification: dict = rows[0]
+    cursor.execute(Queries.EXPIRE_ALERT_TRACKING, (notification["alert_id"],))
+    if cursor.rowcount:
+        rows = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+        notification = rows[0]
+    if mark_viewed and notification["viewed_at"] is None:
+        cursor.execute(Queries.MARK_ALERT_NOTIFICATION_VIEWED, (notification_id,))
+    points: list[dict] = cursor.execute(Queries.SELECT_ALERT_LOCATIONS, (notification["alert_id"],))
+    return {
+        "type": "snapshot",
+        "alert_id": notification["alert_id"],
+        "status": notification["status"],
+        "created_at": notification["created_at"],
+        "tracking_expires_at": notification["tracking_expires_at"],
+        "tracking_ended_at": notification["tracking_ended_at"],
+        "last_location_at": notification["last_location_at"],
+        "latest": {
+            "sequence": notification["latest_sequence"],
+            "latitude": notification["latest_latitude"],
+            "longitude": notification["latest_longitude"],
+            "accuracy": notification["latest_accuracy"],
+            "speed": notification["latest_speed"],
+            "bearing": notification["latest_bearing"],
+            "recorded_at": notification["last_location_at"],
+        },
+        "points": points,
+    }
+
+
+@router.post("/{alert_id}/stop", status_code=204)
+async def stop_alert_tracking(alert_id: int, user_id: int = Depends(current_user)):
+    state: dict | None = await run_in_threadpool(_publisher_state, alert_id, user_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    await run_in_threadpool(_stop_tracking, alert_id, user_id)
+    await alert_connections.broadcast(alert_id, {"type": "status", "status": "ended"})
+
+
+@router.websocket("/{alert_id}/track")
+async def track_alert(websocket: WebSocket, alert_id: int):
+    await websocket.accept()
+    try:
+        try:
+            auth_message: dict = await asyncio.wait_for(websocket.receive_json(), timeout=10)
+        except (asyncio.TimeoutError, ValueError):
+            await websocket.close(code=4401, reason="Authentication required")
+            return
+
+        credentials = Token.ValidateAlertPublisher(auth_message.get("token", "")) if auth_message.get("type") == "auth" else None
+        if credentials is None or credentials[0] != alert_id:
+            await websocket.close(code=4401, reason="Invalid or expired publisher token")
+            return
+        _, user_id = credentials
+
+        state: dict | None = await run_in_threadpool(_publisher_state, alert_id, user_id)
+        if state is None or state["status"] != "active":
+            await websocket.close(code=4409, reason="Tracking session is not active")
+            return
+        await websocket.send_json({"type": "ready", "latest_sequence": state["latest_sequence"]})
+
+        while True:
+            message: dict = await websocket.receive_json()
+            message_type: str | None = message.get("type")
+            if message_type == "ping":
+                await websocket.send_json({"type": "pong"})
+                continue
+            if message_type == "stop":
+                await run_in_threadpool(_stop_tracking, alert_id, user_id)
+                status_message = {"type": "status", "status": "ended"}
+                await alert_connections.broadcast(alert_id, status_message)
+                await websocket.send_json(status_message)
+                await websocket.close(code=1000)
+                return
+            if message_type != "location":
+                await websocket.send_json({"type": "error", "detail": "Unknown message type"})
+                continue
+
+            try:
+                location = AlertLocationUpdate.model_validate(message)
+            except ValidationError as error:
+                await websocket.send_json({"type": "error", "detail": error.errors(include_url=False)})
+                continue
+
+            now: datetime = datetime.now(timezone.utc)
+            if location.recorded_at > now + timedelta(minutes=2) or location.recorded_at < now - _TRACKING_DURATION:
+                await websocket.send_json({"type": "error", "detail": "Location timestamp is outside the tracking window"})
+                continue
+
+            saved: bool = await run_in_threadpool(_save_location, alert_id, user_id, location)
+            if not saved:
+                state = await run_in_threadpool(_publisher_state, alert_id, user_id)
+                if state is None or state["status"] != "active":
+                    await websocket.send_json({"type": "status", "status": state["status"] if state else "ended"})
+                    await websocket.close(code=4409, reason="Tracking session ended")
+                    return
+                await websocket.send_json({"type": "ack", "sequence": location.sequence, "duplicate": True})
+                continue
+
+            payload: dict = jsonable_encoder({"type": "location", **location.model_dump()})
+            await alert_connections.broadcast(alert_id, payload)
+            await websocket.send_json({"type": "ack", "sequence": location.sequence})
+    except WebSocketDisconnect:
+        _logger.info(f"Publisher disconnected from alert {alert_id}")
+    except ValueError:
+        await websocket.close(code=4400, reason="Malformed JSON message")
+
+
+@router.websocket("/view/{token}/live")
+async def view_alert_live(websocket: WebSocket, token: str):
+    await websocket.accept()
+    notification_id: int | None = Token.ValidateAlertNotificationView(token)
+    if notification_id is None:
+        await websocket.close(code=4401, reason="Invalid or expired view token")
+        return
+
+    snapshot: dict | None = await run_in_threadpool(_notification_snapshot, notification_id, True)
+    if snapshot is None:
+        await websocket.close(code=4404, reason="Alert no longer exists")
+        return
+
+    alert_id: int = snapshot["alert_id"]
+    await alert_connections.add_viewer(alert_id, websocket)
+    await websocket.send_json(jsonable_encoder(snapshot))
+    try:
+        while True:
+            message: dict = await websocket.receive_json()
+            if message.get("type") == "ping":
+                refreshed = await run_in_threadpool(_notification_snapshot, notification_id)
+                if refreshed is None:
+                    await websocket.close(code=4404, reason="Alert no longer exists")
+                    return
+                await websocket.send_json({"type": "pong", "status": refreshed["status"]})
+    except (WebSocketDisconnect, ValueError):
+        pass
+    finally:
+        await alert_connections.remove_viewer(alert_id, websocket)

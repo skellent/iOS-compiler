@@ -49,7 +49,7 @@ The backend fills the variables from a fixed contract — do not change the coun
 |---|---|
 | `{{1}}` | the user's name |
 | `{{2}}` | date & time (`MM/DD/YYYY HH:MM:SS`) |
-| `{{3}}` | the Google Maps location link |
+| `{{3}}` | the token-protected live location link |
 
 ### Step 3 — the inbound webhook (opt-in)
 

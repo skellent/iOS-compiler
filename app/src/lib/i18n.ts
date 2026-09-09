@@ -64,6 +64,15 @@ const STRINGS = {
     "home.statusReadyPlural": "{count} contacts ready to be alerted",
     "home.statusNone": "No confirmed contacts yet",
     "home.noContacts": "No confirmed contacts yet — add and confirm a contact before sending an alert.",
+    "home.trackingTitle": "Sharing live location",
+    "home.trackingActive": "Your contacts can now follow your live location",
+    "home.trackingConnected": "Connected · {minutes} min",
+    "home.trackingConnecting": "Reconnecting · {minutes} min",
+    "home.trackingStop": "Stop sharing",
+    "home.trackingStopping": "Stopping…",
+    "home.trackingStopped": "Live location sharing stopped.",
+    "home.trackingStopError": "Couldn't stop live location sharing.",
+    "home.trackingUnavailable": "Alert sent with the initial location, but live tracking couldn't start.",
 
     "contacts.empty":
       "No emergency contacts yet. Tap the + button to add someone who should be notified when you trigger a panic alert.",
@@ -225,6 +234,15 @@ const STRINGS = {
     "home.statusReadyPlural": "{count} contactos listos para ser alertados",
     "home.statusNone": "Aún no tienes contactos confirmados",
     "home.noContacts": "Aún no tienes contactos confirmados — agrega y confirma un contacto antes de enviar una alerta.",
+    "home.trackingTitle": "Compartiendo ubicación en vivo",
+    "home.trackingActive": "Tus contactos ahora pueden seguir tu ubicación en vivo",
+    "home.trackingConnected": "Conectado · {minutes} min",
+    "home.trackingConnecting": "Reconectando · {minutes} min",
+    "home.trackingStop": "Dejar de compartir",
+    "home.trackingStopping": "Deteniendo…",
+    "home.trackingStopped": "Se dejó de compartir la ubicación en vivo.",
+    "home.trackingStopError": "No se pudo detener la ubicación en vivo.",
+    "home.trackingUnavailable": "La alerta se envió con la ubicación inicial, pero no se pudo iniciar el seguimiento en vivo.",
 
     "contacts.empty":
       "Todavía no tienes contactos de emergencia. Toca el botón + para agregar a alguien que deba ser notificado cuando actives una alerta de pánico.",
@@ -382,6 +400,15 @@ const STRINGS = {
     "home.statusReady": "{count} contato pronto para ser alertado",
     "home.statusReadyPlural": "{count} contatos prontos para serem alertados",
     "home.statusNone": "Ainda não há contatos confirmados",
+    "home.trackingTitle": "Compartilhando localização ao vivo",
+    "home.trackingActive": "Seus contatos agora podem acompanhar sua localização ao vivo",
+    "home.trackingConnected": "Conectado · {minutes} min",
+    "home.trackingConnecting": "Reconectando · {minutes} min",
+    "home.trackingStop": "Parar de compartilhar",
+    "home.trackingStopping": "Parando…",
+    "home.trackingStopped": "O compartilhamento da localização ao vivo foi encerrado.",
+    "home.trackingStopError": "Não foi possível parar a localização ao vivo.",
+    "home.trackingUnavailable": "O alerta foi enviado com a localização inicial, mas o rastreamento ao vivo não pôde ser iniciado.",
 
     "contacts.empty":
       "Você ainda não tem contatos de emergência. Toque no botão + para adicionar alguém que deva ser notificado quando você acionar um alerta de pânico.",

@@ -1,6 +1,6 @@
 import {
   WebPlugin
-} from "./chunk-sgmc5hz5.js";
+} from "./chunk-76h33zks.js";
 
 // node_modules/@capacitor/preferences/dist/esm/web.js
 class PreferencesWeb extends WebPlugin {

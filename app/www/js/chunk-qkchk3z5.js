@@ -1,6 +1,6 @@
 import {
   WebPlugin
-} from "./chunk-3ehvvyd5.js";
+} from "./chunk-76h33zks.js";
 
 // node_modules/@capacitor/splash-screen/dist/esm/web.js
 class SplashScreenWeb extends WebPlugin {

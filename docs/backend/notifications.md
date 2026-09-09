@@ -13,7 +13,7 @@ Four independent delivery channels for the same events (contact confirmation, pa
 | WhatsApp | `whatsapp_enabled` **and** `whatsapp_confirmed` | contact phone |
 | SMS | `sms_enabled` | contact phone |
 
-Each `(alert, contact, channel)` gets its own `alert_notifications` row with the contact's name and a no-expiry view-link token, so "did this contact, on this channel, open the map" is tracked per channel and shown on the dashboard.
+Each `(alert, contact, channel)` gets its own `alert_notifications` row with the contact's name and a 30-day view-link token, so "did this contact, on this channel, open the map" is tracked per channel and shown on the dashboard. That page follows the alert's live locations for the first 60 minutes and retains the last reported point afterward.
 
 ## Fan-out
 
@@ -27,7 +27,7 @@ sequenceDiagram
     loop each contact × active channel
         Alerts->>DB: INSERT alert_notifications
     end
-    Alerts-->>App: 201 with per-channel counts
+    Alerts-->>App: 201 with counts + publisher token
     par background
         Alerts->>Alerts: email batch
     and

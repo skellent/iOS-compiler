@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -103,6 +103,9 @@ class ContactPublic(BaseModel):
 class Alert(BaseModel):
     latitude:  float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
+    accuracy:  float | None = Field(default=None, ge=0, le=10000)
+    speed:     float | None = Field(default=None, ge=0, le=1000)
+    bearing:   float | None = Field(default=None, ge=0, lt=360)
 
 
 class AlertCreated(BaseModel):
@@ -110,6 +113,25 @@ class AlertCreated(BaseModel):
     created_at:         datetime | None = None
     notified_contacts:  int
     channels:           dict[str, int]
+    publisher_token:    str
+    tracking_expires_at: datetime
+
+
+class AlertLocationUpdate(BaseModel):
+    sequence:    int = Field(ge=1)
+    latitude:    float = Field(ge=-90, le=90)
+    longitude:   float = Field(ge=-180, le=180)
+    accuracy:    float | None = Field(default=None, ge=0, le=10000)
+    speed:       float | None = Field(default=None, ge=0, le=1000)
+    bearing:     float | None = Field(default=None, ge=0, lt=360)
+    recorded_at: datetime
+
+    @field_validator("recorded_at")
+    @classmethod
+    def recorded_at_must_be_timezone_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("recorded_at must include a timezone")
+        return value.astimezone(timezone.utc)
 
 
 class TelegramLink(BaseModel):

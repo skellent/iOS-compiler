@@ -15,7 +15,7 @@ Everything an operator needs: environment variables, logging, rate limits, featu
 | **Twilio (shared)** | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Shared by the WhatsApp and SMS channels. |
 | **WhatsApp** | `TWILIO_WHATSAPP_FROM`, `TWILIO_WHATSAPP_JOIN_KEYWORD`, `TWILIO_WHATSAPP_TEMPLATE_SID`, `TWILIO_WHATSAPP_ENABLED` (default `true`), `TWILIO_VALIDATE_SIGNATURE` (default `true`) | See [twilio.md](twilio.md). |
 | **SMS** | `TWILIO_SMS_FROM`, `TWILIO_SMS_ENABLED` (default `true`) | See [twilio.md](twilio.md). |
-| **General** | `API_BASE_URL` (default `http://127.0.0.1:8000`), `APP_MODE` (default `Debug`), `LOG_LEVEL` (default `INFO`) | `API_BASE_URL` must be the public HTTPS URL in production. |
+| **General** | `API_BASE_URL` (default `http://127.0.0.1:8000`), `MAP_TILE_URL`, `MAP_TILE_ATTRIBUTION`, `APP_MODE` (default `Debug`), `LOG_LEVEL` (default `INFO`) | `API_BASE_URL` must be public HTTPS in production. Map settings control the embedded contact map. |
 
 **Dry-run switches.** `SMTP_ENABLED`, `TWILIO_WHATSAPP_ENABLED` and `TWILIO_SMS_ENABLED` set to `false` log what *would* have been sent instead of sending it — meant for local development against real accounts. `SMTP_VERIFY_DELIVERABILITY=false` skips the recipient-domain DNS check (for working offline). Production leaves them all at their `true` default.
 
@@ -74,11 +74,13 @@ Unauthenticated, cached by the app for its session. `max_contacts` is the emerge
 mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-add-whatsapp.sql
 mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-add-sms.sql
 mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-dashboard-history.sql
+mariadb -u <user> -p <DATABASE> < queries/migrations/2026-09-realtime-geolocation.sql
 ```
 
 - **add-whatsapp** — WhatsApp columns + `whatsapp` in the `channel` enum.
 - **add-sms** — SMS column + `sms` in the `channel` enum.
 - **dashboard-history** — `alert_notifications.contact_name` + makes `contact_id` `ON DELETE SET NULL` (so deleting a contact no longer wipes the alert's history). Backfills existing names.
+- **realtime-geolocation** — alert lifecycle/latest-position columns plus the ordered `alert_locations` trail table.
 
 Confirm a migration landed, e.g.: `SHOW COLUMNS FROM alert_notifications LIKE 'contact_name';`.
 

@@ -8,7 +8,7 @@ Email + password. Registration verifies the email domain server-side and sends a
 
 ## Home — the panic button
 
-A single hold-to-alert button. Holding it for a couple of seconds captures the device GPS location and calls `POST /alerts`, which fans the alert out to every confirmed channel of every contact.
+A single hold-to-alert button. Holding it for a couple of seconds captures the first GPS location and calls `POST /alerts`, which fans the alert out to every confirmed channel of every contact. After creation, a background location watcher publishes numbered coordinates over WebSocket for up to 60 minutes. The Home screen shows connection state and an explicit **Stop sharing** action; an interrupted web session restores the active tracker from Capacitor Preferences.
 
 **Guard.** Before sending, the app checks that at least one contact is reachable — it counts contacts that are `confirmed` (email) **or** Telegram-linked **or** WhatsApp-confirmed **or** SMS-enabled. If none are, it shows a toast instead of firing a useless alert. The count fails open (if the check itself errors, the button still works) so nothing blocks a real emergency.
 

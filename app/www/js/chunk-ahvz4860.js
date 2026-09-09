@@ -1,6 +1,6 @@
 import {
   WebPlugin
-} from "./chunk-3ehvvyd5.js";
+} from "./chunk-76h33zks.js";
 
 // node_modules/@capacitor/geolocation/dist/esm/web.js
 class GeolocationWeb extends WebPlugin {
@@ -95,6 +95,6 @@ class GeolocationWeb extends WebPlugin {
 }
 var Geolocation = new GeolocationWeb;
 export {
-  GeolocationWeb,
-  Geolocation
+  Geolocation,
+  GeolocationWeb
 };

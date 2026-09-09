@@ -71,8 +71,47 @@ class Queries:
     DELETE_CONTACTS_BY_USER: str = "DELETE FROM contacts WHERE user_id = %s;"
     DELETE_USER_BY_ID: str = "DELETE FROM users WHERE id = %s;"
 
-    INSERT_ALERT: str = "INSERT INTO alerts (user_id, latitude, longitude) VALUES (%s, %s, %s);"
-    SELECT_ALERTS_BY_USER: str = "SELECT id, created_at, latitude, longitude FROM alerts WHERE user_id = %s ORDER BY created_at DESC;"
+    INSERT_ALERT: str = (
+        "INSERT INTO alerts "
+        "(user_id, created_at, latitude, longitude, status, tracking_expires_at, latest_latitude, latest_longitude, "
+        "latest_accuracy, latest_speed, latest_bearing, latest_sequence, last_location_at) "
+        "VALUES (%s, %s, %s, %s, 'active', %s, %s, %s, %s, %s, %s, 0, %s);"
+    )
+    SELECT_ALERTS_BY_USER: str = (
+        "SELECT id, created_at, latitude, longitude, status, tracking_expires_at, "
+        "tracking_ended_at, latest_latitude, latest_longitude, latest_accuracy, last_location_at "
+        "FROM alerts WHERE user_id = %s ORDER BY created_at DESC;"
+    )
+
+    INSERT_ALERT_LOCATION: str = (
+        "INSERT IGNORE INTO alert_locations "
+        "(alert_id, sequence, latitude, longitude, accuracy, speed, bearing, recorded_at) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+    )
+    UPDATE_ALERT_LATEST_LOCATION: str = (
+        "UPDATE alerts SET latest_latitude = %s, latest_longitude = %s, latest_accuracy = %s, "
+        "latest_speed = %s, latest_bearing = %s, latest_sequence = %s, last_location_at = %s "
+        "WHERE id = %s AND user_id = %s AND status = 'active' "
+        "AND tracking_expires_at > UTC_TIMESTAMP() AND latest_sequence < %s;"
+    )
+    SELECT_ALERT_PUBLISH_STATE: str = (
+        "SELECT id, user_id, status, tracking_expires_at, latest_sequence "
+        "FROM alerts WHERE id = %s AND user_id = %s;"
+    )
+    STOP_ALERT_TRACKING: str = (
+        "UPDATE alerts SET status = 'ended', tracking_ended_at = UTC_TIMESTAMP() "
+        "WHERE id = %s AND user_id = %s AND status = 'active';"
+    )
+    EXPIRE_ALERT_TRACKING: str = (
+        "UPDATE alerts SET status = 'expired', tracking_ended_at = COALESCE(tracking_ended_at, tracking_expires_at) "
+        "WHERE id = %s AND status = 'active' AND tracking_expires_at <= UTC_TIMESTAMP();"
+    )
+    SELECT_ALERT_LOCATIONS: str = (
+        "SELECT sequence, latitude, longitude, accuracy, speed, bearing, recorded_at "
+        "FROM (SELECT sequence, latitude, longitude, accuracy, speed, bearing, recorded_at "
+        "FROM alert_locations WHERE alert_id = %s ORDER BY sequence DESC LIMIT 500) recent "
+        "ORDER BY sequence ASC;"
+    )
 
     INSERT_ALERT_NOTIFICATION: str = "INSERT INTO alert_notifications (alert_id, contact_id, contact_name, channel) VALUES (%s, %s, %s, %s);"
     SELECT_ALERT_NOTIFICATIONS_BY_ALERT: str = (
@@ -92,8 +131,13 @@ class Queries:
         "WHERE alerts.user_id = %s ORDER BY alert_notifications.contact_name;"
     )
     SELECT_ALERT_NOTIFICATION_BY_ID: str = (
-        "SELECT alert_notifications.id, alert_notifications.viewed_at, alerts.latitude, alerts.longitude "
+        "SELECT alert_notifications.id, alert_notifications.alert_id, alert_notifications.viewed_at, "
+        "alerts.latitude, alerts.longitude, alerts.status, alerts.tracking_expires_at, alerts.tracking_ended_at, "
+        "alerts.latest_latitude, alerts.latest_longitude, alerts.latest_accuracy, alerts.latest_speed, "
+        "alerts.latest_bearing, alerts.latest_sequence, alerts.last_location_at, alerts.created_at, "
+        "users.name AS user_name, users.phone AS user_phone "
         "FROM alert_notifications JOIN alerts ON alerts.id = alert_notifications.alert_id "
+        "JOIN users ON users.id = alerts.user_id "
         "WHERE alert_notifications.id = %s;"
     )
     MARK_ALERT_NOTIFICATION_VIEWED: str = "UPDATE alert_notifications SET viewed_at = NOW() WHERE id = %s AND viewed_at IS NULL;"

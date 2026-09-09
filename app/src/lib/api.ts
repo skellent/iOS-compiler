@@ -68,6 +68,7 @@ export const Api = {
   disableContactSms: (id) => request(`/contacts/${id}/sms`, { method: "DELETE", auth: true }),
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
+  stopAlert: (id) => request(`/alerts/${id}/stop`, { method: "POST", auth: true }),
 
   getFeatures: () => request("/features"),
 };

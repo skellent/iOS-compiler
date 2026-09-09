@@ -17,6 +17,7 @@ The project has two deployable parts:
 
 ### Backend reference
 - [Architecture](backend/architecture.md) — modules, request flow, middleware, startup.
+- [Real-time geolocation](backend/realtime-geolocation.md) — implementation protocol, lifecycle, deployment, and verification checklist.
 - [Authentication](backend/auth.md) — password hashing and the JWT token types.
 - [Database](backend/database.md) — schema, the thread-confined cursor, migrations.
 - [API reference](backend/api.md) — every route.
@@ -26,6 +27,7 @@ The project has two deployable parts:
 
 ### App reference
 - [Architecture](app/architecture.md) — the online-app model and project layout.
+- [Real-time tracking compatibility](app/realtime-tracking.md) — current plugin support, background limitations, and the native implementation path.
 - [Screens](app/screens.md) — what each screen does.
 
 ## The five-minute picture

@@ -176,6 +176,7 @@ def robots():
         "Disallow: /app\n"
         "Disallow: /dashboard\n"
         "Disallow: /docs\n"
+        "Disallow: /alerts/view/\n"
         f"Sitemap: {base_url}/sitemap.xml\n"
     )
 

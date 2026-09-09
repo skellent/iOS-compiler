@@ -41,9 +41,12 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 
 | Method & path | Auth | Purpose |
 |---|---|---|
-| `POST /alerts` | 🔒 | Trigger a panic alert; notifies each confirmed contact on every active channel. Rate-limited. Returns per-channel counts. |
+| `POST /alerts` | 🔒 | Trigger a panic alert; notifies each confirmed contact and returns a 60-minute publisher token. Rate-limited. |
 | `GET /alerts` | 🔒 | List alerts, each with its notifications (`contact_name`, `channel`, `viewed_at`, `contact_removed`). |
-| `GET /alerts/view/{token}` | — | Map link sent to a contact — marks it seen and redirects to Google Maps. |
+| `POST /alerts/{id}/stop` | 🔒 | End an owned live-tracking session. |
+| `WS /alerts/{id}/track` | publisher JWT | Receive live locations from the alerting app. The first frame authenticates the socket. |
+| `GET /alerts/view/{token}` | view JWT | Mark the notification seen and render its embedded live map. |
+| `WS /alerts/view/{token}/live` | view JWT | Send the persisted snapshot and subsequent locations to the contact map. |
 
 `POST /alerts` response:
 
@@ -52,9 +55,14 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
   "id": 42,
   "created_at": "2026-08-20T15:28:33",
   "notified_contacts": 3,
-  "channels": { "email": 2, "telegram": 1, "whatsapp": 1, "sms": 0 }
+  "channels": { "email": 2, "telegram": 1, "whatsapp": 1, "sms": 0 },
+  "publisher_token": "eyJ...",
+  "tracking_expires_at": "2026-08-20T16:28:33Z"
 }
 ```
+
+See [realtime-geolocation.md](realtime-geolocation.md) for the WebSocket message protocol.
+`accuracy`, `speed`, and `bearing` may accompany the initial latitude and longitude.
 
 ## Webhooks
 

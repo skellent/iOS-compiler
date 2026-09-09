@@ -1,6 +1,6 @@
 # Panic Button
 
-A panic button emergency call: hold the button in the mobile app, it captures your GPS location, and your emergency contacts get notified by email and/or Telegram with a link to it.
+A panic button emergency call: hold the button in the mobile app, and your emergency contacts receive an email, Telegram, WhatsApp, or SMS link that follows your location in real time.
 
 ![badge](https://shieldcn.dev/badge/Python->=%203.12-abcde3.svg?size=default&logo=python)
 ![badge](https://shieldcn.dev/badge/MariaDB-abcde3.svg?size=default&theme=emerald&logo=mariadb&color=08933b)

@@ -1,6 +1,10 @@
 # Web pages
 
-The backend serves three HTML surfaces plus static assets. All are rendered from Jinja templates under `templates/web/` and styled by `static/css/`, and all share a theme system (light/dark + accent colour, stored client-side).
+The backend serves public, account, and token-protected HTML surfaces plus static assets. They are rendered from Jinja templates under `templates/web/` and styled by `static/css/`.
+
+## Live alert — `GET /alerts/view/{token}`
+
+The signed link delivered to an emergency contact renders an embedded Leaflet map. It opens a same-origin WebSocket, receives the persisted route snapshot, and moves the marker as the app reports positions. The page shows accuracy, connection freshness, terminal state, a call action, and a follow/recenter control. Opening it preserves the existing per-notification `viewed_at` tracking. It is `noindex`, uses `no-store`, and does not expose the signed path as a cross-origin referrer.
 
 ## Landing — `GET /`
 

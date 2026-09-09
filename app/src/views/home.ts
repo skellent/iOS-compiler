@@ -4,6 +4,7 @@ import { showToast } from "../lib/toast.js";
 import { escapeHtml, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t } from "../lib/i18n.js";
+import { getLiveTrackingState, observeLiveTracking, startLiveTracking, stopLiveTracking } from "../lib/liveTracking.js";
 
 const HOLD_DURATION_MS = 1400;
 const RING_RADIUS = 54;
@@ -35,6 +36,16 @@ export async function renderHome(container, { getUser }) {
         </button>
         <p id="panic-status" class="panic-status" aria-live="polite">${t("home.idle")}</p>
       </div>
+      <section id="tracking-panel" class="tracking-panel" hidden aria-live="polite">
+        <div class="tracking-panel-copy">
+          <span id="tracking-dot" class="tracking-dot"></span>
+          <div>
+            <strong>${t("home.trackingTitle")}</strong>
+            <span id="tracking-detail">${t("home.trackingConnecting")}</span>
+          </div>
+        </div>
+        <button id="stop-tracking-btn" class="tracking-stop" type="button">${t("home.trackingStop")}</button>
+      </section>
     </div>
   `;
 
@@ -44,6 +55,10 @@ export async function renderHome(container, { getUser }) {
   const check = container.querySelector("#panic-check");
   const status = container.querySelector("#panic-status");
   const statusChip = container.querySelector("#home-status-chip");
+  const trackingPanel = container.querySelector("#tracking-panel");
+  const trackingDot = container.querySelector("#tracking-dot");
+  const trackingDetail = container.querySelector("#tracking-detail");
+  const stopTrackingBtn = container.querySelector("#stop-tracking-btn");
 
   // null = not yet known / lookup failed. Only a hard 0 blocks the alert; if we
   // can't determine it, we let the panic through — never block a panic on a failed
@@ -55,6 +70,34 @@ export async function renderHome(container, { getUser }) {
   let busy = false;
   let holdStart = 0;
   let rafId = null;
+
+  function renderTrackingState(tracking) {
+    trackingPanel.hidden = !tracking.active;
+    btn.disabled = tracking.active;
+    trackingDot.classList.toggle("tracking-dot-connected", tracking.connected);
+    stopTrackingBtn.disabled = tracking.stopping;
+    stopTrackingBtn.textContent = tracking.stopping ? t("home.trackingStopping") : t("home.trackingStop");
+    if (!tracking.active) {
+      if (!busy) status.textContent = tracking.error || t("home.idle");
+      return;
+    }
+    busy = true;
+    const started = tracking.startedAt ? new Date(tracking.startedAt) : null;
+    const minutes = started && !Number.isNaN(started.getTime()) ? Math.max(0, Math.floor((Date.now() - started.getTime()) / 60000)) : 0;
+    trackingDetail.textContent = tracking.error
+      ? tracking.error
+      : t(tracking.connected ? "home.trackingConnected" : "home.trackingConnecting", { minutes });
+    status.textContent = t("home.trackingActive");
+  }
+
+  observeLiveTracking(renderTrackingState);
+  const trackingClock = setInterval(() => {
+    if (!container.isConnected) {
+      clearInterval(trackingClock);
+      return;
+    }
+    renderTrackingState(getLiveTrackingState());
+  }, 30000);
 
   function setRingProgress(progress) {
     ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - progress));
@@ -108,16 +151,23 @@ export async function renderHome(container, { getUser }) {
     status.textContent = t("home.locating");
 
     try {
-      const { latitude, longitude } = await getCurrentCoordinates();
+      const coordinates = await getCurrentCoordinates();
       status.textContent = t("home.sending");
-      await Api.createAlert({ latitude, longitude });
+      const alert = await Api.createAlert(coordinates);
+      let trackingStarted = true;
+      try {
+        await startLiveTracking(alert);
+      } catch {
+        trackingStarted = false;
+        await stopLiveTracking(Api.stopAlert).catch(() => {});
+      }
 
       btn.classList.remove("panic-btn-busy");
       btn.classList.add("panic-btn-success");
       icon.hidden = true;
       check.hidden = false;
-      status.textContent = t("home.sent");
-      showToast(t("home.sentToast"), "success");
+      status.textContent = t(trackingStarted ? "home.sent" : "home.trackingUnavailable");
+      showToast(t(trackingStarted ? "home.sentToast" : "home.trackingUnavailable"), trackingStarted ? "success" : "error");
     } catch (error) {
       btn.classList.remove("panic-btn-busy");
       btn.classList.add("panic-btn-error");
@@ -131,6 +181,13 @@ export async function renderHome(container, { getUser }) {
   }
 
   function resetButton() {
+    if (getLiveTrackingState().active) {
+      btn.classList.remove("panic-btn-busy", "panic-btn-success", "panic-btn-error");
+      icon.hidden = false;
+      check.hidden = true;
+      renderTrackingState(getLiveTrackingState());
+      return;
+    }
     busy = false;
     setRingProgress(0);
     btn.classList.remove("panic-btn-busy", "panic-btn-success", "panic-btn-error");
@@ -159,6 +216,17 @@ export async function renderHome(container, { getUser }) {
   btn.addEventListener("pointercancel", cancelHold);
   btn.addEventListener("pointermove", applyTilt);
   btn.addEventListener("pointerleave", resetTilt);
+  stopTrackingBtn.addEventListener("click", async () => {
+    try {
+      await stopLiveTracking(Api.stopAlert);
+      busy = false;
+      btn.disabled = false;
+      resetButton();
+      showToast(t("home.trackingStopped"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("home.trackingStopError"), "error");
+    }
+  });
 }
 
 async function loadStatusChip(chip, onCount) {
@@ -166,7 +234,9 @@ async function loadStatusChip(chip, onCount) {
     const contacts = await Api.listContacts();
     // A contact is reachable by email (confirmed) OR by Telegram — matches the
     // backend's own "who gets notified" rule, so the count doesn't understate it.
-    const notifiable = contacts.filter((contact) => contact.confirmed || contact.telegram_linked).length;
+    const notifiable = contacts.filter((contact) =>
+      contact.confirmed || contact.telegram_linked || contact.whatsapp_confirmed || contact.sms_enabled
+    ).length;
     onCount(notifiable);
     chip.innerHTML =
       notifiable > 0

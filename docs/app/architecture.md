@@ -65,6 +65,14 @@ Deploy by shipping `app/www` with the backend (it serves `/app`).
 
 Only for changes the native shell bakes in: native plugins/permissions, the launcher icon or app name, the Capacitor config, or the shell's start URL. A pure UI change (views, styles, i18n, channel toggles) does not. See [domain-change.md](../backend/domain-change.md) for the domain case.
 
+Real-time tracking uses the native background-geolocation and local-notifications plugins. The latter requests Android 13+ notification permission for the location foreground service, so the first release containing live tracking requires a dependency install, Capacitor sync, and a new APK.
+
+The current publisher connection is owned by the WebView, so extended background
+delivery is not yet guaranteed even when native location collection remains active.
+See [Real-time tracking compatibility and next steps](realtime-tracking.md) for the
+current native-project state, Capacitor 8 compatibility risk, and recommended native
+transport implementation.
+
 ## Configuration from the backend
 
 The app asks `GET /features` once per session and adapts: it hides a channel's UI (Telegram / WhatsApp / SMS) when that channel isn't configured, and reads `max_contacts` so its "add contact" limit matches the backend. Auth token is kept with `@capacitor/preferences` and sent as `Authorization: Bearer` on every call.

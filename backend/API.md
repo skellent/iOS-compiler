@@ -241,7 +241,7 @@ Unlinks Telegram from a contact: clears the stored `chat_id` (and any pending, u
 
 ### `POST /alerts`
 
-Logs the panic button being triggered: saves the authenticated user's location and notifies every one of their emergency contacts who is confirmed by **either** email or Telegram (see `GET /contacts/confirm/{token}` and `POST /contacts/{id}/telegram/enable` above — a contact confirmed by neither channel receives nothing).
+Logs the panic button being triggered, saves its initial location, and notifies every contact on each active email, Telegram, WhatsApp, and SMS channel. The response starts a 60-minute live-tracking session.
 
 **Request body:**
 
@@ -256,11 +256,13 @@ Logs the panic button being triggered: saves the authenticated user's location a
 
 | Code | When it happens |
 |--------|----------------|
-| `201`  | Alert logged. Email and Telegram notifications each fire in their own background task (neither blocks this response, see `docs/en/backend/notifications.md`, `docs/en/backend/notifications.md`) — a `201` doesn't guarantee either has already been delivered, only that the alert was saved. |
+| `201`  | Alert logged. Notifications run in background tasks. The response includes `publisher_token` and `tracking_expires_at` for the tracking WebSocket. |
 | `401`  | Token missing, invalid, or expired. |
 | `422`  | `latitude` or `longitude` is missing, or isn't a number. |
 
-If the user has no contact confirmed by email or Telegram, the alert still gets logged — there's just no one to notify yet.
+If the user has no reachable contact, the alert is still logged — there is just no one to notify yet.
+
+The publisher token is scoped to this alert and cannot authenticate normal API calls. Connect to `WS /alerts/{id}/track` and send `{"type":"auth","token":"..."}` as the first frame. The complete message contract is in `docs/backend/realtime-geolocation.md`.
 
 ### `GET /alerts`
 
@@ -292,13 +294,17 @@ A contact confirmed by both email and Telegram appears twice in `notifications` 
 
 ### `GET /alerts/view/{token}`
 
-Not meant to be called from application code — this is the link embedded as `map_url` inside every panic-alert email and Telegram message a contact receives (see `docs/en/backend/notifications.md`, `docs/en/backend/notifications.md`). Opening it marks that specific notification as viewed (reflected the next time the alerting user checks `GET /alerts` or the dashboard) and redirects to Google Maps with the alert's coordinates. Unlike every other `{token}` in this API, this one **never expires**.
+This is the link embedded as `map_url` in every panic notification. Opening it marks that specific notification as viewed and renders the embedded live map. Its WebSocket at `/alerts/view/{token}/live` sends the saved route snapshot and subsequent positions. The signed link expires after 30 days.
 
 | Code | When it happens |
 |--------|----------------|
-| `302`  | Token valid. Redirects to `https://www.google.com/maps?q=<latitude>,<longitude>`. |
+| `200`  | Token valid. Renders the live map (`text/html`). |
 | `401`  | The token is invalid or malformed. Renders an error page (`text/html`, same as `GET /contacts/confirm/{token}`). |
 | `404`  | The token was valid but the notification it points to no longer exists. Renders an error page. |
+
+### `POST /alerts/{id}/stop`
+
+Ends an authenticated user's active tracking session and broadcasts the ended state to every open contact map. It is safe to call when the session already ended.
 
 ## Examples in Python
 

@@ -5,6 +5,7 @@ import { Api } from "./lib/api.js";
 import { loadLanguage, setLanguage, getLanguage, t } from "./lib/i18n.js";
 import { loadAccentColor, setAccentColor, getAccentColor, loadTheme, setTheme, getTheme } from "./lib/theme.js";
 import { initAppUpdates } from "./lib/appUpdate.js";
+import { getLiveTrackingState, restoreLiveTracking, stopLiveTracking, stopLiveTrackingLocally } from "./lib/liveTracking.js";
 
 import { renderLogin } from "./views/login.js";
 import { renderRegister } from "./views/register.js";
@@ -50,6 +51,9 @@ function navigate(route) {
 }
 
 async function logout() {
+  if (getLiveTrackingState().active) {
+    await stopLiveTracking(Api.stopAlert).catch(stopLiveTrackingLocally);
+  }
   await clearToken();
   navigate("login");
 }
@@ -130,6 +134,7 @@ async function boot() {
     } catch {
       await clearToken();
     }
+    if (getUser()) await restoreLiveTracking().catch(() => {});
   }
   await renderCurrentRoute();
   await SplashScreen.hide();

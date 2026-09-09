@@ -9,6 +9,7 @@ EXPIRATION: timedelta = timedelta(days=30)
 CONTACT_CONFIRMATION_EXPIRATION: timedelta = timedelta(days=7)
 USER_CONFIRMATION_EXPIRATION: timedelta = timedelta(hours=24)
 ALERT_VIEW_EXPIRATION: timedelta = timedelta(days=30)
+ALERT_PUBLISH_EXPIRATION: timedelta = timedelta(minutes=60)
 PASSWORD_RESET_EXPIRATION: timedelta = timedelta(hours=1)
 ACCOUNT_DELETION_EXPIRATION: timedelta = timedelta(hours=1)
 
@@ -127,6 +128,27 @@ class Token:
         if payload is None or payload.get("type") != "alert_notification_view":
             return None
         return _as_id(payload.get("notification_id"))
+
+    @staticmethod
+    def CreateAlertPublisher(alert_id: int, user_id: int, expires_at: datetime) -> str:
+        payload: dict = {
+            "alert_id": alert_id,
+            "user_id": user_id,
+            "type": "alert_location_publish",
+            "exp": expires_at,
+        }
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateAlertPublisher(token: str) -> tuple[int, int] | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != "alert_location_publish":
+            return None
+        alert_id: int | None = _as_id(payload.get("alert_id"))
+        user_id: int | None = _as_id(payload.get("user_id"))
+        if alert_id is None or user_id is None:
+            return None
+        return alert_id, user_id
 
 
 def _as_id(value) -> int | None:

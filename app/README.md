@@ -1,6 +1,6 @@
 # PanicButton — Mobile App
 
-A [Capacitor](https://capacitorjs.com/) app (Android + iOS) built with vanilla HTML/CSS/JavaScript that consumes the [`backend/`](../backend) API: register, log in, hold the panic button to send an alert with your GPS location, and manage your emergency contacts. See [`docs/en/app/`](../docs/en/app) ([Spanish](../docs/es/app)) for the design decisions behind how it's built.
+A Capacitor app built with vanilla HTML/CSS/TypeScript that consumes the [`backend/`](../backend) API: register, log in, hold the panic button to notify contacts and share GPS updates for 60 minutes, and manage emergency contacts.
 
 **This isn't a self-contained native app** — the WebView navigates straight to the backend's own `/app` route and loads its UI from there live, the same way an Electron window can point at a URL instead of shipping a local copy of the page. `backend/` has to be running and reachable at `API_BASE_URL`, with `www/` already built (step 3 below), for there to be anything to load at all; there's no offline/bundled fallback. The app checks for a new version on launch and whenever it's resumed from the background, and reloads itself automatically when the backend's files have changed — see [`docs/en/app/architecture.md`](../docs/en/app/architecture.md).
 
@@ -70,7 +70,7 @@ bun run ios            # syncs, then opens the project in Xcode
 
 Two features need OS-level permission, requested the first time each is used (no explicit "enable permissions" step in the app itself):
 
-- **Location** (`@capacitor/geolocation`) — to attach GPS coordinates to a panic alert.
+- **Location** (`@capacitor/geolocation` and `@capacitor-community/background-geolocation`) — to attach the initial position and continue sharing while an alert is active.
 - **Contacts** (`@capacitor-community/contacts`) — to pick someone from the device's address book as an emergency contact, via the native contact-picker UI (the app never gets bulk access to the address book).
 
 Both are already declared in `android/app/src/main/AndroidManifest.xml` and `ios/App/App/Info.plist` — see [`docs/en/app/architecture.md`](../docs/en/app/architecture.md) for why those had to be added by hand.

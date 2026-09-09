@@ -2,16 +2,16 @@ import {
   Capacitor,
   __require,
   registerPlugin
-} from "./chunk-3ehvvyd5.js";
+} from "./chunk-76h33zks.js";
 
 // node_modules/@capacitor/splash-screen/dist/esm/index.js
 var SplashScreen = registerPlugin("SplashScreen", {
-  web: () => import("./chunk-nvj7zn98.js").then((m) => new m.SplashScreenWeb)
+  web: () => import("./chunk-qkchk3z5.js").then((m) => new m.SplashScreenWeb)
 });
 
 // node_modules/@capacitor/preferences/dist/esm/index.js
 var Preferences = registerPlugin("Preferences", {
-  web: () => import("./chunk-nzk5qex2.js").then((m) => new m.PreferencesWeb)
+  web: () => import("./chunk-mh24z979.js").then((m) => new m.PreferencesWeb)
 });
 
 // src/lib/session.ts
@@ -91,6 +91,15 @@ var STRINGS = {
     "home.statusReadyPlural": "{count} contacts ready to be alerted",
     "home.statusNone": "No confirmed contacts yet",
     "home.noContacts": "No confirmed contacts yet — add and confirm a contact before sending an alert.",
+    "home.trackingTitle": "Sharing live location",
+    "home.trackingActive": "Your contacts can now follow your live location",
+    "home.trackingConnected": "Connected · {minutes} min",
+    "home.trackingConnecting": "Reconnecting · {minutes} min",
+    "home.trackingStop": "Stop sharing",
+    "home.trackingStopping": "Stopping…",
+    "home.trackingStopped": "Live location sharing stopped.",
+    "home.trackingStopError": "Couldn't stop live location sharing.",
+    "home.trackingUnavailable": "Alert sent with the initial location, but live tracking couldn't start.",
     "contacts.empty": "No emergency contacts yet. Tap the + button to add someone who should be notified when you trigger a panic alert.",
     "contacts.loadError": "Couldn't load your contacts. Pull down or reopen this tab to try again.",
     "contacts.loadErrorToast": "Couldn't load contacts.",
@@ -231,6 +240,15 @@ var STRINGS = {
     "home.statusReadyPlural": "{count} contactos listos para ser alertados",
     "home.statusNone": "Aún no tienes contactos confirmados",
     "home.noContacts": "Aún no tienes contactos confirmados — agrega y confirma un contacto antes de enviar una alerta.",
+    "home.trackingTitle": "Compartiendo ubicación en vivo",
+    "home.trackingActive": "Tus contactos ahora pueden seguir tu ubicación en vivo",
+    "home.trackingConnected": "Conectado · {minutes} min",
+    "home.trackingConnecting": "Reconectando · {minutes} min",
+    "home.trackingStop": "Dejar de compartir",
+    "home.trackingStopping": "Deteniendo…",
+    "home.trackingStopped": "Se dejó de compartir la ubicación en vivo.",
+    "home.trackingStopError": "No se pudo detener la ubicación en vivo.",
+    "home.trackingUnavailable": "La alerta se envió con la ubicación inicial, pero no se pudo iniciar el seguimiento en vivo.",
     "contacts.empty": "Todavía no tienes contactos de emergencia. Toca el botón + para agregar a alguien que deba ser notificado cuando actives una alerta de pánico.",
     "contacts.loadError": "No se pudieron cargar tus contactos. Vuelve a intentarlo reabriendo esta pestaña.",
     "contacts.loadErrorToast": "No se pudieron cargar los contactos.",
@@ -367,6 +385,15 @@ var STRINGS = {
     "home.statusReady": "{count} contato pronto para ser alertado",
     "home.statusReadyPlural": "{count} contatos prontos para serem alertados",
     "home.statusNone": "Ainda não há contatos confirmados",
+    "home.trackingTitle": "Compartilhando localização ao vivo",
+    "home.trackingActive": "Seus contatos agora podem acompanhar sua localização ao vivo",
+    "home.trackingConnected": "Conectado · {minutes} min",
+    "home.trackingConnecting": "Reconectando · {minutes} min",
+    "home.trackingStop": "Parar de compartilhar",
+    "home.trackingStopping": "Parando…",
+    "home.trackingStopped": "O compartilhamento da localização ao vivo foi encerrado.",
+    "home.trackingStopError": "Não foi possível parar a localização ao vivo.",
+    "home.trackingUnavailable": "O alerta foi enviado com a localização inicial, mas o rastreamento ao vivo não pôde ser iniciado.",
     "contacts.empty": "Você ainda não tem contatos de emergência. Toque no botão + para adicionar alguém que deva ser notificado quando você acionar um alerta de pânico.",
     "contacts.loadError": "Não foi possível carregar seus contatos. Reabra esta aba para tentar novamente.",
     "contacts.loadErrorToast": "Não foi possível carregar os contatos.",
@@ -468,7 +495,7 @@ function t(key, vars) {
 }
 
 // src/lib/api.ts
-var BASE_URL = "https://devs.panicbutton.me";
+var BASE_URL = "http://localhost:8000";
 
 class ApiError extends Error {
   status;
@@ -528,6 +555,7 @@ var Api = {
   enableContactSms: (id) => request(`/contacts/${id}/sms/enable`, { method: "POST", auth: true }),
   disableContactSms: (id) => request(`/contacts/${id}/sms`, { method: "DELETE", auth: true }),
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
+  stopAlert: (id) => request(`/alerts/${id}/stop`, { method: "POST", auth: true }),
   getFeatures: () => request("/features")
 };
 
@@ -655,12 +683,12 @@ if (_media) {
 
 // node_modules/@capacitor/app/dist/esm/index.js
 var App = registerPlugin("App", {
-  web: () => import("./chunk-trq3kj8p.js").then((m) => new m.AppWeb)
+  web: () => import("./chunk-2fa3w26m.js").then((m) => new m.AppWeb)
 });
 
 // src/lib/appUpdate.ts
 var VERSION_KEY = "panicbutton.appVersion";
-var BASE_URL2 = "https://devs.panicbutton.me";
+var BASE_URL2 = "http://localhost:8000";
 async function fetchManifestVersion() {
   const response = await fetch(`${BASE_URL2}/app/manifest`, { cache: "no-store" });
   if (!response.ok)
@@ -690,6 +718,366 @@ async function checkForUpdate() {
 function initAppUpdates() {
   checkForUpdate();
   App.addListener("resume", checkForUpdate);
+}
+
+// node_modules/@capacitor/synapse/dist/synapse.mjs
+function s(t2) {
+  t2.CapacitorUtils.Synapse = new Proxy({}, {
+    get(e, n) {
+      return new Proxy({}, {
+        get(w, o) {
+          return (c, p, r) => {
+            const i = t2.Capacitor.Plugins[n];
+            if (i === undefined) {
+              r(new Error(`Capacitor plugin ${n} not found`));
+              return;
+            }
+            if (typeof i[o] != "function") {
+              r(new Error(`Method ${o} not found in Capacitor plugin ${n}`));
+              return;
+            }
+            (async () => {
+              try {
+                const a = await i[o](c);
+                p(a);
+              } catch (a) {
+                r(a);
+              }
+            })();
+          };
+        }
+      });
+    }
+  });
+}
+function u(t2) {
+  t2.CapacitorUtils.Synapse = new Proxy({}, {
+    get(e, n) {
+      return t2.cordova.plugins[n];
+    }
+  });
+}
+function f(t2 = false) {
+  typeof window > "u" || (window.CapacitorUtils = window.CapacitorUtils || {}, window.Capacitor !== undefined && !t2 ? s(window) : window.cordova !== undefined && u(window));
+}
+
+// node_modules/@capacitor/geolocation/dist/esm/index.js
+var Geolocation = registerPlugin("Geolocation", {
+  web: () => import("./chunk-ahvz4860.js").then((m) => new m.GeolocationWeb)
+});
+f();
+
+// node_modules/@capacitor/local-notifications/dist/esm/definitions.js
+var Weekday;
+(function(Weekday2) {
+  Weekday2[Weekday2["Sunday"] = 1] = "Sunday";
+  Weekday2[Weekday2["Monday"] = 2] = "Monday";
+  Weekday2[Weekday2["Tuesday"] = 3] = "Tuesday";
+  Weekday2[Weekday2["Wednesday"] = 4] = "Wednesday";
+  Weekday2[Weekday2["Thursday"] = 5] = "Thursday";
+  Weekday2[Weekday2["Friday"] = 6] = "Friday";
+  Weekday2[Weekday2["Saturday"] = 7] = "Saturday";
+})(Weekday || (Weekday = {}));
+
+// node_modules/@capacitor/local-notifications/dist/esm/index.js
+var LocalNotifications = registerPlugin("LocalNotifications", {
+  web: () => import("./chunk-zanydgh6.js").then((m) => new m.LocalNotificationsWeb)
+});
+
+// src/lib/liveTracking.ts
+var BASE_URL3 = "http://localhost:8000";
+var HEARTBEAT_MS = 25000;
+var MAX_RECONNECT_MS = 30000;
+var SESSION_KEY = "panicbutton.liveTracking";
+var BackgroundGeolocation = registerPlugin("BackgroundGeolocation");
+var state = {
+  active: false,
+  connected: false,
+  stopping: false,
+  alertId: null,
+  startedAt: null,
+  expiresAt: null,
+  lastUpdateAt: null,
+  error: null
+};
+var listener = null;
+var publisherToken = null;
+var socket = null;
+var watcherId = null;
+var fallbackWatcherId = null;
+var heartbeatTimer = null;
+var reconnectTimer = null;
+var expiryTimer = null;
+var reconnectAttempt = 0;
+var authenticated = false;
+var sequence = 0;
+var pendingLocation = null;
+function publishState(patch) {
+  state = { ...state, ...patch };
+  listener?.({ ...state });
+}
+async function persistSession() {
+  if (!state.active || !publisherToken)
+    return;
+  await Preferences.set({
+    key: SESSION_KEY,
+    value: JSON.stringify({
+      alertId: state.alertId,
+      publisherToken,
+      startedAt: state.startedAt,
+      expiresAt: state.expiresAt,
+      lastUpdateAt: state.lastUpdateAt,
+      sequence,
+      watcherId
+    })
+  });
+}
+function getLiveTrackingState() {
+  return { ...state };
+}
+function observeLiveTracking(nextListener) {
+  listener = nextListener;
+  nextListener({ ...state });
+}
+function websocketUrl(alertId) {
+  const base = new URL(BASE_URL3);
+  base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
+  base.pathname = `${base.pathname.replace(/\/$/, "")}/alerts/${alertId}/track`;
+  base.search = "";
+  base.hash = "";
+  return base.toString();
+}
+function clearTimer(timer) {
+  if (timer !== null)
+    clearTimeout(timer);
+}
+function sendPendingLocation() {
+  if (!authenticated || !pendingLocation || socket?.readyState !== WebSocket.OPEN)
+    return;
+  socket.send(JSON.stringify(pendingLocation));
+}
+function scheduleReconnect() {
+  if (!state.active || state.stopping || reconnectTimer !== null)
+    return;
+  const delay = Math.min(MAX_RECONNECT_MS, 1000 * 2 ** Math.min(reconnectAttempt, 5));
+  reconnectAttempt += 1;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, delay);
+}
+function connect() {
+  if (!state.active || !state.alertId || !publisherToken)
+    return;
+  authenticated = false;
+  const currentSocket = new WebSocket(websocketUrl(state.alertId));
+  socket = currentSocket;
+  currentSocket.addEventListener("open", () => {
+    if (socket !== currentSocket)
+      return;
+    currentSocket.send(JSON.stringify({ type: "auth", token: publisherToken }));
+  });
+  currentSocket.addEventListener("message", (event) => {
+    if (socket !== currentSocket)
+      return;
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+    if (message.type === "ready") {
+      authenticated = true;
+      reconnectAttempt = 0;
+      sequence = Math.max(sequence, Number(message.latest_sequence) || 0);
+      if (pendingLocation && Number(pendingLocation.sequence) <= sequence) {
+        sequence += 1;
+        pendingLocation.sequence = sequence;
+      }
+      publishState({ connected: true, error: null });
+      sendPendingLocation();
+      clearTimer(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        if (socket?.readyState === WebSocket.OPEN)
+          socket.send(JSON.stringify({ type: "ping" }));
+      }, HEARTBEAT_MS);
+    } else if (message.type === "ack" && pendingLocation?.sequence === message.sequence) {
+      pendingLocation = null;
+    } else if (message.type === "status" && message.status !== "active") {
+      stopLocally(message.status === "expired" ? "Tracking time expired." : null);
+    }
+  });
+  currentSocket.addEventListener("close", (event) => {
+    if (socket !== currentSocket)
+      return;
+    authenticated = false;
+    clearTimer(heartbeatTimer);
+    heartbeatTimer = null;
+    publishState({ connected: false });
+    if (event.code === 4401 || event.code === 4409) {
+      stopLocally(event.reason || "The tracking session ended.");
+      return;
+    }
+    scheduleReconnect();
+  });
+  currentSocket.addEventListener("error", () => {
+    if (socket === currentSocket)
+      publishState({ connected: false });
+  });
+}
+function queueLocation(location) {
+  if (!state.active || !location)
+    return;
+  sequence += 1;
+  const recordedAt = location.time ? new Date(location.time).toISOString() : new Date().toISOString();
+  pendingLocation = {
+    type: "location",
+    sequence,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    accuracy: location.accuracy ?? null,
+    speed: location.speed != null && location.speed >= 0 ? location.speed : null,
+    bearing: location.bearing != null && location.bearing >= 0 ? location.bearing : null,
+    recorded_at: recordedAt
+  };
+  publishState({ lastUpdateAt: recordedAt });
+  persistSession();
+  sendPendingLocation();
+}
+async function startWatcher() {
+  try {
+    const notificationPermission = await LocalNotifications.checkPermissions();
+    if (notificationPermission.display === "prompt") {
+      await LocalNotifications.requestPermissions();
+    }
+    watcherId = await BackgroundGeolocation.addWatcher({
+      backgroundMessage: "Your live emergency location is being shared. Tap to return to Panic Button.",
+      backgroundTitle: "Panic Button live tracking",
+      requestPermissions: true,
+      stale: false,
+      distanceFilter: 10
+    }, (location, error) => {
+      if (error) {
+        publishState({ error: error.message || "Couldn't update your location." });
+        return;
+      }
+      queueLocation(location);
+    });
+    await persistSession();
+  } catch {
+    fallbackWatcherId = await Geolocation.watchPosition({ enableHighAccuracy: true, timeout: 15000 }, (position, error) => {
+      if (error || !position) {
+        publishState({ error: "Couldn't update your location." });
+        return;
+      }
+      queueLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        speed: position.coords.speed,
+        bearing: position.coords.heading,
+        time: position.timestamp
+      });
+    });
+    publishState({ error: "Background tracking is unavailable. Keep Panic Button open while sharing." });
+  }
+}
+async function removeWatcher() {
+  if (watcherId !== null) {
+    await BackgroundGeolocation.removeWatcher({ id: watcherId }).catch(() => {});
+    watcherId = null;
+  }
+  if (fallbackWatcherId !== null) {
+    await Geolocation.clearWatch({ id: fallbackWatcherId }).catch(() => {});
+    fallbackWatcherId = null;
+  }
+}
+async function startLiveTracking(alert) {
+  await stopLocally();
+  publisherToken = alert.publisher_token;
+  sequence = 0;
+  pendingLocation = null;
+  publishState({
+    active: true,
+    connected: false,
+    stopping: false,
+    alertId: alert.id,
+    startedAt: alert.created_at,
+    expiresAt: alert.tracking_expires_at,
+    lastUpdateAt: alert.created_at,
+    error: null
+  });
+  await persistSession();
+  connect();
+  await startWatcher();
+  const expiresIn = Math.max(0, new Date(alert.tracking_expires_at).getTime() - Date.now());
+  expiryTimer = setTimeout(() => stopLocally("Tracking time expired."), expiresIn);
+}
+async function restoreLiveTracking() {
+  const { value } = await Preferences.get({ key: SESSION_KEY });
+  if (!value || state.active)
+    return;
+  let saved;
+  try {
+    saved = JSON.parse(value);
+  } catch {
+    await Preferences.remove({ key: SESSION_KEY });
+    return;
+  }
+  if (!saved.alertId || !saved.publisherToken || !saved.expiresAt || new Date(saved.expiresAt).getTime() <= Date.now()) {
+    await Preferences.remove({ key: SESSION_KEY });
+    return;
+  }
+  if (saved.watcherId) {
+    await BackgroundGeolocation.removeWatcher({ id: saved.watcherId }).catch(() => {});
+  }
+  publisherToken = saved.publisherToken;
+  sequence = Number(saved.sequence) || 0;
+  publishState({
+    active: true,
+    connected: false,
+    stopping: false,
+    alertId: saved.alertId,
+    startedAt: saved.startedAt,
+    expiresAt: saved.expiresAt,
+    lastUpdateAt: saved.lastUpdateAt,
+    error: null
+  });
+  connect();
+  await startWatcher();
+  expiryTimer = setTimeout(() => stopLocally("Tracking time expired."), new Date(saved.expiresAt).getTime() - Date.now());
+}
+async function stopLiveTracking(stopRequest) {
+  if (!state.active || !state.alertId || state.stopping)
+    return;
+  publishState({ stopping: true });
+  try {
+    await stopRequest(state.alertId);
+    await stopLocally();
+  } catch (error) {
+    publishState({ stopping: false, error: error instanceof Error ? error.message : "Couldn't stop live tracking." });
+    throw error;
+  }
+}
+async function stopLiveTrackingLocally() {
+  await stopLocally();
+}
+async function stopLocally(error = null) {
+  clearTimer(reconnectTimer);
+  clearTimer(heartbeatTimer);
+  clearTimer(expiryTimer);
+  reconnectTimer = null;
+  heartbeatTimer = null;
+  expiryTimer = null;
+  await removeWatcher();
+  if (socket && socket.readyState < WebSocket.CLOSING)
+    socket.close(1000);
+  socket = null;
+  publisherToken = null;
+  authenticated = false;
+  pendingLocation = null;
+  await Preferences.remove({ key: SESSION_KEY });
+  publishState({ active: false, connected: false, stopping: false, alertId: null, error });
 }
 
 // src/lib/toast.ts
@@ -1004,53 +1392,6 @@ function renderConfirmEmail(container2, email, navigate) {
   container2.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
 }
 
-// node_modules/@capacitor/synapse/dist/synapse.mjs
-function s(t2) {
-  t2.CapacitorUtils.Synapse = new Proxy({}, {
-    get(e, n) {
-      return new Proxy({}, {
-        get(w, o) {
-          return (c, p, r) => {
-            const i = t2.Capacitor.Plugins[n];
-            if (i === undefined) {
-              r(new Error(`Capacitor plugin ${n} not found`));
-              return;
-            }
-            if (typeof i[o] != "function") {
-              r(new Error(`Method ${o} not found in Capacitor plugin ${n}`));
-              return;
-            }
-            (async () => {
-              try {
-                const a = await i[o](c);
-                p(a);
-              } catch (a) {
-                r(a);
-              }
-            })();
-          };
-        }
-      });
-    }
-  });
-}
-function u(t2) {
-  t2.CapacitorUtils.Synapse = new Proxy({}, {
-    get(e, n) {
-      return t2.cordova.plugins[n];
-    }
-  });
-}
-function f(t2 = false) {
-  typeof window > "u" || (window.CapacitorUtils = window.CapacitorUtils || {}, window.Capacitor !== undefined && !t2 ? s(window) : window.cordova !== undefined && u(window));
-}
-
-// node_modules/@capacitor/geolocation/dist/esm/index.js
-var Geolocation = registerPlugin("Geolocation", {
-  web: () => import("./chunk-xce4gvhz.js").then((m) => new m.GeolocationWeb)
-});
-f();
-
 // src/lib/geolocation.ts
 async function getCurrentCoordinates() {
   try {
@@ -1058,7 +1399,13 @@ async function getCurrentCoordinates() {
       enableHighAccuracy: true,
       timeout: 15000
     });
-    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+      speed: position.coords.speed != null && position.coords.speed >= 0 ? position.coords.speed : null,
+      bearing: position.coords.heading != null && position.coords.heading >= 0 ? position.coords.heading : null
+    };
   } catch {
     throw new Error("Couldn't get your location. Make sure location access is enabled for Panic Button.");
   }
@@ -1093,6 +1440,16 @@ async function renderHome(container2, { getUser: getUser2 }) {
         </button>
         <p id="panic-status" class="panic-status" aria-live="polite">${t("home.idle")}</p>
       </div>
+      <section id="tracking-panel" class="tracking-panel" hidden aria-live="polite">
+        <div class="tracking-panel-copy">
+          <span id="tracking-dot" class="tracking-dot"></span>
+          <div>
+            <strong>${t("home.trackingTitle")}</strong>
+            <span id="tracking-detail">${t("home.trackingConnecting")}</span>
+          </div>
+        </div>
+        <button id="stop-tracking-btn" class="tracking-stop" type="button">${t("home.trackingStop")}</button>
+      </section>
     </div>
   `;
   const btn = container2.querySelector("#panic-btn");
@@ -1101,6 +1458,10 @@ async function renderHome(container2, { getUser: getUser2 }) {
   const check = container2.querySelector("#panic-check");
   const status = container2.querySelector("#panic-status");
   const statusChip = container2.querySelector("#home-status-chip");
+  const trackingPanel = container2.querySelector("#tracking-panel");
+  const trackingDot = container2.querySelector("#tracking-dot");
+  const trackingDetail = container2.querySelector("#tracking-detail");
+  const stopTrackingBtn = container2.querySelector("#stop-tracking-btn");
   let notifiableCount = null;
   loadStatusChip(statusChip, (count) => {
     notifiableCount = count;
@@ -1109,6 +1470,31 @@ async function renderHome(container2, { getUser: getUser2 }) {
   let busy = false;
   let holdStart = 0;
   let rafId = null;
+  function renderTrackingState(tracking) {
+    trackingPanel.hidden = !tracking.active;
+    btn.disabled = tracking.active;
+    trackingDot.classList.toggle("tracking-dot-connected", tracking.connected);
+    stopTrackingBtn.disabled = tracking.stopping;
+    stopTrackingBtn.textContent = tracking.stopping ? t("home.trackingStopping") : t("home.trackingStop");
+    if (!tracking.active) {
+      if (!busy)
+        status.textContent = tracking.error || t("home.idle");
+      return;
+    }
+    busy = true;
+    const started = tracking.startedAt ? new Date(tracking.startedAt) : null;
+    const minutes = started && !Number.isNaN(started.getTime()) ? Math.max(0, Math.floor((Date.now() - started.getTime()) / 60000)) : 0;
+    trackingDetail.textContent = tracking.error ? tracking.error : t(tracking.connected ? "home.trackingConnected" : "home.trackingConnecting", { minutes });
+    status.textContent = t("home.trackingActive");
+  }
+  observeLiveTracking(renderTrackingState);
+  const trackingClock = setInterval(() => {
+    if (!container2.isConnected) {
+      clearInterval(trackingClock);
+      return;
+    }
+    renderTrackingState(getLiveTrackingState());
+  }, 30000);
   function setRingProgress(progress) {
     ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - progress));
     btn.style.setProperty("--hold", String(progress));
@@ -1156,15 +1542,22 @@ async function renderHome(container2, { getUser: getUser2 }) {
     btn.classList.add("panic-btn-busy");
     status.textContent = t("home.locating");
     try {
-      const { latitude, longitude } = await getCurrentCoordinates();
+      const coordinates = await getCurrentCoordinates();
       status.textContent = t("home.sending");
-      await Api.createAlert({ latitude, longitude });
+      const alert = await Api.createAlert(coordinates);
+      let trackingStarted = true;
+      try {
+        await startLiveTracking(alert);
+      } catch {
+        trackingStarted = false;
+        await stopLiveTracking(Api.stopAlert).catch(() => {});
+      }
       btn.classList.remove("panic-btn-busy");
       btn.classList.add("panic-btn-success");
       icon2.hidden = true;
       check.hidden = false;
-      status.textContent = t("home.sent");
-      showToast(t("home.sentToast"), "success");
+      status.textContent = t(trackingStarted ? "home.sent" : "home.trackingUnavailable");
+      showToast(t(trackingStarted ? "home.sentToast" : "home.trackingUnavailable"), trackingStarted ? "success" : "error");
     } catch (error) {
       btn.classList.remove("panic-btn-busy");
       btn.classList.add("panic-btn-error");
@@ -1177,6 +1570,13 @@ async function renderHome(container2, { getUser: getUser2 }) {
     }
   }
   function resetButton() {
+    if (getLiveTrackingState().active) {
+      btn.classList.remove("panic-btn-busy", "panic-btn-success", "panic-btn-error");
+      icon2.hidden = false;
+      check.hidden = true;
+      renderTrackingState(getLiveTrackingState());
+      return;
+    }
     busy = false;
     setRingProgress(0);
     btn.classList.remove("panic-btn-busy", "panic-btn-success", "panic-btn-error");
@@ -1201,11 +1601,22 @@ async function renderHome(container2, { getUser: getUser2 }) {
   btn.addEventListener("pointercancel", cancelHold);
   btn.addEventListener("pointermove", applyTilt);
   btn.addEventListener("pointerleave", resetTilt);
+  stopTrackingBtn.addEventListener("click", async () => {
+    try {
+      await stopLiveTracking(Api.stopAlert);
+      busy = false;
+      btn.disabled = false;
+      resetButton();
+      showToast(t("home.trackingStopped"), "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t("home.trackingStopError"), "error");
+    }
+  });
 }
 async function loadStatusChip(chip, onCount) {
   try {
     const contacts = await Api.listContacts();
-    const notifiable = contacts.filter((contact) => contact.confirmed || contact.telegram_linked).length;
+    const notifiable = contacts.filter((contact) => contact.confirmed || contact.telegram_linked || contact.whatsapp_confirmed || contact.sms_enabled).length;
     onCount(notifiable);
     chip.innerHTML = notifiable > 0 ? `${Icon.contacts()} ${t(notifiable === 1 ? "home.statusReady" : "home.statusReadyPlural", { count: notifiable })}` : `${Icon.contacts()} ${t("home.statusNone")}`;
     chip.classList.add("home-status-visible");
@@ -1264,7 +1675,7 @@ var PostalAddressType;
 
 // node_modules/@capacitor-community/contacts/dist/esm/index.js
 var Contacts = registerPlugin("Contacts", {
-  web: () => import("./chunk-1h47ppk8.js").then((m) => new m.ContactsWeb)
+  web: () => import("./chunk-50ydnxbr.js").then((m) => new m.ContactsWeb)
 });
 
 // src/lib/contactsPicker.ts
@@ -1302,7 +1713,7 @@ function openSheet(bodyElement) {
 
 // node_modules/@capacitor/share/dist/esm/index.js
 var Share = registerPlugin("Share", {
-  web: () => import("./chunk-axk9xybx.js").then((m) => new m.ShareWeb)
+  web: () => import("./chunk-nnq8xjfq.js").then((m) => new m.ShareWeb)
 });
 
 // src/lib/share.ts
@@ -1903,6 +2314,9 @@ function navigate(route) {
   window.location.hash = `#/${route}`;
 }
 async function logout() {
+  if (getLiveTrackingState().active) {
+    await stopLiveTracking(Api.stopAlert).catch(stopLiveTrackingLocally);
+  }
   await clearToken();
   navigate("login");
 }
@@ -1969,6 +2383,8 @@ async function boot() {
     } catch {
       await clearToken();
     }
+    if (getUser())
+      await restoreLiveTracking().catch(() => {});
   }
   await renderCurrentRoute();
   await SplashScreen.hide();

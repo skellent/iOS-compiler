@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="theme-color" content="#111018" />
+    <title>Live location — Panic Button</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/static/css/live_alert.css" />
+  </head>
+  <body>
+    <main class="live-shell">
+      <header class="live-header">
+        <img src="/static/img/panic-button-title.png" alt="Panic Button" class="brand" />
+        <div id="connection-status" class="status status-connecting">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="status-label">Connecting…</span>
+        </div>
+      </header>
+
+      <section class="alert-summary" aria-labelledby="alert-title">
+        <div>
+          <p class="eyebrow">Emergency live location</p>
+          <h1 id="alert-title">{{ user_name }} needs your attention</h1>
+          <p id="last-update" class="last-update">Waiting for the latest location…</p>
+        </div>
+        <a class="call-button" href="tel:{{ user_phone }}">Call {{ user_name }}</a>
+      </section>
+
+      <section class="map-wrap" aria-label="Live emergency location map">
+        <div id="map"></div>
+        <button id="recenter-button" class="recenter-button" type="button" hidden>Follow location</button>
+      </section>
+
+      <footer>
+        Location accuracy depends on the sender's device and network. If updates stop, call them directly.
+      </footer>
+    </main>
+
+    <script id="live-config" type="application/json">{{ {
+      "token": token,
+      "tileUrl": tile_url,
+      "tileAttribution": tile_attribution
+    } | tojson }}</script>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/static/js/live_alert.js"></script>
+  </body>
+</html>

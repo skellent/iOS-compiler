@@ -1,6 +1,6 @@
 import {
   WebPlugin
-} from "./chunk-sgmc5hz5.js";
+} from "./chunk-76h33zks.js";
 
 // node_modules/@capacitor/share/dist/esm/web.js
 class ShareWeb extends WebPlugin {

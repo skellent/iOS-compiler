@@ -6,6 +6,8 @@ APP_MODE=
 LOG_LEVEL=
 # URLs
 API_BASE_URL=
+MAP_TILE_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+MAP_TILE_ATTRIBUTION='&copy; OpenStreetMap contributors'
 PLAY_STORE_URL=
 # AUTHENTICATION
 JWT_SECRET_KEY=
