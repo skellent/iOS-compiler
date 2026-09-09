@@ -283,7 +283,10 @@ function renderAlertCard(alert, notes) {
         </div>
         <span class="alert-badge">${alert.notifications.length} sent &middot; ${seenCount} seen</span>
       </div>
-      <a class="alert-coords" href="https://www.google.com/maps?q=${alert.latitude},${alert.longitude}" target="_blank" rel="noopener">&#128205; ${alert.latitude}, ${alert.longitude}</a>
+      <div class="alert-location-row">
+        <span class="alert-coords">&#128205; ${alert.latitude}, ${alert.longitude}</span>
+        <a class="alert-map-link" href="${escapeHtml(alert.view_url)}" target="_blank" rel="noopener">View live map</a>
+      </div>
       <div class="notifications">
         ${
           notes.length === 0

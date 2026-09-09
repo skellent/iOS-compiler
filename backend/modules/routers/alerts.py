@@ -41,6 +41,11 @@ def _view_url(notification_id: int) -> str:
     return f"{_URL_BASE}/alerts/view/{token}"
 
 
+def _owner_view_url(alert_id: int, user_id: int) -> str:
+    token: str = Token.CreateAlertOwnerView(alert_id, user_id)
+    return f"{_URL_BASE}/alerts/view/{token}"
+
+
 # BackgroundTasks stops at the first exception, so a failure in one channel must not
 # prevent the other from running. Both channels are wrapped for that reason — the
 # mail one always was; the Telegram one used to raise straight out of the task.
@@ -206,13 +211,15 @@ def list_alerts(user_id: int = Depends(current_user)):
 
     for alert in alerts:
         alert["notifications"] = by_alert.get(alert["id"], [])
+        alert["view_url"] = _owner_view_url(alert["id"], user_id)
     return alerts
 
 
 @router.get("/view/{token}")
 def view_alert_notification(token: str):
     notification_id: int | None = Token.ValidateAlertNotificationView(token)
-    if notification_id is None:
+    owner_credentials: tuple[int, int] | None = Token.ValidateAlertOwnerView(token)
+    if notification_id is None and owner_credentials is None:
         _logger.warning("Alert view link used with an invalid token")
         return HTMLResponse(
             Pages.Render("confirmation_result", {
@@ -222,9 +229,12 @@ def view_alert_notification(token: str):
             status_code=401,
         )
 
-    rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+    if notification_id is not None:
+        rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+    else:
+        rows = cursor.execute(Queries.SELECT_ALERT_VIEW_BY_OWNER, owner_credentials)
     if not rows:
-        _logger.warning(f"Alert view link used for notification {notification_id}, which no longer exists")
+        _logger.warning("Alert view link points to an alert that no longer exists")
         return HTMLResponse(
             Pages.Render("confirmation_result", {
                 "success": False,
@@ -234,7 +244,7 @@ def view_alert_notification(token: str):
         )
 
     notification: dict = rows[0]
-    if notification["viewed_at"] is None:
+    if notification_id is not None and notification["viewed_at"] is None:
         cursor.execute(Queries.MARK_ALERT_NOTIFICATION_VIEWED, (notification_id,))
         cursor.commit()
         _logger.info(f"Alert notification {notification_id} viewed for the first time")
@@ -304,23 +314,39 @@ def _notification_snapshot(notification_id: int, mark_viewed: bool = False) -> d
         notification = rows[0]
     if mark_viewed and notification["viewed_at"] is None:
         cursor.execute(Queries.MARK_ALERT_NOTIFICATION_VIEWED, (notification_id,))
-    points: list[dict] = cursor.execute(Queries.SELECT_ALERT_LOCATIONS, (notification["alert_id"],))
+    return _alert_snapshot(notification)
+
+
+def _owner_snapshot(alert_id: int, user_id: int) -> dict | None:
+    rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_VIEW_BY_OWNER, (alert_id, user_id))
+    if not rows:
+        return None
+    alert: dict = rows[0]
+    cursor.execute(Queries.EXPIRE_ALERT_TRACKING, (alert_id,))
+    if cursor.rowcount:
+        rows = cursor.execute(Queries.SELECT_ALERT_VIEW_BY_OWNER, (alert_id, user_id))
+        alert = rows[0]
+    return _alert_snapshot(alert)
+
+
+def _alert_snapshot(alert: dict) -> dict:
+    points: list[dict] = cursor.execute(Queries.SELECT_ALERT_LOCATIONS, (alert["alert_id"],))
     return {
         "type": "snapshot",
-        "alert_id": notification["alert_id"],
-        "status": notification["status"],
-        "created_at": notification["created_at"],
-        "tracking_expires_at": notification["tracking_expires_at"],
-        "tracking_ended_at": notification["tracking_ended_at"],
-        "last_location_at": notification["last_location_at"],
+        "alert_id": alert["alert_id"],
+        "status": alert["status"],
+        "created_at": alert["created_at"],
+        "tracking_expires_at": alert["tracking_expires_at"],
+        "tracking_ended_at": alert["tracking_ended_at"],
+        "last_location_at": alert["last_location_at"],
         "latest": {
-            "sequence": notification["latest_sequence"],
-            "latitude": notification["latest_latitude"],
-            "longitude": notification["latest_longitude"],
-            "accuracy": notification["latest_accuracy"],
-            "speed": notification["latest_speed"],
-            "bearing": notification["latest_bearing"],
-            "recorded_at": notification["last_location_at"],
+            "sequence": alert["latest_sequence"],
+            "latitude": alert["latest_latitude"],
+            "longitude": alert["latest_longitude"],
+            "accuracy": alert["latest_accuracy"],
+            "speed": alert["latest_speed"],
+            "bearing": alert["latest_bearing"],
+            "recorded_at": alert["last_location_at"],
         },
         "points": points,
     }
@@ -408,11 +434,15 @@ async def track_alert(websocket: WebSocket, alert_id: int):
 async def view_alert_live(websocket: WebSocket, token: str):
     await websocket.accept()
     notification_id: int | None = Token.ValidateAlertNotificationView(token)
-    if notification_id is None:
+    owner_credentials: tuple[int, int] | None = Token.ValidateAlertOwnerView(token)
+    if notification_id is None and owner_credentials is None:
         await websocket.close(code=4401, reason="Invalid or expired view token")
         return
 
-    snapshot: dict | None = await run_in_threadpool(_notification_snapshot, notification_id, True)
+    if notification_id is not None:
+        snapshot: dict | None = await run_in_threadpool(_notification_snapshot, notification_id, True)
+    else:
+        snapshot = await run_in_threadpool(_owner_snapshot, *owner_credentials)
     if snapshot is None:
         await websocket.close(code=4404, reason="Alert no longer exists")
         return
@@ -424,7 +454,10 @@ async def view_alert_live(websocket: WebSocket, token: str):
         while True:
             message: dict = await websocket.receive_json()
             if message.get("type") == "ping":
-                refreshed = await run_in_threadpool(_notification_snapshot, notification_id)
+                if notification_id is not None:
+                    refreshed = await run_in_threadpool(_notification_snapshot, notification_id)
+                else:
+                    refreshed = await run_in_threadpool(_owner_snapshot, *owner_credentials)
                 if refreshed is None:
                     await websocket.close(code=4404, reason="Alert no longer exists")
                     return

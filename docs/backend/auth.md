@@ -14,7 +14,7 @@ class Guard:
 
 ## JWT — `token.py`
 
-One secret (`JWT_SECRET_KEY`), algorithm `HS256`, and four token *purposes* distinguished by a `type` claim — so a confirmation link can never be replayed as a login session, even though both are "just a valid JWT":
+One secret (`JWT_SECRET_KEY`), algorithm `HS256`, and separate token *purposes* distinguished by a `type` claim — so a confirmation link can never be replayed as a login session, even though both are "just a valid JWT":
 
 | Purpose | Created by | Payload | Expires |
 |---|---|---|---|
@@ -22,10 +22,14 @@ One secret (`JWT_SECRET_KEY`), algorithm `HS256`, and four token *purposes* dist
 | Account confirmation | `Token.CreateUserConfirmation` | `user_id`, `type=user_confirmation` | 24 h |
 | Contact confirmation | `Token.CreateContactConfirmation` | `contact_id`, `type=contact_confirmation` | 7 days |
 | Alert-view link | `Token.CreateAlertNotificationView` | `notification_id`, `type=alert_notification_view` | 30 days |
+| Dashboard alert-view link | `Token.CreateAlertOwnerView` | `alert_id`, `user_id`, `type=alert_owner_view` | 30 days |
 
 `Token.Validate` only checks signature/expiry and returns the raw payload or `None`. Each `Validate<Purpose>` wrapper then also checks that `payload["type"]` matches before trusting the id inside — "any valid signature" is not enough.
 
-The alert-view link outlives the confirmation links (30 days) because a contact may reopen the map well after an alert, but it still expires so an old message can't reveal a location forever.
+Alert-view links outlive the confirmation links (30 days) so a contact or account owner
+may reopen the map well after an alert. The owner-scoped form is generated only while
+loading an authenticated user's own alert list and does not mark a contact notification
+as viewed.
 
 ## `current_user`
 
@@ -92,4 +96,3 @@ sequenceDiagram
 - **The link** (`GET /auth/password-reset/{token}`) serves a small web page with a new-password form; an invalid/expired token shows the standard error page.
 - **The form** posts the new password to `POST /auth/password-reset/{token}`, which validates the token (**type-checked**, so a session or confirmation token can't be used here), updates the hash, and emails a security notice.
 - In the app, a **"Forgot your password?"** link on the login screen triggers the request.
-

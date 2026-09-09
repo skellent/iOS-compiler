@@ -335,11 +335,23 @@ body {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--primary-400);
-  text-decoration: none;
-  margin-top: 2px;
+  color: var(--text-300);
 }
-.alert-coords:hover { text-decoration: underline; }
+.alert-location-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+.alert-map-link {
+  flex-shrink: 0;
+  color: var(--primary-400);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.alert-map-link:hover { text-decoration: underline; }
 .notifications {
   margin-top: 14px;
   padding-top: 14px;

@@ -130,6 +130,27 @@ class Token:
         return _as_id(payload.get("notification_id"))
 
     @staticmethod
+    def CreateAlertOwnerView(alert_id: int, user_id: int) -> str:
+        payload: dict = {
+            "alert_id": alert_id,
+            "user_id": user_id,
+            "type": "alert_owner_view",
+            "exp": datetime.now(timezone.utc) + ALERT_VIEW_EXPIRATION,
+        }
+        return jwt.encode(payload, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateAlertOwnerView(token: str) -> tuple[int, int] | None:
+        payload: dict | None = Token.Validate(token)
+        if payload is None or payload.get("type") != "alert_owner_view":
+            return None
+        alert_id: int | None = _as_id(payload.get("alert_id"))
+        user_id: int | None = _as_id(payload.get("user_id"))
+        if alert_id is None or user_id is None:
+            return None
+        return alert_id, user_id
+
+    @staticmethod
     def CreateAlertPublisher(alert_id: int, user_id: int, expires_at: datetime) -> str:
         payload: dict = {
             "alert_id": alert_id,

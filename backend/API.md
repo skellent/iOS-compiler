@@ -277,6 +277,7 @@ Lists the authenticated user's own alert history, most recent first, including w
     "created_at": "2026-07-30T09:51:35",
     "latitude": 10.4806,
     "longitude": -66.9036,
+    "view_url": "https://example.com/alerts/view/eyJ...",
     "notifications": [
       { "channel": "email", "viewed_at": "2026-07-30T09:51:44", "contact_name": "Ana Martinez" },
       { "channel": "telegram", "viewed_at": null, "contact_name": "Ana Martinez" }
@@ -284,6 +285,10 @@ Lists the authenticated user's own alert history, most recent first, including w
   }
 ]
 ```
+
+`view_url` is a 30-day owner-scoped link generated for the authenticated dashboard.
+It opens the same saved/live route as a contact link without marking any contact
+notification as viewed. Reloading the dashboard generates a fresh link for each alert.
 
 A contact confirmed by both email and Telegram appears twice in `notifications` for the same alert — one entry per channel, each with its own independent `viewed_at` (`null` until that specific link has been opened at least once). There's no `GET /alerts/{id}` for a single alert; the full list is small enough (see `docs/en/backend/api.md`) that this one endpoint covers both the dashboard's list view and any future per-alert detail view.
 
@@ -294,7 +299,11 @@ A contact confirmed by both email and Telegram appears twice in `notifications` 
 
 ### `GET /alerts/view/{token}`
 
-This is the link embedded as `map_url` in every panic notification. Opening it marks that specific notification as viewed and renders the embedded live map. Its WebSocket at `/alerts/view/{token}/live` sends the saved route snapshot and subsequent positions. The signed link expires after 30 days.
+This route accepts the link embedded as `map_url` in every panic notification and the
+owner-scoped link returned by `GET /alerts`. A contact link marks that specific
+notification as viewed; an owner link does not. Both render the embedded live map.
+The WebSocket at `/alerts/view/{token}/live` sends the saved route snapshot and
+subsequent positions. Signed links expire after 30 days.
 
 | Code | When it happens |
 |--------|----------------|

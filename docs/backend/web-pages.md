@@ -4,7 +4,14 @@ The backend serves public, account, and token-protected HTML surfaces plus stati
 
 ## Live alert — `GET /alerts/view/{token}`
 
-The signed link delivered to an emergency contact renders an embedded Leaflet map. It opens a same-origin WebSocket, receives the persisted route snapshot, and moves the marker as the app reports positions. The page shows accuracy, connection freshness, terminal state, a call action, and a follow/recenter control. Opening it preserves the existing per-notification `viewed_at` tracking. It is `noindex`, uses `no-store`, and does not expose the signed path as a cross-origin referrer.
+The signed link delivered to an emergency contact renders an embedded Leaflet map. An
+owner-scoped version of the same link is generated for each dashboard alert. The page
+opens a same-origin WebSocket, receives the persisted route snapshot, and moves the
+marker as the app reports positions. It shows accuracy, connection freshness, terminal
+state, a call action, and a follow/recenter control. Opening a contact link preserves
+the existing per-notification `viewed_at` tracking; opening an owner link does not change
+contact state. It is `noindex`, uses `no-store`, and does not expose the signed path as a
+cross-origin referrer.
 
 ## Landing — `GET /`
 
@@ -20,13 +27,17 @@ flowchart TD
     Token --> Load[GET /alerts]
     Load --> Stats[Summary tiles]
     Load --> List[Filterable alert list]
+    List --> Map[Owner-scoped live map]
 ```
 
 **Summary tiles** — total alerts, alerts in the last 7 days, notifications sent, and the seen rate (viewed ÷ sent).
 
 **Filter bar** — search by contact name, per-channel chips (Email / Telegram / WhatsApp / SMS, toggle to hide a channel), and a seen / not-seen filter. Filters narrow both which alerts show and which notification rows within them.
 
-**Alert cards** — each shows the time (US format) and a relative "Xh ago", a `sent · seen` badge, the map link, and one row per notification: a coloured channel tag, the contact name (with a **"removed"** tag if the contact was later deleted — the name is preserved on the row), and its seen status.
+**Alert cards** — each shows the time (US format) and a relative "Xh ago", a
+`sent · seen` badge, the initial coordinates, a **View live map** link, and one row per
+notification: a coloured channel tag, the contact name (with a **"removed"** tag if the
+contact was later deleted — the name is preserved on the row), and its seen status.
 
 Because `alert_notifications` stores the contact name and survives contact deletion (see [database.md](database.md)), the dashboard keeps showing who an old alert reached even after those contacts are gone — no more empty alerts.
 

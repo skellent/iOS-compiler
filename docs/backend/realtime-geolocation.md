@@ -23,6 +23,8 @@ tracking lifecycle changes.
 - Tracking ends when the user taps **Stop sharing** or 60 minutes after the alert.
 - Contacts use the existing per-notification signed URL. Opening it still records
   `viewed_at`, but now renders a live page instead of redirecting to Google Maps.
+- The authenticated dashboard receives a separate owner-scoped signed URL for every
+  alert. It opens the same map without changing any contact's `viewed_at` value.
 - The live page uses Leaflet with a configurable tile URL and attribution. The
   defaults use the standard OpenStreetMap raster tiles for initial deployments.
 - The initial alert coordinate remains available after live tracking ends.

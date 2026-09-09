@@ -98,6 +98,14 @@ class Queries:
         "SELECT id, user_id, status, tracking_expires_at, latest_sequence "
         "FROM alerts WHERE id = %s AND user_id = %s;"
     )
+    SELECT_ALERT_VIEW_BY_OWNER: str = (
+        "SELECT alerts.id AS alert_id, alerts.status, alerts.tracking_expires_at, alerts.tracking_ended_at, "
+        "alerts.latest_latitude, alerts.latest_longitude, alerts.latest_accuracy, alerts.latest_speed, "
+        "alerts.latest_bearing, alerts.latest_sequence, alerts.last_location_at, alerts.created_at, "
+        "users.name AS user_name, users.phone AS user_phone "
+        "FROM alerts JOIN users ON users.id = alerts.user_id "
+        "WHERE alerts.id = %s AND alerts.user_id = %s;"
+    )
     STOP_ALERT_TRACKING: str = (
         "UPDATE alerts SET status = 'ended', tracking_ended_at = UTC_TIMESTAMP() "
         "WHERE id = %s AND user_id = %s AND status = 'active';"

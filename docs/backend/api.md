@@ -42,10 +42,10 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 | Method & path | Auth | Purpose |
 |---|---|---|
 | `POST /alerts` | 🔒 | Trigger a panic alert; notifies each confirmed contact and returns a 60-minute publisher token. Rate-limited. |
-| `GET /alerts` | 🔒 | List alerts, each with its notifications (`contact_name`, `channel`, `viewed_at`, `contact_removed`). |
+| `GET /alerts` | 🔒 | List alerts, each with notifications and a 30-day owner-scoped `view_url` for the dashboard map. |
 | `POST /alerts/{id}/stop` | 🔒 | End an owned live-tracking session. |
 | `WS /alerts/{id}/track` | publisher JWT | Receive live locations from the alerting app. The first frame authenticates the socket. |
-| `GET /alerts/view/{token}` | view JWT | Mark the notification seen and render its embedded live map. |
+| `GET /alerts/view/{token}` | view JWT | Render the embedded live map; contact tokens mark that notification seen, while owner tokens do not. |
 | `WS /alerts/view/{token}/live` | view JWT | Send the persisted snapshot and subsequent locations to the contact map. |
 
 `POST /alerts` response:
