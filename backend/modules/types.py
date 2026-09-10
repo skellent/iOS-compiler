@@ -135,7 +135,7 @@ class AlertLocationUpdate(BaseModel):
 
 
 class TelegramLink(BaseModel):
-    telegram_link_url: str | None = None
+    telegram_link_url: str
 
 
 class WhatsAppEnable(BaseModel):

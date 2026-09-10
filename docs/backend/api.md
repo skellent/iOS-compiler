@@ -30,7 +30,7 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 | `PUT /contacts/{id}` | 🔒 | Partial update — changing the email resets confirmation and re-sends it. |
 | `POST /contacts/{id}/confirm/resend` | 🔒 | Re-send the email confirmation to an unconfirmed contact. Rate-limited. |
 | `DELETE /contacts/{id}` | 🔒 | Delete a contact. Past alerts keep its name (see [database.md](database.md)). |
-| `POST /contacts/{id}/telegram/enable` | 🔒 | Start a Telegram link (returns a `t.me` link or emails it). |
+| `POST /contacts/{id}/telegram/enable` | 🔒 | Start a Telegram link and return its `t.me` URL for native sharing. |
 | `DELETE /contacts/{id}/telegram` | 🔒 | Unlink Telegram. |
 | `POST /contacts/{id}/whatsapp/enable` | 🔒 | Enable WhatsApp; returns a `wa.me` opt-in link. |
 | `DELETE /contacts/{id}/whatsapp` | 🔒 | Disable WhatsApp (clears enabled + confirmed). |

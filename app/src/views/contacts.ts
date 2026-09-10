@@ -317,16 +317,12 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
           showToast(t("contacts.telegramDisconnected"), "success");
         } else {
           const result = await Api.enableContactTelegram(contact.id);
-          if (result.telegram_link_url) {
-            await shareLink({
-              url: result.telegram_link_url,
-              title: "Panic Button",
-              text: t("contacts.telegramShareText"),
-            });
-            showToast(t("contacts.telegramLinkReady"), "success");
-          } else {
-            showToast(t("contacts.telegramEmailSent"), "success");
-          }
+          await shareLink({
+            url: result.telegram_link_url,
+            title: "Panic Button",
+            text: t("contacts.telegramShareText"),
+          });
+          showToast(t("contacts.telegramLinkReady"), "success");
         }
         close();
         onSaved();

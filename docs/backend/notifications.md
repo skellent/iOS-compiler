@@ -63,12 +63,18 @@ sequenceDiagram
     participant Bot
     participant Webhook as POST /telegram/webhook
     User->>API: enable Telegram
-    API-->>User: t.me/BOT?start=TOKEN (emailed or returned)
+    API-->>User: return t.me/BOT?start=TOKEN
+    User->>Contact: share through the native share sheet
     Contact->>Bot: opens link, sends /start TOKEN
     Bot->>Webhook: update (chat id + token)
     Webhook->>Webhook: match token, store telegram_chat_id
     Webhook-->>Contact: confirmation message
 ```
+
+The backend never emails this Telegram deep link automatically. It always returns the
+24-hour, single-use URL to the app, which opens Capacitor's native share sheet just as
+the WhatsApp opt-in flow does. Creating another link for the same contact invalidates
+the previous one.
 
 **Webhook security & self-healing.** `POST /telegram/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET`. The webhook URL is **registered by the backend** at startup (`EnsureWebhook`: set + verify via `getWebhookInfo`, with retries) and re-asserted by a background keeper if it drifts. Every hit and every ignore/failure reason is logged, so a mis-registered webhook is visible rather than silent (see [operations.md](operations.md)).
 

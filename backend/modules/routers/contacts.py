@@ -225,9 +225,8 @@ def delete_contact(contact_id: int, user_id: int = Depends(current_user)):
 
 
 @router.post("/{contact_id}/telegram/enable", response_model=TelegramLink)
-def enable_contact_telegram(contact_id: int, background_tasks: BackgroundTasks, user_id: int = Depends(current_user)):
-    # Without a username there is no valid t.me link to build; emailing
-    # "https://t.me/None?start=..." to a contact is worse than refusing.
+def enable_contact_telegram(contact_id: int, user_id: int = Depends(current_user)):
+    # Without a username there is no valid t.me link to build.
     if not _TELEGRAM_BOT_USERNAME:
         raise HTTPException(status_code=503, detail="Telegram is not configured on this deployment")
 
@@ -245,28 +244,7 @@ def enable_contact_telegram(contact_id: int, background_tasks: BackgroundTasks, 
     cursor.commit()
     _logger.info(f"User {user_id} started a Telegram link for contact {contact_id}")
 
-    rows: list[dict] = cursor.execute(Queries.SELECT_CONTACT_BY_ID, (contact_id, user_id))
-    if not rows:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    contact: dict = rows[0]
     telegram_link_url: str = f"https://t.me/{_TELEGRAM_BOT_USERNAME}?start={link_token}"
-
-    if contact["email"]:
-        user_rows: list[dict] = cursor.execute(Queries.SELECT_USER_BY_ID, (user_id,))
-        if user_rows:
-            background_tasks.add_task(
-                Mail.Send,
-                contact["email"],
-                "Link Telegram to receive panic alerts",
-                "telegram_link",
-                {
-                    "contact_name":      contact["name"],
-                    "user_name":         user_rows[0]["name"],
-                    "telegram_link_url": telegram_link_url,
-                },
-            )
-            return {"telegram_link_url": None}
-
     return {"telegram_link_url": telegram_link_url}
 
 

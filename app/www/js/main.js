@@ -130,7 +130,6 @@ var STRINGS = {
     "contacts.resendConfirmationSent": "Confirmation email sent again.",
     "contacts.telegramConnect": "Connect Telegram",
     "contacts.telegramDisconnect": "Disconnect Telegram",
-    "contacts.telegramEmailSent": "Telegram link sent to their email.",
     "contacts.telegramLinkReady": "Telegram link ready — share it with your contact.",
     "contacts.telegramShareText": "Link me on Telegram to receive my Panic Button alerts:",
     "contacts.whatsappShareText": "Message me on WhatsApp to receive my Panic Button alerts:",
@@ -279,7 +278,6 @@ var STRINGS = {
     "contacts.resendConfirmationSent": "Correo de confirmación reenviado.",
     "contacts.telegramConnect": "Conectar Telegram",
     "contacts.telegramDisconnect": "Desconectar Telegram",
-    "contacts.telegramEmailSent": "Enlace de Telegram enviado a su correo.",
     "contacts.telegramLinkReady": "Enlace de Telegram listo — compártelo con tu contacto.",
     "contacts.telegramShareText": "Vincúlame en Telegram para recibir mis alertas de Panic Button:",
     "contacts.whatsappShareText": "Escríbeme por WhatsApp para recibir mis alertas de Panic Button:",
@@ -422,8 +420,9 @@ var STRINGS = {
     "contacts.telegramNotLinked": "Telegram não vinculado",
     "contacts.telegramConnect": "Conectar Telegram",
     "contacts.telegramDisconnect": "Desconectar Telegram",
-    "contacts.telegramEmailSent": "Link do Telegram enviado ao e-mail dele.",
-    "contacts.telegramLinkReady": "Link do Telegram pronto — copiado, compartilhe com seu contato.",
+    "contacts.telegramLinkReady": "Link do Telegram pronto — compartilhe com seu contato.",
+    "contacts.telegramShareText": "Vincule-me no Telegram para receber meus alertas do Panic Button:",
+    "contacts.whatsappShareText": "Envie-me uma mensagem no WhatsApp para receber meus alertas do Panic Button:",
     "contacts.telegramDisconnected": "Telegram desconectado.",
     "contacts.telegramEnableError": "Não foi possível iniciar a vinculação do Telegram.",
     "contacts.telegramDisableError": "Não foi possível desconectar o Telegram.",
@@ -1978,16 +1977,12 @@ function openContactFormSheet({ contact = null, prefill = null, features, onSave
           showToast(t("contacts.telegramDisconnected"), "success");
         } else {
           const result = await Api.enableContactTelegram(contact.id);
-          if (result.telegram_link_url) {
-            await shareLink({
-              url: result.telegram_link_url,
-              title: "Panic Button",
-              text: t("contacts.telegramShareText")
-            });
-            showToast(t("contacts.telegramLinkReady"), "success");
-          } else {
-            showToast(t("contacts.telegramEmailSent"), "success");
-          }
+          await shareLink({
+            url: result.telegram_link_url,
+            title: "Panic Button",
+            text: t("contacts.telegramShareText")
+          });
+          showToast(t("contacts.telegramLinkReady"), "success");
         }
         close();
         onSaved();
