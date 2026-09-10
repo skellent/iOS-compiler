@@ -45,8 +45,10 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 | `GET /alerts` | 🔒 | List alerts, each with notifications and a 30-day owner-scoped `view_url` for the dashboard map. |
 | `POST /alerts/{id}/stop` | 🔒 | End an owned live-tracking session. |
 | `WS /alerts/{id}/track` | publisher JWT | Receive live locations from the alerting app. The first frame authenticates the socket. |
-| `GET /alerts/view/{token}` | view JWT | Render the embedded live map; contact tokens mark that notification seen, while owner tokens do not. |
-| `WS /alerts/view/{token}/live` | view JWT | Send the persisted snapshot and subsequent locations to the contact map. |
+| `GET /a/{token}` | short view token | Render a contact's embedded live map and mark that channel notification seen. |
+| `WS /a/{token}/live` | short view token | Send the persisted snapshot and subsequent locations to the contact map. |
+| `GET /alerts/view/{token}` | view JWT | Render an owner map or a historical contact JWT link. |
+| `WS /alerts/view/{token}/live` | view JWT | Live stream for owner and historical JWT map links. |
 
 `POST /alerts` response:
 
@@ -63,6 +65,8 @@ Quick reference for every route. 🔒 = requires `Authorization: Bearer <token>`
 
 See [realtime-geolocation.md](realtime-geolocation.md) for the WebSocket message protocol.
 `accuracy`, `speed`, and `bearing` may accompany the initial latitude and longitude.
+Contact notification links and their security model are documented in
+[short-alert-urls.md](short-alert-urls.md).
 
 ## Webhooks
 

@@ -13,7 +13,7 @@ API_BASE_URL='https://new.example.com'
 Must be the public **HTTPS** URL, no trailing slash. Restart the backend. This immediately fixes:
 
 - account and contact **confirmation links** in emails,
-- the **alert map links** (`/alerts/view/…`),
+- the **contact alert map links** (`/a/…`) and owner/history map links (`/alerts/view/…`),
 - the **WhatsApp opt-in link** handed to the app,
 - the landing/dashboard canonical URLs.
 

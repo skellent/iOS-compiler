@@ -67,6 +67,8 @@ erDiagram
         varchar contact_name
         enum channel "email|telegram|whatsapp|sms"
         datetime viewed_at
+        binary view_token_hash UK
+        datetime view_token_expires_at
     }
 ```
 
@@ -74,7 +76,7 @@ erDiagram
 
 - **`users.confirmed`** gates login (`403` until true) — set by clicking the registration email link. An unconfirmed account can own nothing, so `scripts/purge_unconfirmed_users.py` can safely delete stale ones.
 - **`contacts`** carries one set of state per channel: `confirmed` (email), `telegram_chat_id` (+ single-use link token/expiry), `whatsapp_enabled`/`whatsapp_confirmed`, and `sms_enabled`. A contact is notified on a channel only when that channel's condition holds (see [notifications.md](notifications.md)).
-- **`alert_notifications`** is one row per `(alert, contact, channel)`. It stores the **`contact_name`** at send time and its `contact_id` FK is **`ON DELETE SET NULL`** — so deleting a contact keeps the alert's history intact (the row survives with the name; only the link to the live contact is cleared). `viewed_at` marks the first time that specific view link was opened.
+- **`alert_notifications`** is one row per `(alert, contact, channel)`. It stores the **`contact_name`** at send time and its `contact_id` FK is **`ON DELETE SET NULL`** — so deleting a contact keeps the alert's history intact (the row survives with the name; only the link to the live contact is cleared). `viewed_at` marks the first time that specific view link was opened. New rows also store the SHA-256 `view_token_hash` and its expiry for the [short contact URL](short-alert-urls.md); the raw token is never persisted.
 - **`alert_locations`** stores ordered GPS points for one live session. `alerts` also keeps the latest point and lifecycle state so reconnecting viewers get an immediate snapshot without scanning the full trail.
 
 ## `Cursor`: one connection per thread

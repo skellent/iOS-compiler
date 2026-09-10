@@ -94,7 +94,7 @@
   function connect() {
     clearTimeout(reconnectTimer);
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    socket = new WebSocket(`${protocol}//${location.host}/alerts/view/${encodeURIComponent(config.token)}/live`);
+    socket = new WebSocket(`${protocol}//${location.host}${config.livePath}`);
     setStatus("connecting", reconnectAttempt ? "Reconnecting…" : "Connecting…");
 
     socket.addEventListener("open", () => {

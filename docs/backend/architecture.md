@@ -71,7 +71,7 @@ Registered in `main.py`:
 | `auth` | `/auth` | register, login, account confirmation |
 | `users` | `/users` | profile, sensitive-change re-auth |
 | `contacts` | `/contacts` | CRUD + per-channel enable/disable |
-| `alerts` | `/alerts` | trigger/list alerts, live-location WebSockets, token-protected contact map |
+| `alerts` | `/alerts`, `/a` | trigger/list alerts, live-location WebSockets, JWT owner/history map, short-token contact map |
 | `features` | `/features` | which channels are configured + `max_contacts` |
 | `telegram` | `/telegram` | inbound bot webhook |
 | `whatsapp` | `/whatsapp` | inbound Twilio webhook (opt-in) |

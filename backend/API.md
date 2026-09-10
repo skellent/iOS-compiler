@@ -297,19 +297,26 @@ A contact confirmed by both email and Telegram appears twice in `notifications` 
 | `200`  | Always, even with an empty `[]` if the user has never triggered an alert. |
 | `401`  | Token missing, invalid, or expired. |
 
-### `GET /alerts/view/{token}`
+### `GET /a/{token}` — contact link
 
-This route accepts the link embedded as `map_url` in every panic notification and the
-owner-scoped link returned by `GET /alerts`. A contact link marks that specific
-notification as viewed; an owner link does not. Both render the embedded live map.
-The WebSocket at `/alerts/view/{token}/live` sends the saved route snapshot and
-subsequent positions. Signed links expire after 30 days.
+This compact route accepts the opaque 128-bit token embedded as `map_url` in new panic
+notifications. The backend stores only its SHA-256 hash and a 30-day expiry. Opening the
+link marks that specific channel notification as viewed and renders the embedded live
+map directly, without a redirect. The WebSocket at `/a/{token}/live` sends the saved
+route snapshot and subsequent positions. See `docs/backend/short-alert-urls.md`.
+
+### `GET /alerts/view/{token}` — owner and historical links
+
+This JWT route accepts the owner-scoped link returned by `GET /alerts`; owner views do
+not change any contact's `viewed_at`. It also remains available for contact links issued
+before short URLs were deployed. Its WebSocket remains
+`/alerts/view/{token}/live`. Signed JWT links expire after 30 days.
 
 | Code | When it happens |
 |--------|----------------|
 | `200`  | Token valid. Renders the live map (`text/html`). |
-| `401`  | The token is invalid or malformed. Renders an error page (`text/html`, same as `GET /contacts/confirm/{token}`). |
-| `404`  | The token was valid but the notification it points to no longer exists. Renders an error page. |
+| `401`  | The token is invalid, malformed, or expired. Renders an error page (`text/html`, same as `GET /contacts/confirm/{token}`). |
+| `404`  | The token was valid but the alert or notification no longer exists. Renders an error page. |
 
 ### `POST /alerts/{id}/stop`
 

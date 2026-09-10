@@ -13,7 +13,7 @@ Four independent delivery channels for the same events (contact confirmation, pa
 | WhatsApp | `whatsapp_enabled` **and** `whatsapp_confirmed` | contact phone |
 | SMS | `sms_enabled` | contact phone |
 
-Each `(alert, contact, channel)` gets its own `alert_notifications` row with the contact's name and a 30-day view-link token, so "did this contact, on this channel, open the map" is tracked per channel and shown on the dashboard. That page follows the alert's live locations for the first 60 minutes and retains the last reported point afterward.
+Each `(alert, contact, channel)` gets its own `alert_notifications` row with the contact's name and a 30-day [short view-link token](short-alert-urls.md), so "did this contact, on this channel, open the map" is tracked per channel and shown on the dashboard. The database stores only the token's SHA-256 hash. That page follows the alert's live locations for the first 60 minutes and retains the last reported point afterward.
 
 ## Fan-out
 
@@ -80,4 +80,4 @@ Twilio Messages API (`httpx`). Because a panic alert is business-initiated and u
 
 ## SMS
 
-Twilio Messages API, one short text template (`templates/sms/panic_alert.txt.j2`). No opt-in, no template, no 24 h window — SMS is a per-contact toggle (`sms_enabled`): enable it, and confirmed contacts get a text on the next alert. Caveats (A2P 10DLC, geo-permissions) are in [twilio.md](twilio.md).
+Twilio Messages API, one short GSM-7-friendly text template (`templates/sms/panic_alert.txt.j2`). Its compact `/a/{token}` link and ASCII punctuation keep a representative alert within one 160-character segment; a name containing non-GSM characters can still require UCS-2. No opt-in, no template, no 24 h window — SMS is a per-contact toggle (`sms_enabled`): enable it, and confirmed contacts get a text on the next alert. Caveats (A2P 10DLC, geo-permissions) are in [twilio.md](twilio.md).

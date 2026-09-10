@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi            import APIRouter, BackgroundTasks, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -17,28 +19,58 @@ from modules.logs         import get_logger
 from modules.pages        import Pages
 from modules.realtime     import alert_connections
 from modules.telegram     import Telegram, TelegramNotSentError
-from modules.token        import ALERT_PUBLISH_EXPIRATION, Token
+from modules.token        import ALERT_PUBLISH_EXPIRATION, ALERT_VIEW_EXPIRATION, Token
 from modules.types        import Alert, AlertCreated, AlertLocationUpdate
 from modules.whatsapp     import WhatsApp, WhatsAppNotSentError
 from modules.sms          import Sms, SmsNotSentError
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
+short_router = APIRouter(tags=["alerts"])
 
 _URL_BASE: str = get_credentials()['api_base_url']
 _MAP_CONFIG: dict = get_credentials()['map']
 _TRACKING_DURATION: timedelta = ALERT_PUBLISH_EXPIRATION
+_SHORT_TOKEN_BYTES: int = 16
+_SHORT_TOKEN_LENGTH: int = 22
+_SHORT_TOKEN_CHARS: frozenset[str] = frozenset(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+)
 _logger = get_logger(__name__)
 
 
-def _create_notification(alert_id: int, contact_id: int, contact_name: str, channel: str) -> int:
-    cursor.execute(Queries.INSERT_ALERT_NOTIFICATION, (alert_id, contact_id, contact_name, channel))
+def _short_token_hash(token: str) -> bytes:
+    return hashlib.sha256(token.encode("utf-8")).digest()
+
+
+def _create_notification(alert_id: int, contact_id: int, contact_name: str, channel: str) -> tuple[int, str]:
+    expires_at: datetime = (
+        datetime.now(timezone.utc) + ALERT_VIEW_EXPIRATION
+    ).replace(tzinfo=None)
+    token: str = secrets.token_urlsafe(_SHORT_TOKEN_BYTES)
+    cursor.execute(Queries.INSERT_ALERT_NOTIFICATION, (
+        alert_id,
+        contact_id,
+        contact_name,
+        channel,
+        _short_token_hash(token),
+        expires_at,
+    ))
     cursor.commit()
-    return cursor.lastrowid
+    return cursor.lastrowid, token
 
 
-def _view_url(notification_id: int) -> str:
-    token: str = Token.CreateAlertNotificationView(notification_id)
-    return f"{_URL_BASE}/alerts/view/{token}"
+def _short_view_url(token: str) -> str:
+    return f"{_URL_BASE}/a/{token}"
+
+
+def _notification_id_from_short_token(token: str) -> int | None:
+    if len(token) != _SHORT_TOKEN_LENGTH or any(ch not in _SHORT_TOKEN_CHARS for ch in token):
+        return None
+    rows: list[dict] = cursor.execute(
+        Queries.SELECT_ALERT_NOTIFICATION_ID_BY_SHORT_TOKEN_HASH,
+        (_short_token_hash(token),),
+    )
+    return rows[0]["id"] if rows else None
 
 
 def _owner_view_url(alert_id: int, user_id: int) -> str:
@@ -131,31 +163,31 @@ def create_alert(request: Request, data: Alert, background_tasks: BackgroundTask
         # re-check confirmed on its own: a Telegram-linked contact whose email is
         # unconfirmed (e.g. just edited, which resets confirmed) must not be emailed.
         if contact["email"] and contact["confirmed"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "email")
+            _, view_token = _create_notification(alert_id, contact["id"], contact["name"], "email")
             mail_recipients.append((contact["email"], {
                 "contact_name": contact["name"],
-                "map_url": _view_url(notification_id),
+                "map_url": _short_view_url(view_token),
                 **base_context,
             }))
         if contact["telegram_chat_id"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "telegram")
+            _, view_token = _create_notification(alert_id, contact["id"], contact["name"], "telegram")
             telegram_recipients.append((contact["telegram_chat_id"], {
                 "contact_name": contact["name"],
-                "map_url": _view_url(notification_id),
+                "map_url": _short_view_url(view_token),
                 **base_context,
             }))
         if contact["whatsapp_enabled"] and contact["whatsapp_confirmed"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "whatsapp")
+            _, view_token = _create_notification(alert_id, contact["id"], contact["name"], "whatsapp")
             whatsapp_recipients.append((contact["phone"], {
                 "contact_name": contact["name"],
-                "map_url": _view_url(notification_id),
+                "map_url": _short_view_url(view_token),
                 **base_context,
             }))
         if contact["sms_enabled"]:
-            notification_id: int = _create_notification(alert_id, contact["id"], contact["name"], "sms")
+            _, view_token = _create_notification(alert_id, contact["id"], contact["name"], "sms")
             sms_recipients.append((contact["phone"], {
                 "contact_name": contact["name"],
-                "map_url": _view_url(notification_id),
+                "map_url": _short_view_url(view_token),
                 **base_context,
             }))
 
@@ -215,44 +247,36 @@ def list_alerts(user_id: int = Depends(current_user)):
     return alerts
 
 
-@router.get("/view/{token}")
-def view_alert_notification(token: str):
-    notification_id: int | None = Token.ValidateAlertNotificationView(token)
-    owner_credentials: tuple[int, int] | None = Token.ValidateAlertOwnerView(token)
-    if notification_id is None and owner_credentials is None:
-        _logger.warning("Alert view link used with an invalid token")
-        return HTMLResponse(
-            Pages.Render("confirmation_result", {
-                "success": False,
-                "message": "This link is invalid or has expired.",
-            }),
-            status_code=401,
-        )
+def _invalid_view_response() -> HTMLResponse:
+    return HTMLResponse(
+        Pages.Render("confirmation_result", {
+            "success": False,
+            "message": "This link is invalid or has expired.",
+        }),
+        status_code=401,
+    )
 
-    if notification_id is not None:
-        rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
-    else:
-        rows = cursor.execute(Queries.SELECT_ALERT_VIEW_BY_OWNER, owner_credentials)
-    if not rows:
-        _logger.warning("Alert view link points to an alert that no longer exists")
-        return HTMLResponse(
-            Pages.Render("confirmation_result", {
-                "success": False,
-                "message": "This alert no longer exists.",
-            }),
-            status_code=404,
-        )
 
-    notification: dict = rows[0]
-    if notification_id is not None and notification["viewed_at"] is None:
+def _missing_alert_response() -> HTMLResponse:
+    return HTMLResponse(
+        Pages.Render("confirmation_result", {
+            "success": False,
+            "message": "This alert no longer exists.",
+        }),
+        status_code=404,
+    )
+
+
+def _live_alert_response(alert: dict, live_path: str, notification_id: int | None = None) -> HTMLResponse:
+    if notification_id is not None and alert["viewed_at"] is None:
         cursor.execute(Queries.MARK_ALERT_NOTIFICATION_VIEWED, (notification_id,))
         cursor.commit()
         _logger.info(f"Alert notification {notification_id} viewed for the first time")
 
     response = HTMLResponse(Pages.Render("live_alert", {
-        "token": token,
-        "user_name": notification["user_name"],
-        "user_phone": notification["user_phone"],
+        "live_path": live_path,
+        "user_name": alert["user_name"],
+        "user_phone": alert["user_phone"],
         "tile_url": _MAP_CONFIG["tile_url"],
         "tile_attribution": _MAP_CONFIG["attribution"],
     }))
@@ -260,6 +284,40 @@ def view_alert_notification(token: str):
     # Cross-origin tile requests receive only this site's origin, never the signed path.
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
+
+@router.get("/view/{token}")
+def view_alert_notification(token: str):
+    notification_id: int | None = Token.ValidateAlertNotificationView(token)
+    owner_credentials: tuple[int, int] | None = Token.ValidateAlertOwnerView(token)
+    if notification_id is None and owner_credentials is None:
+        _logger.warning("Alert view link used with an invalid token")
+        return _invalid_view_response()
+
+    if notification_id is not None:
+        rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+    else:
+        rows = cursor.execute(Queries.SELECT_ALERT_VIEW_BY_OWNER, owner_credentials)
+    if not rows:
+        _logger.warning("Alert view link points to an alert that no longer exists")
+        return _missing_alert_response()
+
+    return _live_alert_response(rows[0], f"/alerts/view/{token}/live", notification_id)
+
+
+@short_router.get("/a/{token}", response_class=HTMLResponse)
+def view_alert_by_short_token(token: str):
+    notification_id: int | None = _notification_id_from_short_token(token)
+    if notification_id is None:
+        _logger.warning("Short alert view link used with an invalid or expired token")
+        return _invalid_view_response()
+
+    rows: list[dict] = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+    if not rows:
+        _logger.warning("Short alert view link points to an alert that no longer exists")
+        return _missing_alert_response()
+
+    return _live_alert_response(rows[0], f"/a/{token}/live", notification_id)
 
 
 def _publisher_state(alert_id: int, user_id: int) -> dict | None:
@@ -438,6 +496,22 @@ async def view_alert_live(websocket: WebSocket, token: str):
     if notification_id is None and owner_credentials is None:
         await websocket.close(code=4401, reason="Invalid or expired view token")
         return
+
+    await _serve_alert_live(websocket, notification_id, owner_credentials)
+
+
+@short_router.websocket("/a/{token}/live")
+async def view_alert_live_by_short_token(websocket: WebSocket, token: str):
+    await websocket.accept()
+    notification_id: int | None = await run_in_threadpool(_notification_id_from_short_token, token)
+    if notification_id is None:
+        await websocket.close(code=4401, reason="Invalid or expired view token")
+        return
+    await _serve_alert_live(websocket, notification_id, None)
+
+
+async def _serve_alert_live(websocket: WebSocket, notification_id: int | None,
+                            owner_credentials: tuple[int, int] | None) -> None:
 
     if notification_id is not None:
         snapshot: dict | None = await run_in_threadpool(_notification_snapshot, notification_id, True)

@@ -121,7 +121,11 @@ class Queries:
         "ORDER BY sequence ASC;"
     )
 
-    INSERT_ALERT_NOTIFICATION: str = "INSERT INTO alert_notifications (alert_id, contact_id, contact_name, channel) VALUES (%s, %s, %s, %s);"
+    INSERT_ALERT_NOTIFICATION: str = (
+        "INSERT INTO alert_notifications "
+        "(alert_id, contact_id, contact_name, channel, view_token_hash, view_token_expires_at) "
+        "VALUES (%s, %s, %s, %s, %s, %s);"
+    )
     SELECT_ALERT_NOTIFICATIONS_BY_ALERT: str = (
         "SELECT alert_notifications.channel, alert_notifications.viewed_at, alert_notifications.contact_name, "
         "(alert_notifications.contact_id IS NULL) AS contact_removed "
@@ -147,6 +151,10 @@ class Queries:
         "FROM alert_notifications JOIN alerts ON alerts.id = alert_notifications.alert_id "
         "JOIN users ON users.id = alerts.user_id "
         "WHERE alert_notifications.id = %s;"
+    )
+    SELECT_ALERT_NOTIFICATION_ID_BY_SHORT_TOKEN_HASH: str = (
+        "SELECT id FROM alert_notifications "
+        "WHERE view_token_hash = %s AND view_token_expires_at > UTC_TIMESTAMP();"
     )
     MARK_ALERT_NOTIFICATION_VIEWED: str = "UPDATE alert_notifications SET viewed_at = NOW() WHERE id = %s AND viewed_at IS NULL;"
 

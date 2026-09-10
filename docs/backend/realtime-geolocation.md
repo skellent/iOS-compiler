@@ -21,8 +21,9 @@ tracking lifecycle changes.
 - Android is the supported native platform in this repository.
 - A tracking session starts when `POST /alerts` succeeds.
 - Tracking ends when the user taps **Stop sharing** or 60 minutes after the alert.
-- Contacts use the existing per-notification signed URL. Opening it still records
-  `viewed_at`, but now renders a live page instead of redirecting to Google Maps.
+- Contacts use a compact, opaque per-notification URL. Opening it still records
+  `viewed_at`; see [short-alert-urls.md](short-alert-urls.md). Historical signed URLs
+  remain valid until their JWT expires.
 - The authenticated dashboard receives a separate owner-scoped signed URL for every
   alert. It opens the same map without changing any contact's `viewed_at` value.
 - The live page uses Leaflet with a configurable tile URL and attribution. The
@@ -38,9 +39,10 @@ tracking lifecycle changes.
    sends `location`, `ping`, or `stop` messages.
 5. The server validates and persists each position and broadcasts it to viewers of
    that alert.
-6. A contact opens `/alerts/view/{notification-token}`. The server marks only that
+6. A contact opens `/a/{notification-token}`. The server hashes the opaque token, looks
+   up the unexpired notification, and marks only that
    notification as viewed and renders the map.
-7. The page opens `/alerts/view/{notification-token}/live`. Its first message is a
+7. The page opens `/a/{notification-token}/live`. Its first message is a
    persisted snapshot, so refresh and reconnect do not lose the current position.
 
 Publisher messages:
@@ -85,7 +87,7 @@ messages.
 - Host app-specific JavaScript and CSS locally. Leaflet is pinned with subresource
   integrity when loaded from its CDN.
 - Use `Cache-Control: no-store`, `noindex`, and a referrer policy that sends only the
-  site origin to the configured tile host, never the signed URL path.
+  site origin to the configured tile host, never the private URL path.
 
 ## Android app
 

@@ -2,16 +2,20 @@
 
 The backend serves public, account, and token-protected HTML surfaces plus static assets. They are rendered from Jinja templates under `templates/web/` and styled by `static/css/`.
 
-## Live alert — `GET /alerts/view/{token}`
+## Live alert — `GET /a/{token}`
 
-The signed link delivered to an emergency contact renders an embedded Leaflet map. An
-owner-scoped version of the same link is generated for each dashboard alert. The page
-opens a same-origin WebSocket, receives the persisted route snapshot, and moves the
-marker as the app reports positions. It shows accuracy, connection freshness, terminal
-state, a call action, and a follow/recenter control. Opening a contact link preserves
-the existing per-notification `viewed_at` tracking; opening an owner link does not change
-contact state. It is `noindex`, uses `no-store`, and does not expose the signed path as a
-cross-origin referrer.
+The compact link delivered to an emergency contact renders an embedded Leaflet map
+directly and opens `/a/{token}/live`; it is not a redirect. Its opaque 128-bit token is
+looked up by SHA-256 hash and expires after 30 days. See
+[short-alert-urls.md](short-alert-urls.md) for the security model and before/after design.
+
+An owner-scoped JWT version at `/alerts/view/{token}` is generated for each dashboard
+alert, and the same route remains available for historical contact JWTs. Both pages
+receive the persisted route snapshot and move the marker as the app reports positions.
+They show accuracy, connection freshness, terminal state, a call action, and a
+follow/recenter control. Opening a contact link preserves per-notification `viewed_at`
+tracking; opening an owner link does not change contact state. The page is `noindex`,
+uses `no-store`, and does not expose the private path as a cross-origin referrer.
 
 ## Landing — `GET /`
 
@@ -60,4 +64,4 @@ A small self-contained page (form + inline script) that a user reaches from the 
 
 - **Landing (`/`)** carries a full set of tags built from `API_BASE_URL`: title/description/keywords, a canonical link, `theme-color`, Open Graph and Twitter Card tags, and a `SoftwareApplication` JSON-LD block. It is indexable.
 - **Dashboard (`/dashboard`)** carries title/description/Open Graph too, but is marked **`noindex, nofollow`** — it's a private, login-gated tool that shouldn't appear in search.
-- **`/robots.txt`** allows the landing and disallows `/app`, `/dashboard`, `/docs`, pointing crawlers at **`/sitemap.xml`** (the landing page). Both are generated from `API_BASE_URL`, so a [domain change](domain-change.md) updates them automatically.
+- **`/robots.txt`** allows the landing and disallows `/app`, `/dashboard`, `/docs`, `/a/`, and `/alerts/view/`, pointing crawlers at **`/sitemap.xml`** (the landing page). Both are generated from `API_BASE_URL`, so a [domain change](domain-change.md) updates them automatically.

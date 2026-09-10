@@ -72,6 +72,9 @@ CREATE TABLE alert_notifications (
     contact_name VARCHAR(100),
     channel      ENUM('email', 'telegram', 'whatsapp', 'sms') NOT NULL,
     viewed_at    DATETIME,
+    view_token_hash       BINARY(32) NOT NULL,
+    view_token_expires_at DATETIME   NOT NULL,
     FOREIGN KEY (alert_id) REFERENCES alerts(id),
-    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
+    UNIQUE INDEX idx_alert_notifications_view_token_hash (view_token_hash)
 );

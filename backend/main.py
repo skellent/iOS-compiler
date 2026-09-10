@@ -176,6 +176,7 @@ def robots():
         "Disallow: /app\n"
         "Disallow: /dashboard\n"
         "Disallow: /docs\n"
+        "Disallow: /a/\n"
         "Disallow: /alerts/view/\n"
         f"Sitemap: {base_url}/sitemap.xml\n"
     )
@@ -230,6 +231,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(contacts.router)
 app.include_router(alerts.router)
+app.include_router(alerts.short_router)
 app.include_router(features.router)
 app.include_router(telegram_router.router)
 app.include_router(whatsapp_router.router)
