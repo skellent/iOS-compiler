@@ -494,7 +494,7 @@ function t(key, vars) {
 }
 
 // src/lib/api.ts
-var BASE_URL = "http://localhost:8000";
+var BASE_URL = "https://devs.panicbutton.me";
 
 class ApiError extends Error {
   status;
@@ -687,7 +687,7 @@ var App = registerPlugin("App", {
 
 // src/lib/appUpdate.ts
 var VERSION_KEY = "panicbutton.appVersion";
-var BASE_URL2 = "http://localhost:8000";
+var BASE_URL2 = "https://devs.panicbutton.me";
 async function fetchManifestVersion() {
   const response = await fetch(`${BASE_URL2}/app/manifest`, { cache: "no-store" });
   if (!response.ok)
@@ -784,7 +784,7 @@ var LocalNotifications = registerPlugin("LocalNotifications", {
 });
 
 // src/lib/liveTracking.ts
-var BASE_URL3 = "http://localhost:8000";
+var BASE_URL3 = "https://devs.panicbutton.me";
 var HEARTBEAT_MS = 25000;
 var MAX_RECONNECT_MS = 30000;
 var SESSION_KEY = "panicbutton.liveTracking";
