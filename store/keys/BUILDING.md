@@ -16,57 +16,47 @@ No usar para Play un keystore que muestre la huella `D7:0D:75:...`: es otra iden
 
 ## Requisitos
 
-- Bun, JDK 21 y Android SDK (`ANDROID_HOME`) instalados.
-- Dependencias instaladas: `cd app; bun install`.
-- `app/.env` con `API_BASE_URL=https://<dominio-de-produccion>`.
+- Bun y JDK 25.
+- Android SDK Platform 36.1, Build-Tools 36.0.0 y Platform-Tools.
+- `ANDROID_HOME` apuntando al SDK.
+- Dependencias instaladas con `cd app; bun install`.
+- `app/.env` con el `API_BASE_URL` de producción.
 
-## Restaurar el keystore de Play
+## Preparar la firma
 
-Solo hace falta si no existe ya `app/android/app/release-play.keystore` validado. Desde `app/android`:
+Copia `store/keys/release-play.keystore` a `app/android/app/release-play.keystore`.
+Ambos archivos `.keystore` quedan ignorados por Git.
 
-```powershell
-openssl pkcs12 -export `
-  -inkey ..\..\store\keys\keycodelogics.pem `
-  -in ..\..\store\keys\upload_certificate.pem `
-  -name panicbutton `
-  -out app\release-play.keystore `
-  -passout pass:<CONTRASENA_DEL_KEYSTORE>
-```
-
-Comprueba la identidad antes de usarlo:
-
-```powershell
-keytool -list -v -keystore app\release-play.keystore -alias panicbutton
-```
-
-Debe mostrar la huella SHA-256 anterior.
-
-## Configurar Gradle
-
-Crea `app/android/app/local.properties` (archivo privado, ignorado por Git):
+Crea `app/android/app/local.properties`:
 
 ```properties
 RELEASE_STORE_FILE=release-play.keystore
-RELEASE_STORE_PASSWORD=<CONTRASENA_DEL_KEYSTORE>
 RELEASE_KEY_ALIAS=panicbutton
-RELEASE_KEY_PASSWORD=<CONTRASENA_DEL_KEYSTORE>
 ```
 
-`app/android/app/build.gradle` acepta este archivo y aplica la configuración `signingConfig` al tipo `release`.
+Proporciona las contraseñas solo en la terminal que hará la compilación:
+
+```fish
+set -gx PANICBUTTON_RELEASE_STORE_PASSWORD '<CONTRASENA_DEL_KEYSTORE>'
+set -gx PANICBUTTON_RELEASE_KEY_PASSWORD '<CONTRASENA_DE_LA_CLAVE>'
+```
+
+También se aceptan `RELEASE_STORE_PASSWORD` y `RELEASE_KEY_PASSWORD` dentro del
+`local.properties` privado. Gradle detiene cualquier tarea release si falta alguna
+contraseña, evitando producir un artefacto sin la firma esperada.
 
 ## Generar la versión
 
-Antes de publicar, incrementa `versionCode` en `app/android/app/build.gradle`; Google Play exige un número superior a cualquier versión ya subida.
+Antes de publicar, incrementa `versionCode` en `app/android/app/build.gradle`.
+Google Play exige un número superior a cualquier versión ya subida.
 
-Después:
-
-```powershell
+```fish
 cd app
 bun run build
-bun x cap sync android
+bunx cap sync android
 
 cd android
-.\gradlew.bat -g .gradle-user-home --no-daemon :app:bundleRelease :app:assembleRelease
+./gradlew --no-daemon :app:bundleRelease :app:assembleRelease
 ```
 
 Resultados:
@@ -74,19 +64,20 @@ Resultados:
 - AAB: `app/android/app/build/outputs/bundle/release/app-release.aab`
 - APK: `app/android/app/build/outputs/apk/release/app-release.apk`
 
-Sube el **AAB** a Play Console. El APK es para distribución directa.
+Sube el AAB a Play Console. El APK es para distribución directa.
 
-## Verificación final
+## Verificar la firma
 
 Desde `app/android`:
 
-```powershell
-& "$env:ANDROID_HOME\build-tools\36.0.0\apksigner.bat" verify --verbose --print-certs app\build\outputs\apk\release\app-release.apk
-keytool -printcert -jarfile app\build\outputs\bundle\release\app-release.aab
+```fish
+$ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+keytool -printcert -jarfile app/build/outputs/bundle/release/app-release.aab
 ```
 
-Los dos artefactos deben mostrar la huella SHA-256 `92:84:EA:...:62:8C:B7:8C`.
+Los dos artefactos deben mostrar la huella SHA-256 documentada arriba.
 
-## Nota sobre el APK servido por el backend
+## APK servido por el backend
 
-`backend/static/downloads/panic-button.apk` era versión `1.0` / `versionCode 1`, mientras la app actual es versión `3.0` / `versionCode 3`; no usarlo como artefacto de release actual. Si se desea ofrecer descarga directa, reemplazarlo solo después de verificar el nuevo APK.
+`backend/static/downloads/panic-button.apk` es un artefacto anterior. Reemplázalo
+solo después de verificar la versión y la firma del nuevo APK release.

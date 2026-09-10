@@ -1,19 +1,39 @@
 apply plugin: 'com.android.application'
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (!localPropertiesFile.exists()) { localPropertiesFile = project.file('local.properties') }
-if (localPropertiesFile.exists()) { localProperties.load(new FileInputStream(localPropertiesFile)) }
+def signingProperties = new Properties()
+def signingPropertiesFile = project.file('local.properties')
+if (signingPropertiesFile.exists()) {
+    signingProperties.load(new FileInputStream(signingPropertiesFile))
+}
+
+def releaseStorePassword = System.getenv('PANICBUTTON_RELEASE_STORE_PASSWORD') ?: signingProperties['RELEASE_STORE_PASSWORD']
+def releaseKeyPassword = System.getenv('PANICBUTTON_RELEASE_KEY_PASSWORD') ?: signingProperties['RELEASE_KEY_PASSWORD']
+def releaseKeyAlias = signingProperties['RELEASE_KEY_ALIAS'] ?: 'panicbutton'
+def releaseStoreFile = signingProperties['RELEASE_STORE_FILE'] ?: 'release-play.keystore'
+def releaseSigningConfigured = file(releaseStoreFile).exists() && releaseStorePassword && releaseKeyPassword
+def releaseBuildRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+
+if (releaseBuildRequested && !releaseSigningConfigured) {
+    throw new GradleException(
+        'Release signing is incomplete. Set PANICBUTTON_RELEASE_STORE_PASSWORD and ' +
+        'PANICBUTTON_RELEASE_KEY_PASSWORD, or add the corresponding values to ' +
+        'android/app/local.properties.'
+    )
+}
 
 android {
     namespace = "com.keycodelogics.panicbutton"
-    compileSdk = rootProject.ext.compileSdkVersion
+    compileSdk {
+        version = release(rootProject.ext.compileSdkVersion) {
+            it.minorApiLevel = rootProject.ext.compileSdkMinorVersion
+        }
+    }
     defaultConfig {
         applicationId "com.keycodelogics.panicbutton"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "3.0"
+        versionCode 4
+        versionName "3.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -23,19 +43,19 @@ android {
     }
     signingConfigs {
         release {
-            if ( localProperties.containsKey('RELEASE_STORE_FILE') ) {
-                storeFile file(localProperties['RELEASE_STORE_FILE'])
-                storePassword localProperties['RELEASE_STORE_PASSWORD']
-                keyAlias localProperties['RELEASE_KEY_ALIAS']
-                keyPassword localProperties['RELEASE_KEY_PASSWORD']                
+            if (releaseSigningConfigured) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
             }
         }
     }
     buildTypes {
         release {
-            if (localProperties.containsKey('RELEASE_STORE_FILE')) { signingConfig signingConfigs.release }
+            if (releaseSigningConfigured) { signingConfig signingConfigs.release }
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

@@ -494,7 +494,7 @@ function t(key, vars) {
 }
 
 // src/lib/api.ts
-var BASE_URL = "http://localhost:8000";
+var BASE_URL = "https://devs.panicbutton.me";
 
 class ApiError extends Error {
   status;
@@ -687,7 +687,7 @@ var App = registerPlugin("App", {
 
 // src/lib/appUpdate.ts
 var VERSION_KEY = "panicbutton.appVersion";
-var BASE_URL2 = "http://localhost:8000";
+var BASE_URL2 = "https://devs.panicbutton.me";
 async function fetchManifestVersion() {
   const response = await fetch(`${BASE_URL2}/app/manifest`, { cache: "no-store" });
   if (!response.ok)
@@ -784,7 +784,7 @@ var LocalNotifications = registerPlugin("LocalNotifications", {
 });
 
 // src/lib/liveTracking.ts
-var BASE_URL3 = "http://localhost:8000";
+var BASE_URL3 = "https://devs.panicbutton.me";
 var HEARTBEAT_MS = 25000;
 var MAX_RECONNECT_MS = 30000;
 var SESSION_KEY = "panicbutton.liveTracking";
@@ -943,12 +943,32 @@ function queueLocation(location) {
   persistSession();
   sendPendingLocation();
 }
-async function startWatcher() {
+function locationErrorMessage(error, fallback) {
+  if (error && typeof error === "object") {
+    const message = "message" in error && typeof error.message === "string" ? error.message.trim() : "";
+    const code = "code" in error && typeof error.code === "string" ? error.code.trim() : "";
+    if (message && code)
+      return `${message} (${code})`;
+    if (message)
+      return message;
+    if (code)
+      return `${fallback} (${code})`;
+  }
+  return fallback;
+}
+async function requestTrackingNotificationPermission() {
   try {
-    const notificationPermission = await LocalNotifications.checkPermissions();
-    if (notificationPermission.display === "prompt") {
+    const permission = await LocalNotifications.checkPermissions();
+    if (permission.display === "prompt") {
       await LocalNotifications.requestPermissions();
     }
+  } catch (error) {
+    console.warn("Could not check tracking notification permission", error);
+  }
+}
+async function startWatcher() {
+  await requestTrackingNotificationPermission();
+  try {
     watcherId = await BackgroundGeolocation.addWatcher({
       backgroundMessage: "Your live emergency location is being shared. Tap to return to Panic Button.",
       backgroundTitle: "Panic Button live tracking",
@@ -957,16 +977,25 @@ async function startWatcher() {
       distanceFilter: 10
     }, (location, error) => {
       if (error) {
-        publishState({ error: error.message || "Couldn't update your location." });
+        publishState({ error: locationErrorMessage(error, "Couldn't update your location.") });
         return;
       }
       queueLocation(location);
     });
     await persistSession();
-  } catch {
-    fallbackWatcherId = await Geolocation.watchPosition({ enableHighAccuracy: true, timeout: 15000 }, (position, error) => {
+    return;
+  } catch (backgroundError) {
+    console.warn("Background location watcher unavailable", backgroundError);
+  }
+  try {
+    fallbackWatcherId = await Geolocation.watchPosition({
+      enableHighAccuracy: true,
+      timeout: 30000,
+      maximumAge: 5000,
+      minimumUpdateInterval: 5000
+    }, (position, error) => {
       if (error || !position) {
-        publishState({ error: "Couldn't update your location." });
+        publishState({ error: locationErrorMessage(error, "Couldn't update your location.") });
         return;
       }
       queueLocation({
@@ -979,6 +1008,8 @@ async function startWatcher() {
       });
     });
     publishState({ error: "Background tracking is unavailable. Keep Panic Button open while sharing." });
+  } catch (fallbackError) {
+    throw new Error(locationErrorMessage(fallbackError, "Couldn't start location tracking."));
   }
 }
 async function removeWatcher() {

@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.android.tools.build:gradle:9.0.1'
         classpath 'com.google.gms:google-services:4.4.4'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -21,6 +21,22 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// Capacitor plugin projects consume the integer compileSdkVersion above while
+// configuring themselves. Override their final Android library SDK selection
+// with the installed Android 16 QPR2 (API 36.1) platform.
+subprojects { subproject ->
+    subproject.plugins.withId('com.android.library') {
+        subproject.android {
+            compileSdk {
+                version = release(rootProject.ext.compileSdkVersion) {
+                    it.minorApiLevel = rootProject.ext.compileSdkMinorVersion
+                }
+            }
+        }
+
     }
 }
 
