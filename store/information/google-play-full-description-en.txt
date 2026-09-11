@@ -7,7 +7,7 @@ In a real emergency, seconds matter and you shouldn't be fumbling with your phon
 
 KEY FEATURES
 • One-press panic alert — press and hold the home button to send an alert. The press-and-hold prevents accidental taps.
-• Live GPS location — every alert carries your precise coordinates as a map link, so your people know where to find you, not just that something is wrong.
+• Live GPS location — a private Panic Button map follows your reported route for up to 60 minutes after you activate an alert, including while the app is in the background or the screen is off.
 • Multiple channels at once — confirmed contacts are notified in parallel by email, Telegram, WhatsApp and SMS, so one missed message never means a missed alert.
 • Up to 4 trusted contacts — add them by hand or straight from your address book. Each one confirms by email before they can be alerted, so nobody is added by mistake.
 • Alert history — review your past alerts and see which contacts were notified on which channel.
@@ -17,10 +17,10 @@ KEY FEATURES
 HOW IT WORKS
 1. Create an account with your email.
 2. Add up to 4 emergency contacts and let them confirm.
-3. Whenever you need help, press and hold the panic button — your contacts get your location instantly.
+3. Whenever you need help, press and hold the panic button — your contacts receive a private link to your initial and live reported location.
 
 PRIVACY & SECURITY
-Your data is only ever used to deliver your alerts. We don't sell it and we don't use it for advertising. Passwords are stored encrypted (bcrypt), all traffic is protected with HTTPS/TLS, and your GPS location is captured only at the moment you trigger an alert — Panic Button does not track you in the background. You can delete your account and all associated data at any time.
+Your data is used to operate your account and deliver the alerts you request. We don't sell it or use it for advertising. Passwords are stored as bcrypt hashes and traffic with our server is protected with HTTPS/TLS. Location collection begins only after you deliberately activate an SOS alert. The app stores your initial location and reported live route, may continue collecting location in the background for up to 60 minutes, and stops when you select Stop sharing or the session expires. You can delete your account and associated data at any time.
 
 IMPORTANT
 Panic Button is a personal safety tool, not an emergency service, and it is not a substitute for the police or official emergency responders. Alert delivery depends on your internet connection, your device's GPS and third-party services, and cannot be guaranteed. In a real emergency, always contact your country's official emergency number.

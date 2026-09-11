@@ -1,0 +1,26 @@
+Panic Button — La ayuda está a una pulsación.
+
+Panic Button convierte tu teléfono en una alarma de seguridad personal. Cuando te sientas en peligro, mantén presionado un botón para compartir tu ubicación GPS en vivo con tus contactos de emergencia de confianza por correo electrónico, Telegram, WhatsApp y SMS. Sin menús complicados ni formularios: mantén presionado SOS y tus contactos sabrán que necesitas atención.
+
+¿POR QUÉ PANIC BUTTON?
+En una emergencia, cada segundo cuenta. Una pulsación prolongada envía a tus contactos tu identidad, la hora de la alerta y un enlace privado al mapa de Panic Button.
+
+FUNCIONES PRINCIPALES
+• Alerta SOS intencional — mantén presionado el botón para evitar activaciones accidentales.
+• Ubicación GPS en vivo — un mapa privado sigue la ruta informada durante un máximo de 60 minutos después de activar la alerta, incluso mientras la app está en segundo plano o la pantalla está apagada.
+• Varios canales — los contactos confirmados reciben la alerta por correo, Telegram, WhatsApp y SMS según los canales que hayan configurado.
+• Hasta 4 contactos de confianza — agrégalos manualmente o desde tu agenda y confirma los canales que usarán.
+• Historial de alertas — revisa tus alertas, abre sus mapas y comprueba qué contactos fueron notificados.
+• Inglés y español.
+• Sin anuncios ni venta de datos personales.
+
+CÓMO FUNCIONA
+1. Crea y confirma tu cuenta.
+2. Agrega hasta 4 contactos de emergencia y configura sus canales.
+3. Cuando necesites ayuda, mantén presionado SOS. Tus contactos recibirán un enlace privado con tu ubicación inicial y la ubicación en vivo informada.
+
+PRIVACIDAD Y SEGURIDAD
+Tus datos se usan para operar tu cuenta y entregar las alertas que solicitas. No los vendemos ni los usamos para publicidad. Las contraseñas se guardan como hashes bcrypt y el tráfico con nuestro servidor se protege mediante HTTPS/TLS. La recopilación de ubicación comienza únicamente cuando activas deliberadamente una alerta SOS. La app guarda la ubicación inicial y la ruta en vivo informada, puede seguir recopilando ubicación en segundo plano durante un máximo de 60 minutos y termina cuando seleccionas Dejar de compartir o vence la sesión. Puedes eliminar tu cuenta y sus datos asociados.
+
+IMPORTANTE
+Panic Button es una herramienta de seguridad personal, no un servicio de emergencias ni un sustituto de la policía o de los servicios médicos oficiales. El envío depende de internet, la ubicación del dispositivo y proveedores externos, y no puede garantizarse. En una emergencia real, contacta también al número oficial de emergencias de tu país.

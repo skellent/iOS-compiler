@@ -67,7 +67,7 @@
 
         <div class="legal-body">
           <h2>1. Introduction</h2>
-          <p>Panic Button ("the App") is a personal safety application. By pressing and holding a button, the App captures the user's location and notifies their emergency contacts by email, Telegram, WhatsApp and/or SMS with a link to that location. This Privacy Policy explains what data we collect, how we use it, who we share it with, and what rights you have over it.</p>
+          <p>Panic Button ("the App") is a personal safety application. When a user presses and holds the SOS button, the App captures their location, notifies their emergency contacts by email, Telegram, WhatsApp and/or SMS, and shares a private map that can follow their live location for up to 60 minutes. This Privacy Policy explains what data we collect, how we use it, who we share it with, and what rights you have over it.</p>
           <p>By creating an account and using the App, you accept the practices described here.</p>
 
           <section class="legal-safety">
@@ -81,7 +81,7 @@
           <h3>3.1. Your account data</h3>
           <ul>
             <li>The <strong>name</strong>, <strong>phone number</strong> and <strong>email address</strong> you provide when you register.</li>
-            <li>Your <strong>password</strong>, always stored <strong>encrypted (bcrypt hash)</strong> — we never store your password in plain text.</li>
+            <li>Your <strong>password</strong>, stored only as a <strong>bcrypt hash</strong> — we never store your password in plain text.</li>
           </ul>
 
           <h3>3.2. Emergency contacts</h3>
@@ -93,13 +93,15 @@
 
           <h3>3.3. Location</h3>
           <ul>
-            <li>Your <strong>precise GPS location</strong>, captured <strong>at the moment you trigger a panic alert</strong>. It is sent to your emergency contacts as part of the alert and stored together with that alert.</li>
-            <li>The App does <strong>not</strong> track your location continuously or in the background in its current version. <em>(If real-time tracking is added in the future, this policy will be updated and the corresponding permission will be requested.)</em></li>
+            <li>Your <strong>precise or approximate location</strong>, depending on the permission you grant and the signals available to your device, is collected when you deliberately activate an SOS alert.</li>
+            <li>After the alert is created, the App may continue collecting and transmitting location updates for a live emergency route for <strong>up to 60 minutes</strong>, including while the App is in the background or the screen is off. Updates can include latitude, longitude, accuracy, speed, bearing, and the time the location was recorded and received.</li>
+            <li>Live collection starts only after your SOS action. It stops when you select <strong>Stop sharing</strong> or when the 60-minute session expires. The App does not use location for advertising or track you outside an active alert session.</li>
           </ul>
 
           <h3>3.4. Usage and technical data</h3>
           <ul>
-            <li><strong>Alert history</strong> (date, time and location of each alert) and its <strong>delivery status</strong> per contact and channel.</li>
+            <li><strong>Alert history</strong>, including the date, time, initial location, saved live route, last reported location, and alert status.</li>
+            <li><strong>Notification records</strong>, including the contact/channel used and whether a private alert link was opened.</li>
             <li><strong>Technical logs</strong> such as request identifiers, timestamps and errors, used to operate and debug the service.</li>
           </ul>
           <p>We do not collect data from sources other than what you provide or generate by using the App.</p>
@@ -108,6 +110,7 @@
           <p>We use your data exclusively to:</p>
           <ul>
             <li><strong>Deliver your panic alerts</strong> to your emergency contacts through the channels you have configured.</li>
+            <li><strong>Collect, store and display your live emergency route</strong> to you and the emergency contacts you chose while an alert is active and afterward as part of your alert history.</li>
             <li><strong>Authenticate you</strong> and keep your session.</li>
             <li><strong>Send you transactional emails</strong>: account confirmation, contact confirmation, password reset, and security notices when sensitive account data changes.</li>
             <li><strong>Operate, maintain and improve</strong> the service and its security.</li>
@@ -117,14 +120,16 @@
           <h2>5. Who we share the information with</h2>
 
           <h3>5.1. Your emergency contacts</h3>
-          <p>When you trigger an alert, your confirmed contacts receive your <strong>name</strong>, the <strong>date and time</strong>, and a <strong>link to your location</strong>. This is the core purpose of the App.</p>
+          <p>When you trigger an alert, your confirmed contacts receive, depending on the channel, your <strong>name</strong>, <strong>phone number</strong>, <strong>email address</strong>, the <strong>date and time</strong>, the initially reported coordinates, and a <strong>private live-map link</strong>. The map can show your saved route and latest reported location. This user-initiated sharing is the core purpose of the App.</p>
 
           <h3>5.2. Service providers</h3>
           <p>To deliver the messages we use external providers that process only the data strictly necessary for that purpose:</p>
           <ul>
             <li><strong>Email:</strong> Google (Gmail/Workspace SMTP).</li>
+            <li><strong>Device location:</strong> Android and Google Play services provide the device's fused location to the App.</li>
             <li><strong>Telegram:</strong> Telegram Messenger.</li>
             <li><strong>WhatsApp and SMS:</strong> Twilio.</li>
+            <li><strong>Map display:</strong> OpenStreetMap's standard tile service by default, or the map-tile provider configured by the operator. The viewer's browser requests the tiles needed for the area being displayed, so that provider can receive the viewer's IP address, browser information, this site's origin, and the tile coordinates for the visible map area.</li>
             <li><strong>Hosting and infrastructure:</strong> our cloud hosting provider.</li>
           </ul>
           <p>These providers process the data in accordance with their own privacy policies.</p>
@@ -134,11 +139,12 @@
           <p><strong>We do not sell or rent your personal data.</strong></p>
 
           <h2>6. Basis for processing and consent</h2>
-          <p>We process your data on the basis of <strong>performing the service you request</strong> and your <strong>consent</strong>, given when you register and configure your contacts and channels. You may withdraw your consent at any time by deleting your account (see section 9).</p>
+          <p>We process your data on the basis of <strong>performing the service you request</strong> and your <strong>consent</strong>, given when you register, configure your contacts and channels, grant location permission, and deliberately activate an SOS alert. You can end an active live-location session with <strong>Stop sharing</strong>, revoke location permission in Android settings, or withdraw your consent by deleting your account (see section 9).</p>
 
           <h2>7. Data retention</h2>
           <ul>
-            <li>We keep your account data and alert history for as long as your account is <strong>active</strong>.</li>
+            <li>We keep your account data, alert history, live-route points and latest reported locations for as long as your account is <strong>active</strong>. The current service does not automatically purge individual old alerts.</li>
+            <li>Live location collection ends after at most <strong>60 minutes</strong>. A contact's private map link expires after <strong>30 days</strong>; expiration of the link does not itself delete the alert or saved route from your account history.</li>
             <li>Registered accounts that are <strong>never confirmed</strong> are automatically deleted after 24 hours.</li>
             <li>When you delete your account, we erase your associated personal data within a maximum of 30 days, except what we must retain by legal obligation.</li>
           </ul>
@@ -149,6 +155,7 @@
             <li>Passwords are stored with a <strong>bcrypt hash</strong> (never in plain text).</li>
             <li>Communication with our server travels <strong>encrypted over HTTPS/TLS</strong>.</li>
             <li>Access to sensitive routes requires authentication, and certain account changes require re-authentication with your current password.</li>
+            <li>Each contact notification uses a separate random private map link. We store a cryptographic hash of that link token, and the link expires after 30 days.</li>
           </ul>
           <p>No system is 100% secure; we cannot guarantee absolute security.</p>
 
@@ -163,7 +170,7 @@
           <p>To exercise these rights, edit them directly in the App or write to us at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. We will respond within a reasonable time in accordance with applicable law.</p>
 
           <h2>10. Account and data deletion</h2>
-          <p>You can request the deletion of your account from within the App itself, through our <a href="/delete-account">online account deletion form</a>, or by sending a request by email to <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. When you do, your account, your emergency contacts and your associated personal data are deleted, except what is required by law.</p>
+          <p>You can request the deletion of your account from within the App itself, through our <a href="/delete-account">online account deletion form</a>, or by sending a request by email to <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. When you do, your account, emergency contacts, alert history, saved live-route points and other associated personal data are deleted within the period stated above, except what is required by law.</p>
 
           <h2>11. International transfers</h2>
           <p>Some of our providers (Google, Telegram, Twilio) operate servers outside your country of residence. By using the App, you understand that your data may be processed in those jurisdictions, subject to safeguards under applicable law.</p>
@@ -212,7 +219,7 @@
 
         <div class="legal-body">
           <h2>1. Introducción</h2>
-          <p>Panic Button ("la App") es una aplicación de seguridad personal. Al mantener presionado un botón, la App captura la ubicación del usuario y notifica a sus contactos de emergencia por correo electrónico, Telegram, WhatsApp y/o SMS con un enlace a esa ubicación. Esta Política de Privacidad explica qué datos recopilamos, cómo los usamos, con quién los compartimos y qué derechos tienes sobre ellos.</p>
+          <p>Panic Button ("la App") es una aplicación de seguridad personal. Cuando un usuario mantiene presionado el botón SOS, la App captura su ubicación, notifica a sus contactos de emergencia por correo electrónico, Telegram, WhatsApp y/o SMS, y comparte un mapa privado que puede seguir su ubicación en vivo durante un máximo de 60 minutos. Esta Política de Privacidad explica qué datos recopilamos, cómo los usamos, con quién los compartimos y qué derechos tienes sobre ellos.</p>
           <p>Al crear una cuenta y usar la App, aceptas las prácticas descritas aquí.</p>
 
           <section class="legal-safety">
@@ -226,7 +233,7 @@
           <h3>3.1. Datos de tu cuenta</h3>
           <ul>
             <li><strong>Nombre</strong>, <strong>número de teléfono</strong> y <strong>correo electrónico</strong> que proporcionas al registrarte.</li>
-            <li><strong>Contraseña</strong>, almacenada siempre de forma <strong>cifrada (hash bcrypt)</strong> — nunca guardamos tu contraseña en texto plano.</li>
+            <li><strong>Contraseña</strong>, almacenada únicamente como <strong>hash bcrypt</strong> — nunca guardamos tu contraseña en texto plano.</li>
           </ul>
 
           <h3>3.2. Contactos de emergencia</h3>
@@ -238,13 +245,15 @@
 
           <h3>3.3. Ubicación</h3>
           <ul>
-            <li>Tu <strong>ubicación GPS precisa</strong>, capturada <strong>en el momento en que activas una alerta de pánico</strong>. Se envía a tus contactos de emergencia como parte de la alerta y se guarda asociada a esa alerta.</li>
-            <li>La App <strong>no</strong> rastrea tu ubicación de forma continua ni en segundo plano en su versión actual. <em>(Si en el futuro se añade el seguimiento en tiempo real, esta política se actualizará y se solicitará el permiso correspondiente.)</em></li>
+            <li>Tu <strong>ubicación precisa o aproximada</strong>, según el permiso que concedas y las señales disponibles en tu dispositivo, se recopila cuando activas deliberadamente una alerta SOS.</li>
+            <li>Después de crear la alerta, la App puede continuar recopilando y transmitiendo actualizaciones para formar una ruta de emergencia en vivo durante un máximo de <strong>60 minutos</strong>, incluso mientras la App está en segundo plano o la pantalla está apagada. Las actualizaciones pueden incluir latitud, longitud, precisión, velocidad, rumbo y las horas de registro y recepción.</li>
+            <li>La recopilación en vivo comienza únicamente después de tu acción SOS. Termina cuando seleccionas <strong>Dejar de compartir</strong> o cuando vence la sesión de 60 minutos. La App no usa la ubicación para publicidad ni te rastrea fuera de una sesión de alerta activa.</li>
           </ul>
 
           <h3>3.4. Datos de uso y técnicos</h3>
           <ul>
-            <li><strong>Historial de alertas</strong> (fecha, hora y ubicación de cada alerta) y su <strong>estado de entrega</strong> por contacto y canal.</li>
+            <li><strong>Historial de alertas</strong>, incluida la fecha, hora, ubicación inicial, ruta en vivo guardada, última ubicación informada y estado de la alerta.</li>
+            <li><strong>Registros de notificaciones</strong>, incluido el contacto/canal utilizado y si se abrió un enlace privado de alerta.</li>
             <li><strong>Registros técnicos (logs)</strong> como identificadores de petición, marcas de tiempo y errores, usados para operar y depurar el servicio.</li>
           </ul>
           <p>No recopilamos datos de fuentes distintas a las que tú nos proporcionas o generas al usar la App.</p>
@@ -253,6 +262,7 @@
           <p>Usamos tus datos exclusivamente para:</p>
           <ul>
             <li><strong>Entregar tus alertas de pánico</strong> a tus contactos de emergencia por los canales que hayas configurado.</li>
+            <li><strong>Recopilar, guardar y mostrar tu ruta de emergencia en vivo</strong> a ti y a los contactos de emergencia que elegiste mientras una alerta está activa y posteriormente como parte de tu historial.</li>
             <li><strong>Autenticarte</strong> y mantener tu sesión.</li>
             <li><strong>Enviarte correos transaccionales</strong>: confirmación de cuenta, confirmación de contactos, restablecimiento de contraseña y avisos de seguridad cuando cambian datos sensibles de tu cuenta.</li>
             <li><strong>Operar, mantener y mejorar</strong> el servicio y su seguridad.</li>
@@ -262,14 +272,16 @@
           <h2>5. Con quién compartimos la información</h2>
 
           <h3>5.1. Tus contactos de emergencia</h3>
-          <p>Cuando activas una alerta, tus contactos confirmados reciben tu <strong>nombre</strong>, la <strong>fecha y hora</strong>, y un <strong>enlace a tu ubicación</strong>. Esto es el propósito central de la App.</p>
+          <p>Cuando activas una alerta, tus contactos confirmados reciben, según el canal, tu <strong>nombre</strong>, <strong>número de teléfono</strong>, <strong>correo electrónico</strong>, la <strong>fecha y hora</strong>, las coordenadas informadas inicialmente y un <strong>enlace privado al mapa en vivo</strong>. El mapa puede mostrar tu ruta guardada y tu última ubicación informada. Este intercambio iniciado por el usuario es el propósito central de la App.</p>
 
           <h3>5.2. Proveedores de servicio</h3>
           <p>Para entregar los mensajes usamos proveedores externos que procesan los datos estrictamente necesarios para ese fin:</p>
           <ul>
             <li><strong>Correo electrónico:</strong> Google (SMTP de Gmail/Workspace).</li>
+            <li><strong>Ubicación del dispositivo:</strong> Android y los servicios de Google Play proporcionan a la App la ubicación combinada del dispositivo.</li>
             <li><strong>Telegram:</strong> Telegram Messenger.</li>
             <li><strong>WhatsApp y SMS:</strong> Twilio.</li>
+            <li><strong>Visualización del mapa:</strong> el servicio estándar de teselas de OpenStreetMap por defecto, o el proveedor de mapas configurado por el operador. El navegador del visitante solicita las teselas necesarias para el área mostrada, por lo que ese proveedor puede recibir la dirección IP del visitante, información del navegador, el origen de este sitio y las coordenadas de las teselas del área visible.</li>
             <li><strong>Alojamiento e infraestructura:</strong> nuestro proveedor de alojamiento en la nube.</li>
           </ul>
           <p>Estos proveedores tratan los datos conforme a sus propias políticas de privacidad.</p>
@@ -279,11 +291,12 @@
           <p><strong>No vendemos ni alquilamos tus datos personales.</strong></p>
 
           <h2>6. Base del tratamiento y consentimiento</h2>
-          <p>Tratamos tus datos sobre la base de la <strong>ejecución del servicio que solicitas</strong> y de tu <strong>consentimiento</strong>, otorgado al registrarte y configurar tus contactos y canales. Puedes retirar tu consentimiento en cualquier momento eliminando tu cuenta (ver sección 9).</p>
+          <p>Tratamos tus datos sobre la base de la <strong>ejecución del servicio que solicitas</strong> y de tu <strong>consentimiento</strong>, otorgado al registrarte, configurar tus contactos y canales, conceder el permiso de ubicación y activar deliberadamente una alerta SOS. Puedes finalizar una sesión activa con <strong>Dejar de compartir</strong>, revocar el permiso de ubicación en los ajustes de Android o retirar tu consentimiento eliminando tu cuenta (ver sección 9).</p>
 
           <h2>7. Conservación de los datos</h2>
           <ul>
-            <li>Conservamos los datos de tu cuenta y tu historial de alertas mientras tu cuenta esté <strong>activa</strong>.</li>
+            <li>Conservamos los datos de tu cuenta, historial de alertas, puntos de la ruta en vivo y últimas ubicaciones informadas mientras tu cuenta esté <strong>activa</strong>. El servicio actual no elimina automáticamente alertas antiguas de forma individual.</li>
+            <li>La recopilación de ubicación en vivo termina después de un máximo de <strong>60 minutos</strong>. El enlace privado de mapa de un contacto vence después de <strong>30 días</strong>; el vencimiento del enlace no elimina por sí solo la alerta ni la ruta guardada del historial de tu cuenta.</li>
             <li>Las cuentas registradas que <strong>nunca se confirman</strong> se eliminan automáticamente a las 24 horas.</li>
             <li>Cuando eliminas tu cuenta, borramos tus datos personales asociados en un plazo máximo de 30 días, salvo lo que debamos conservar por obligación legal.</li>
           </ul>
@@ -294,6 +307,7 @@
             <li>Las contraseñas se almacenan con <strong>hash bcrypt</strong> (nunca en texto plano).</li>
             <li>La comunicación con nuestro servidor viaja <strong>cifrada por HTTPS/TLS</strong>.</li>
             <li>El acceso a las rutas sensibles requiere autenticación, y ciertos cambios de cuenta exigen re-autenticación con tu contraseña actual.</li>
+            <li>Cada notificación a un contacto usa un enlace privado de mapa distinto y aleatorio. Guardamos un hash criptográfico del token de ese enlace, que vence después de 30 días.</li>
           </ul>
           <p>Ningún sistema es 100 % seguro; no podemos garantizar seguridad absoluta.</p>
 
@@ -308,7 +322,7 @@
           <p>Para ejercer estos derechos, edítalos directamente en la App o escríbenos a <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. Responderemos en un plazo razonable conforme a la ley aplicable.</p>
 
           <h2>10. Eliminación de cuenta y datos</h2>
-          <p>Puedes solicitar la eliminación de tu cuenta desde la propia App, a través de nuestro <a href="/delete-account">formulario de eliminación de cuenta</a>, o enviando una solicitud por correo a <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. Al hacerlo, se eliminan tu cuenta, tus contactos de emergencia y tus datos personales asociados, salvo lo requerido por ley.</p>
+          <p>Puedes solicitar la eliminación de tu cuenta desde la propia App, a través de nuestro <a href="/delete-account">formulario de eliminación de cuenta</a>, o enviando una solicitud por correo a <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>. Al hacerlo, tu cuenta, contactos de emergencia, historial de alertas, puntos guardados de rutas en vivo y demás datos personales asociados se eliminan dentro del plazo indicado anteriormente, salvo lo requerido por ley.</p>
 
           <h2>11. Transferencias internacionales</h2>
           <p>Algunos de nuestros proveedores (Google, Telegram, Twilio) operan servidores fuera de tu país de residencia. Al usar la App, entiendes que tus datos pueden procesarse en esas jurisdicciones, sujetos a salvaguardas conforme a la ley aplicable.</p>

@@ -155,8 +155,8 @@ def privacy():
         "base_url": _credentials['api_base_url'],
         "company_name": "Keycodelogics",
         "website": "https://keycodelogics.com/",
-        "updated_en": "August 27, 2026",
-        "updated_es": "27 de agosto de 2026",
+        "updated_en": "September 11, 2026",
+        "updated_es": "11 de septiembre de 2026",
     })
 
 

@@ -1,0 +1,3 @@
+Panic Button recopila datos de ubicación para crear y compartir tu ruta de emergencia en vivo con los contactos de emergencia que elijas durante un máximo de 60 minutos después de activar una alerta SOS, incluso mientras la app está en segundo plano o la pantalla está apagada.
+
+Tu ubicación inicial y la ruta informada se guardan en tu historial de alertas. La recopilación termina cuando seleccionas Dejar de compartir o cuando vence la sesión de 60 minutos. Panic Button no usa la ubicación para publicidad ni la vende.

@@ -18,6 +18,7 @@ The project has two deployable parts:
 ### Backend reference
 - [Architecture](backend/architecture.md) — modules, request flow, middleware, startup.
 - [Real-time geolocation](backend/realtime-geolocation.md) — implementation protocol, lifecycle, deployment, and verification checklist.
+- [IRT geolocation complete guide](irt-geolocation-guide.md) — user flow, positioning and transport, storage, phone limits, resource/provider costs, and satellite fallback options.
 - [Short alert URLs](backend/short-alert-urls.md) — compact contact links, security model, migration, and before/after comparison.
 - [Authentication](backend/auth.md) — password hashing and the JWT token types.
 - [Database](backend/database.md) — schema, the thread-confined cursor, migrations.
