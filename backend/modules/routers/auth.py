@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 from fastapi            import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses  import HTMLResponse
@@ -227,11 +228,22 @@ def perform_account_deletion(token: str):
     if not rows:
         raise HTTPException(status_code=404, detail="This account no longer exists.")
 
+    video_paths = [Path(row["local_path"]) for row in cursor.execute(Queries.SELECT_ALERT_VIDEO_PATHS_BY_USER, (user_id,))]
+    video_dir = Path(__file__).resolve().parents[2] / "data" / "videos"
+
     with cursor.transaction():
         cursor.execute(Queries.DELETE_ALERT_NOTIFICATIONS_BY_USER, (user_id,))
+        cursor.execute(Queries.DELETE_ALERT_VIDEOS_BY_USER, (user_id,))
         cursor.execute(Queries.DELETE_ALERTS_BY_USER, (user_id,))
+        cursor.execute(Queries.DELETE_SOCIAL_CONNECTIONS_BY_USER, (user_id,))
         cursor.execute(Queries.DELETE_CONTACTS_BY_USER, (user_id,))
         cursor.execute(Queries.DELETE_USER_BY_ID, (user_id,))
+    for path in video_paths:
+        if path.parent == video_dir:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError as exc:
+                _logger.error(f"Could not remove deleted user's local video file: {exc}")
     _logger.info(f"User {user_id} deleted their account and associated data")
 
     return {"account_deleted": True}

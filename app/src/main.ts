@@ -6,6 +6,7 @@ import { loadLanguage, setLanguage, getLanguage, t } from "./lib/i18n.js";
 import { loadAccentColor, setAccentColor, getAccentColor, loadTheme, setTheme, getTheme } from "./lib/theme.js";
 import { initAppUpdates } from "./lib/appUpdate.js";
 import { getLiveTrackingState, restoreLiveTracking, stopLiveTracking, stopLiveTrackingLocally } from "./lib/liveTracking.js";
+import { stopAlertVideoRecording } from "./lib/videoRecording.js";
 
 import { renderLogin } from "./views/login.js";
 import { renderRegister } from "./views/register.js";
@@ -51,6 +52,7 @@ function navigate(route) {
 }
 
 async function logout() {
+  stopAlertVideoRecording();
   if (getLiveTrackingState().active) {
     await stopLiveTracking(Api.stopAlert).catch(stopLiveTrackingLocally);
   }

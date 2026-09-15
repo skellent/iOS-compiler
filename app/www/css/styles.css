@@ -1020,6 +1020,52 @@ button {
 .tracking-stop:disabled { opacity: .55; }
 .panic-btn:disabled { cursor: default; filter: saturate(.7); animation: none; }
 
+.home-screen.home-has-video {
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding-top: calc(105px + var(--safe-top));
+  padding-bottom: calc(105px + var(--safe-bottom));
+}
+.home-has-video .panic-wrap { gap: 18px; }
+.home-has-video .panic-btn { width: min(250px, 65vw); height: min(250px, 65vw); }
+.home-video-hint { margin: -58px 0 0; color: var(--text-500); font-size: 11px; text-align: center; max-width: 310px; }
+.home-has-video .home-video-hint { margin: 0; }
+.home-has-video .tracking-panel { position: static; width: 100%; flex: 0 0 auto; }
+.video-panel {
+  width: min(560px, 100%);
+  padding: 16px;
+  border: 1px solid rgba(var(--primary-rgb), .35);
+  border-radius: 16px;
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-card);
+}
+.video-panel[hidden], .video-panel button[hidden] { display: none; }
+.video-panel strong { color: var(--text-000); }
+.video-panel p { margin: 9px 0; color: var(--text-500); font-size: 13px; }
+.video-panel p:empty { display: none; }
+.video-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.video-actions .btn { width: auto; min-width: 110px; }
+.integrations h2 { margin: 0; font-size: 17px; color: var(--text-000); }
+.integrations p { margin: 0; font-size: 12px; color: var(--text-500); line-height: 1.5; }
+.integration-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.integration-row span { color: var(--text-000); font-weight: 700; }
+.integration-row small { display: block; color: var(--text-500); font-weight: 500; }
+.integration-row .btn { width: auto; }
+.tiktok-form h2 { margin: 0; color: var(--text-000); }
+.tiktok-form p, .tiktok-form small { color: var(--text-500); }
+.tiktok-preview { display: block; width: 100%; max-height: 240px; background: #000; border-radius: 12px; }
+.tiktok-form .field select {
+  width: 100%; border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  padding: 13px 14px; color: var(--text-000); background: var(--surface); font-size: 15px;
+}
+.video-settings { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.video-settings[hidden] { display: none; }
+.video-settings legend { color: var(--text-500); font-size: 12px; }
+.video-settings label, .video-consent { display: flex; align-items: center; gap: 8px; color: var(--text-000); font-size: 13px; }
+.video-settings label:has(input:disabled) { opacity: .5; }
+.video-terms { margin: 0; font-size: 12px; line-height: 1.5; }
+.video-terms a { color: var(--primary-400); }
+
 
 
 .contacts-screen {

@@ -46,6 +46,22 @@ async function request(path: string, { method = "GET", body, auth = false }: { m
   return data;
 }
 
+async function uploadVideo(alertId: number, video: Blob, durationSeconds: number) {
+  const token = await getToken();
+  const body = new FormData();
+  body.append("video", video, `alert-${alertId}.${video.type === "video/mp4" ? "mp4" : "webm"}`);
+  body.append("duration_seconds", String(durationSeconds));
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/alerts/${alertId}/video`, {
+      method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body,
+    });
+  } catch { throw new ApiError(t("errors.network"), 0); }
+  const data = await response.json();
+  if (!response.ok) throw new ApiError(extractMessage(data), response.status);
+  return data;
+}
+
 export const Api = {
   register: (data) => request("/auth/register", { method: "POST", body: data }),
   login: (data) => request("/auth/login", { method: "POST", body: data }),
@@ -69,6 +85,17 @@ export const Api = {
 
   createAlert: (data) => request("/alerts", { method: "POST", body: data, auth: true }),
   stopAlert: (id) => request(`/alerts/${id}/stop`, { method: "POST", auth: true }),
+  listAlerts: () => request("/alerts", { auth: true }),
+  getIntegrations: () => request("/integrations", { auth: true }),
+  getTikTokRecordingLimit: () => request("/integrations/tiktok/recording-limit", { auth: true }),
+  authorizeIntegration: (provider) => request(`/integrations/${provider}/authorize`, { method: "POST", auth: true }),
+  disconnectIntegration: (provider) => request(`/integrations/${provider}`, { method: "DELETE", auth: true }),
+  uploadVideo,
+  getVideo: (id) => request(`/alerts/${id}/video`, { auth: true }),
+  sendVideoToDrive: (id) => request(`/alerts/${id}/video/drive`, { method: "POST", auth: true }),
+  getTikTokOptions: (id) => request(`/alerts/${id}/video/tiktok/options`, { auth: true }),
+  publishTikTok: (id, data) => request(`/alerts/${id}/video/tiktok`, { method: "POST", body: data, auth: true }),
+  getTikTokStatus: (id) => request(`/alerts/${id}/video/tiktok`, { auth: true }),
 
   getFeatures: () => request("/features"),
 };

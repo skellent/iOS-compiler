@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import secrets
 
 import jwt
 
@@ -20,6 +21,53 @@ ACCOUNT_DELETION_TYPE: str = "account_deletion"
 _secret: str = get_credentials()['jwt']['secret_key']
 
 class Token:
+    @staticmethod
+    def CreateVideoPreview(alert_id: int, user_id: int) -> str:
+        return jwt.encode({
+            "type": "video_preview", "alert_id": alert_id, "user_id": user_id,
+            "nonce": secrets.token_urlsafe(24),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
+        }, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateVideoPreview(token: str) -> tuple[int, int] | None:
+        payload = Token.Validate(token)
+        if not payload or payload.get("type") != "video_preview":
+            return None
+        alert_id, user_id = _as_id(payload.get("alert_id")), _as_id(payload.get("user_id"))
+        return (alert_id, user_id) if alert_id and user_id else None
+
+    @staticmethod
+    def CreateTikTokVideoPull(alert_id: int, user_id: int) -> str:
+        return jwt.encode({
+            "type": "tiktok_video_pull", "alert_id": alert_id, "user_id": user_id,
+            "nonce": secrets.token_urlsafe(24),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=24),
+        }, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateTikTokVideoPull(token: str) -> tuple[int, int] | None:
+        payload = Token.Validate(token)
+        if not payload or payload.get("type") != "tiktok_video_pull":
+            return None
+        alert_id, user_id = _as_id(payload.get("alert_id")), _as_id(payload.get("user_id"))
+        return (alert_id, user_id) if alert_id and user_id else None
+
+    @staticmethod
+    def CreateSocialOauthState(provider: str, user_id: int) -> str:
+        return jwt.encode({
+            "type": "social_oauth", "provider": provider, "user_id": user_id,
+            "nonce": secrets.token_urlsafe(24),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
+        }, _secret, algorithm=ALGORITHM)
+
+    @staticmethod
+    def ValidateSocialOauthState(state: str, provider: str) -> int | None:
+        payload = Token.Validate(state)
+        if not payload or payload.get("type") != "social_oauth" or payload.get("provider") != provider:
+            return None
+        return _as_id(payload.get("user_id"))
+
     @staticmethod
     def Create(user_id: int) -> str:
         payload: dict = {

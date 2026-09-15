@@ -4,6 +4,25 @@
   const statusLabel = document.getElementById("status-label");
   const lastUpdateEl = document.getElementById("last-update");
   const recenterButton = document.getElementById("recenter-button");
+  const videoStatus = document.getElementById("video-status");
+  const videoLink = document.getElementById("video-link");
+
+  async function refreshVideo() {
+    try {
+      const response = await fetch(config.videoPath, { cache: "no-store" });
+      if (!response.ok) return;
+      const video = await response.json();
+      videoLink.hidden = video.status !== "ready" || !video.url;
+      if (!videoLink.hidden) videoLink.href = video.url;
+      videoStatus.textContent = {
+        ready: "The recording is ready to watch.",
+        uploading: "Recording is uploading to Google Drive…",
+        failed: "The recording could not be uploaded.",
+        not_uploaded: "A recording is saved. A Google Drive link is not available yet.",
+        not_recorded: "Waiting for a recording…",
+      }[video.status] || "Waiting for a recording…";
+    } catch { /* A failed poll should not interrupt the live map. */ }
+  }
 
   const map = L.map("map", { zoomControl: true }).setView([0, 0], 2);
   L.tileLayer(config.tileUrl, {
@@ -131,5 +150,7 @@
   });
 
   setInterval(updateAge, 1000);
+  refreshVideo();
+  setInterval(refreshVideo, 10000);
   connect();
 })();

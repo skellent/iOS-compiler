@@ -39,6 +39,12 @@
         <button id="recenter-button" class="recenter-button" type="button" hidden>Follow location</button>
       </section>
 
+      <section class="video-summary" aria-label="Alert recording">
+        <h2>Alert recording</h2>
+        <p id="video-status">Checking for a recording…</p>
+        <a id="video-link" class="call-button" href="#" target="_blank" rel="noopener noreferrer" hidden>Watch video on Google Drive</a>
+      </section>
+
       <footer>
         Location accuracy depends on the sender's device and network. If updates stop, call them directly.
       </footer>
@@ -46,6 +52,7 @@
 
     <script id="live-config" type="application/json">{{ {
       "livePath": live_path,
+      "videoPath": video_path,
       "tileUrl": tile_url,
       "tileAttribution": tile_attribution
     } | tojson }}</script>

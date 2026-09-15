@@ -44,6 +44,9 @@
 
     <!-- Permissions required by Capacitor plugins. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- WebView camera recording of an SOS alert. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- @capacitor/geolocation: required for current-position alerts. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

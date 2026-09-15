@@ -88,6 +88,7 @@ class ShortAlertUrlTests(unittest.TestCase):
         token = "A" * 22
         html = Pages.Render("live_alert", {
             "live_path": f"/a/{token}/live",
+            "video_path": f"/a/{token}/video",
             "user_name": "Test User",
             "user_phone": "+15551234567",
             "tile_url": "https://tiles.example/{z}/{x}/{y}.png",
@@ -95,6 +96,7 @@ class ShortAlertUrlTests(unittest.TestCase):
         })
 
         self.assertIn(f'"livePath": "/a/{token}/live"', html)
+        self.assertIn(f'"videoPath": "/a/{token}/video"', html)
 
     def test_sms_template_is_ascii_and_compact_for_a_typical_alert(self) -> None:
         template_dir = Path(__file__).resolve().parents[1] / "templates" / "sms"

@@ -21,4 +21,5 @@ def get_features():
         # Served rather than hardcoded a second time in the app, so the client's
         # "add" button and the backend's cap can't drift apart.
         "max_contacts": MAX_CONTACTS,
+        "video_record_seconds": _credentials['video']['record_seconds'],
     }

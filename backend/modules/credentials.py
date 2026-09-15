@@ -31,6 +31,13 @@ def _as_int(name: str, default: int | None = None) -> int:
         raise MissingCredentialError(f"{name} must be a whole number, got {raw!r}.") from None
 
 
+def _record_seconds() -> int:
+    seconds = _as_int("VIDEO_RECORD_SECONDS", 300)
+    if not 15 <= seconds <= 300:
+        raise MissingCredentialError("VIDEO_RECORD_SECONDS must be between 15 and 300.")
+    return seconds
+
+
 @lru_cache(maxsize=1)
 def get_credentials() -> dict:
     load_dotenv(override=True)
@@ -87,6 +94,14 @@ def get_credentials() -> dict:
         "map": {
             "tile_url": os.getenv("MAP_TILE_URL", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
             "attribution": os.getenv("MAP_TILE_ATTRIBUTION", "&copy; OpenStreetMap contributors"),
+        },
+        "video": {
+            "record_seconds": _record_seconds(),
+            "google_client_id": os.getenv("GOOGLE_CLIENT_ID", ""),
+            "google_client_secret": os.getenv("GOOGLE_CLIENT_SECRET", ""),
+            "tiktok_client_key": os.getenv("TIKTOK_CLIENT_KEY", ""),
+            "tiktok_client_secret": os.getenv("TIKTOK_CLIENT_SECRET", ""),
+            "token_key": os.getenv("SOCIAL_TOKEN_KEY", ""),
         },
         "app_mode": os.getenv("APP_MODE", "Debug"),
         "log_level": os.getenv("LOG_LEVEL", "INFO"),

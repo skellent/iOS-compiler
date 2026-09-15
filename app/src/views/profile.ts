@@ -4,6 +4,7 @@ import { escapeHtml, setLoading, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t, LANGUAGES } from "../lib/i18n.js";
 import { DEFAULT_ACCENT } from "../lib/theme.js";
+import { connectIntegration } from "../lib/integrationBrowser.js";
 
 const COLOR_PRESETS = [DEFAULT_ACCENT, "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
 
@@ -78,6 +79,13 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
         </div>
       </div>
       </div>
+      <section class="form integrations" aria-label="Video accounts">
+        <h2>${t("video.accounts")}</h2>
+        <p>${t("video.accountsHint")}</p>
+        <div id="integration-tiktok"></div>
+        <div id="integration-google"></div>
+        <button id="refresh-integrations" class="btn btn-outline btn-block" type="button">${t("video.refreshAccounts")}</button>
+      </section>
       <div class="form configs">
       <button id="help-btn" class="btn btn-outline btn-block" type="button">
         ${Icon.help()}
@@ -100,6 +108,28 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
   const form = container.querySelector("#profile-form");
   const button = form.querySelector("button[type=submit]");
   const logoutBtn = container.querySelector("#logout-btn");
+
+  async function refreshIntegrations() {
+    try {
+      const statuses = await Api.getIntegrations();
+      for (const provider of ["tiktok", "google"] as const) {
+        const target = container.querySelector(`#integration-${provider}`);
+        const name = provider === "google" ? "Google Drive" : "TikTok";
+        const status = statuses[provider];
+        target.innerHTML = `<div class="integration-row"><span>${name}<small>${escapeHtml(status.connected ? t("video.connected") : status.available ? t("video.disconnected") : t("video.unavailable"))}</small></span><button class="btn btn-outline" type="button" ${status.available ? "" : "disabled"}>${t(status.connected ? "video.disconnect" : "video.connect")}</button></div>`;
+        target.querySelector("button").addEventListener("click", async (event) => {
+          event.currentTarget.disabled = true;
+          try {
+            if (status.connected) { await Api.disconnectIntegration(provider); await refreshIntegrations(); }
+            else await connectIntegration(provider);
+          } catch (error) { showToast(error instanceof Error ? error.message : t("errors.generic"), "error"); }
+          finally { event.currentTarget.disabled = false; }
+        });
+      }
+    } catch (error) { showToast(error instanceof Error ? error.message : t("errors.generic"), "error"); }
+  }
+  container.querySelector("#refresh-integrations").addEventListener("click", refreshIntegrations);
+  refreshIntegrations();
 
   container.querySelector("#lang-select").addEventListener("change", (event) => changeLanguage(event.target.value));
   container.querySelector("#theme-select").addEventListener("change", (event) => setTheme(event.target.value));

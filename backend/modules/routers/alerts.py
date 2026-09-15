@@ -275,6 +275,7 @@ def _live_alert_response(alert: dict, live_path: str, notification_id: int | Non
 
     response = HTMLResponse(Pages.Render("live_alert", {
         "live_path": live_path,
+        "video_path": live_path.removesuffix("/live") + "/video",
         "user_name": alert["user_name"],
         "user_phone": alert["user_phone"],
         "tile_url": _MAP_CONFIG["tile_url"],
@@ -284,6 +285,34 @@ def _live_alert_response(alert: dict, live_path: str, notification_id: int | Non
     # Cross-origin tile requests receive only this site's origin, never the signed path.
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
+
+def _view_video(alert: dict) -> dict:
+    from modules.routers.videos import video_public_status
+    return video_public_status(alert["alert_id"])
+
+
+@router.get("/view/{token}/video")
+def view_alert_video(token: str):
+    notification_id = Token.ValidateAlertNotificationView(token)
+    owner = Token.ValidateAlertOwnerView(token)
+    if notification_id is None and owner is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired alert link")
+    rows = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,)) if notification_id is not None else cursor.execute(Queries.SELECT_ALERT_VIEW_BY_OWNER, owner)
+    if not rows:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return _view_video(rows[0])
+
+
+@short_router.get("/a/{token}/video")
+def view_alert_video_by_short_token(token: str):
+    notification_id = _notification_id_from_short_token(token)
+    if notification_id is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired alert link")
+    rows = cursor.execute(Queries.SELECT_ALERT_NOTIFICATION_BY_ID, (notification_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return _view_video(rows[0])
 
 
 @router.get("/view/{token}")

@@ -9,7 +9,7 @@ from modules.db          import cursor
 from modules.limiter     import limiter
 from modules.logs        import get_logger, reset_request_id, set_request_id
 from modules.pages       import Pages
-from modules.routers     import auth, users, contacts, alerts, features, telegram as telegram_router, whatsapp as whatsapp_router, dashboard
+from modules.routers     import auth, users, contacts, alerts, features, integrations, videos, telegram as telegram_router, whatsapp as whatsapp_router, dashboard
 from modules.telegram    import Telegram
 
 from fastapi                  import FastAPI, Request
@@ -126,6 +126,8 @@ async def _request_context(request: Request, call_next):
 
     for header, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(header, value)
+    if request.url.path.startswith("/app"):
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(self), camera=(self)"
     response.headers["X-Request-ID"] = request_id
     return response
 
@@ -155,8 +157,8 @@ def privacy():
         "base_url": _credentials['api_base_url'],
         "company_name": "Keycodelogics",
         "website": "https://keycodelogics.com/",
-        "updated_en": "September 11, 2026",
-        "updated_es": "11 de septiembre de 2026",
+        "updated_en": "September 15, 2026",
+        "updated_es": "15 de septiembre de 2026",
     })
 
 
@@ -178,6 +180,7 @@ def robots():
         "Disallow: /docs\n"
         "Disallow: /a/\n"
         "Disallow: /alerts/view/\n"
+        "Disallow: /videos/\n"
         f"Sitemap: {base_url}/sitemap.xml\n"
     )
 
@@ -233,6 +236,9 @@ app.include_router(contacts.router)
 app.include_router(alerts.router)
 app.include_router(alerts.short_router)
 app.include_router(features.router)
+app.include_router(integrations.router)
+app.include_router(videos.router)
+app.include_router(videos.pull_router)
 app.include_router(telegram_router.router)
 app.include_router(whatsapp_router.router)
 app.include_router(dashboard.router)
