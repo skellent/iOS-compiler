@@ -99,7 +99,7 @@
           </ul>
 
           <h3>3.4. SOS video and linked accounts</h3>
-          <p>After an SOS alert, the App may request camera and microphone access and record up to five minutes of video while the App stays in the foreground. The captured clip is uploaded to our server and kept with the alert. If you connect TikTok, we store encrypted account authorization tokens; posting a clip requires your separate confirmation and sends the video to TikTok. If you connect Google Drive, we may upload the clip into your Drive after a TikTok post request or when you choose to share it. That Drive file is made viewable by anyone with its link, which can appear in the alert view and can be forwarded by a viewer.</p>
+          <p>After an SOS alert, the App may request camera and microphone access and record up to five minutes of video while the App stays in the foreground. If you connected Google Drive, the App automatically sends the completed recording through our server to a file in your Drive. Our server relays the bytes and does not save a local copy; it stores only upload status, the Drive file identifier and its link. If an upload fails, the App can keep a pending copy on your phone so you can retry it. The Drive file is made viewable by anyone with its link, which can appear in the alert view and can be forwarded by a viewer.</p>
           <h3>3.5. Usage and technical data</h3>
           <ul>
             <li><strong>Alert history</strong>, including the date, time, initial location, saved live route, last reported location, and alert status.</li>
@@ -133,8 +133,7 @@
             <li><strong>WhatsApp and SMS:</strong> Twilio.</li>
             <li><strong>Map display:</strong> OpenStreetMap's standard tile service by default, or the map-tile provider configured by the operator. The viewer's browser requests the tiles needed for the area being displayed, so that provider can receive the viewer's IP address, browser information, this site's origin, and the tile coordinates for the visible map area.</li>
             <li><strong>Hosting and infrastructure:</strong> our cloud hosting provider.</li>
-            <li><strong>TikTok:</strong> receives an SOS clip only after you confirm a post to your linked account.</li>
-            <li><strong>Google Drive:</strong> receives a clip when you connect Drive and choose or trigger its upload.</li>
+            <li><strong>Google Drive:</strong> receives an SOS recording automatically after you connect Drive and trigger an alert.</li>
           </ul>
           <p>These providers process the data in accordance with their own privacy policies.</p>
 
@@ -151,7 +150,7 @@
             <li>Live location collection ends after at most <strong>60 minutes</strong>. A contact's private map link expires after <strong>30 days</strong>; expiration of the link does not itself delete the alert or saved route from your account history.</li>
             <li>Registered accounts that are <strong>never confirmed</strong> are automatically deleted after 24 hours.</li>
             <li>When you delete your account, we erase your associated personal data within a maximum of 30 days, except what we must retain by legal obligation.</li>
-            <li>Our server keeps SOS clips while the associated account remains active and deletes its local copies when the account is deleted. Disconnecting a provider removes its stored authorization, but it does not delete videos already posted on TikTok or files already uploaded into your own Drive; you can manage those within those services.</li>
+            <li>Our server does not keep local SOS video files. A failed upload can remain pending on your phone until it succeeds or the App's local data is cleared. Disconnecting Google Drive removes its stored authorization, but does not delete files already uploaded into your Drive; you manage those files in Google Drive.</li>
           </ul>
 
           <h2>8. Security</h2>
@@ -256,7 +255,7 @@
           </ul>
 
           <h3>3.4. Video SOS y cuentas vinculadas</h3>
-          <p>Después de una alerta SOS, la App puede pedir acceso a la cámara y al micrófono y grabar hasta cinco minutos de video mientras permanece en primer plano. La grabación se sube a nuestro servidor y se conserva con la alerta. Si conectas TikTok, guardamos cifrados los tokens de autorización de tu cuenta; publicar requiere tu confirmación por separado y envía el video a TikTok. Si conectas Google Drive, podemos subir la grabación a tu Drive después de solicitar una publicación en TikTok o cuando decidas compartirla. Cualquier persona que tenga el enlace de ese archivo de Drive podrá verlo; el enlace puede aparecer en la vista de la alerta y un visitante puede reenviarlo.</p>
+          <p>Después de una alerta SOS, la App puede pedir acceso a la cámara y al micrófono y grabar hasta cinco minutos de video mientras permanece en primer plano. Si conectaste Google Drive, la App envía automáticamente la grabación terminada a un archivo de tu Drive a través de nuestro servidor. Nuestro servidor retransmite los bytes y no guarda una copia local; solo conserva el estado de la subida, el identificador del archivo de Drive y su enlace. Si una subida falla, la App puede conservar una copia pendiente en tu teléfono para reintentarla. Cualquier persona que tenga el enlace del archivo de Drive podrá verlo; el enlace puede aparecer en la vista de la alerta y un visitante puede reenviarlo.</p>
           <h3>3.5. Datos de uso y técnicos</h3>
           <ul>
             <li><strong>Historial de alertas</strong>, incluida la fecha, hora, ubicación inicial, ruta en vivo guardada, última ubicación informada y estado de la alerta.</li>
@@ -290,8 +289,7 @@
             <li><strong>WhatsApp y SMS:</strong> Twilio.</li>
             <li><strong>Visualización del mapa:</strong> el servicio estándar de teselas de OpenStreetMap por defecto, o el proveedor de mapas configurado por el operador. El navegador del visitante solicita las teselas necesarias para el área mostrada, por lo que ese proveedor puede recibir la dirección IP del visitante, información del navegador, el origen de este sitio y las coordenadas de las teselas del área visible.</li>
             <li><strong>Alojamiento e infraestructura:</strong> nuestro proveedor de alojamiento en la nube.</li>
-            <li><strong>TikTok:</strong> recibe una grabación SOS solo después de que confirmes su publicación en tu cuenta vinculada.</li>
-            <li><strong>Google Drive:</strong> recibe una grabación cuando conectas Drive y eliges o activas su subida.</li>
+            <li><strong>Google Drive:</strong> recibe automáticamente una grabación SOS después de que conectas Drive y activas una alerta.</li>
           </ul>
           <p>Estos proveedores tratan los datos conforme a sus propias políticas de privacidad.</p>
 
@@ -308,7 +306,7 @@
             <li>La recopilación de ubicación en vivo termina después de un máximo de <strong>60 minutos</strong>. El enlace privado de mapa de un contacto vence después de <strong>30 días</strong>; el vencimiento del enlace no elimina por sí solo la alerta ni la ruta guardada del historial de tu cuenta.</li>
             <li>Las cuentas registradas que <strong>nunca se confirman</strong> se eliminan automáticamente a las 24 horas.</li>
             <li>Cuando eliminas tu cuenta, borramos tus datos personales asociados en un plazo máximo de 30 días, salvo lo que debamos conservar por obligación legal.</li>
-            <li>Nuestro servidor conserva las grabaciones SOS mientras la cuenta siga activa y borra sus copias locales al eliminar la cuenta. Desconectar un proveedor elimina la autorización guardada, pero no borra los videos ya publicados en TikTok ni los archivos ya subidos a tu Drive; puedes administrarlos en esos servicios.</li>
+            <li>Nuestro servidor no conserva archivos locales de los videos SOS. Una subida fallida puede permanecer pendiente en tu teléfono hasta que tenga éxito o se borren los datos locales de la App. Desconectar Google Drive elimina la autorización guardada, pero no borra los archivos ya subidos a tu Drive; puedes administrarlos en Google Drive.</li>
           </ul>
 
           <h2>8. Seguridad</h2>

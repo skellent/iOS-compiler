@@ -75,6 +75,7 @@ mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-add-whatsapp.sql
 mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-add-sms.sql
 mariadb -u <user> -p <DATABASE> < queries/migrations/2026-08-dashboard-history.sql
 mariadb -u <user> -p <DATABASE> < queries/migrations/2026-09-realtime-geolocation.sql
+mariadb -u <user> -p <DATABASE> < queries/migrations/2026-09-drive-only-video.sql
 ```
 
 - **add-whatsapp** — WhatsApp columns + `whatsapp` in the `channel` enum.

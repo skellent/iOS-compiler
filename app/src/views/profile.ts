@@ -82,7 +82,6 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
       <section class="form integrations" aria-label="Video accounts">
         <h2>${t("video.accounts")}</h2>
         <p>${t("video.accountsHint")}</p>
-        <div id="integration-tiktok"></div>
         <div id="integration-google"></div>
         <button id="refresh-integrations" class="btn btn-outline btn-block" type="button">${t("video.refreshAccounts")}</button>
       </section>
@@ -112,20 +111,17 @@ export async function renderProfile(container, { getUser, refreshUser, logout, n
   async function refreshIntegrations() {
     try {
       const statuses = await Api.getIntegrations();
-      for (const provider of ["tiktok", "google"] as const) {
-        const target = container.querySelector(`#integration-${provider}`);
-        const name = provider === "google" ? "Google Drive" : "TikTok";
-        const status = statuses[provider];
-        target.innerHTML = `<div class="integration-row"><span>${name}<small>${escapeHtml(status.connected ? t("video.connected") : status.available ? t("video.disconnected") : t("video.unavailable"))}</small></span><button class="btn btn-outline" type="button" ${status.available ? "" : "disabled"}>${t(status.connected ? "video.disconnect" : "video.connect")}</button></div>`;
-        target.querySelector("button").addEventListener("click", async (event) => {
-          event.currentTarget.disabled = true;
-          try {
-            if (status.connected) { await Api.disconnectIntegration(provider); await refreshIntegrations(); }
-            else await connectIntegration(provider);
-          } catch (error) { showToast(error instanceof Error ? error.message : t("errors.generic"), "error"); }
-          finally { event.currentTarget.disabled = false; }
-        });
-      }
+      const target = container.querySelector("#integration-google");
+      const status = statuses.google;
+      target.innerHTML = `<div class="integration-row"><span>Google Drive<small>${escapeHtml(status.connected ? t("video.connected") : status.available ? t("video.disconnected") : t("video.unavailable"))}</small></span><button class="btn btn-outline" type="button" ${status.available ? "" : "disabled"}>${t(status.connected ? "video.disconnect" : "video.connect")}</button></div>`;
+      target.querySelector("button").addEventListener("click", async (event) => {
+        event.currentTarget.disabled = true;
+        try {
+          if (status.connected) { await Api.disconnectGoogleDrive(); await refreshIntegrations(); }
+          else await connectIntegration();
+        } catch (error) { showToast(error instanceof Error ? error.message : t("errors.generic"), "error"); }
+        finally { event.currentTarget.disabled = false; }
+      });
     } catch (error) { showToast(error instanceof Error ? error.message : t("errors.generic"), "error"); }
   }
   container.querySelector("#refresh-integrations").addEventListener("click", refreshIntegrations);

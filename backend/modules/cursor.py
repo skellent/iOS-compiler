@@ -68,7 +68,6 @@ class Queries:
 
     DELETE_ALERT_NOTIFICATIONS_BY_USER: str = "DELETE FROM alert_notifications WHERE alert_id IN (SELECT id FROM alerts WHERE user_id = %s);"
     DELETE_ALERT_VIDEOS_BY_USER: str = "DELETE FROM alert_videos WHERE alert_id IN (SELECT id FROM alerts WHERE user_id = %s);"
-    SELECT_ALERT_VIDEO_PATHS_BY_USER: str = "SELECT local_path FROM alert_videos WHERE alert_id IN (SELECT id FROM alerts WHERE user_id = %s);"
     DELETE_SOCIAL_CONNECTIONS_BY_USER: str = "DELETE FROM social_connections WHERE user_id = %s;"
     DELETE_ALERTS_BY_USER: str = "DELETE FROM alerts WHERE user_id = %s;"
     DELETE_CONTACTS_BY_USER: str = "DELETE FROM contacts WHERE user_id = %s;"
@@ -169,13 +168,15 @@ class Queries:
     )
     DELETE_SOCIAL_CONNECTION: str = "DELETE FROM social_connections WHERE user_id = %s AND provider = %s;"
     SELECT_ALERT_ID_BY_USER: str = "SELECT id FROM alerts WHERE id = %s AND user_id = %s;"
-    SELECT_ALERT_VIDEO: str = "SELECT alert_id, status, mime_type, byte_size, duration_seconds, local_path, drive_status, drive_started_at, drive_file_id, drive_url, tiktok_publish_id, tiktok_status, tiktok_fail_reason FROM alert_videos WHERE alert_id = %s;"
-    INSERT_ALERT_VIDEO: str = "INSERT INTO alert_videos (alert_id, status, mime_type, byte_size, duration_seconds, local_path) VALUES (%s, 'ready', %s, %s, %s, %s);"
-    MARK_ALERT_VIDEO_DRIVE_UPLOADING: str = "UPDATE alert_videos SET drive_status = 'uploading', drive_started_at = UTC_TIMESTAMP() WHERE alert_id = %s;"
+    SELECT_ALERT_VIDEO: str = "SELECT alert_id, duration_seconds, drive_status, drive_started_at, drive_file_id, drive_url FROM alert_videos WHERE alert_id = %s;"
+    START_ALERT_VIDEO_DRIVE_UPLOAD: str = (
+        "INSERT INTO alert_videos (alert_id, duration_seconds, drive_status, drive_started_at) "
+        "VALUES (%s, %s, 'uploading', UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE "
+        "duration_seconds = VALUES(duration_seconds), drive_status = 'uploading', "
+        "drive_started_at = UTC_TIMESTAMP(), drive_file_id = NULL, drive_url = NULL;"
+    )
     MARK_ALERT_VIDEO_READY: str = "UPDATE alert_videos SET drive_status = 'ready', drive_started_at = NULL, drive_file_id = %s, drive_url = %s WHERE alert_id = %s;"
     MARK_ALERT_VIDEO_FAILED: str = "UPDATE alert_videos SET drive_status = 'failed', drive_started_at = NULL WHERE alert_id = %s;"
-    SET_ALERT_VIDEO_TIKTOK: str = "UPDATE alert_videos SET tiktok_publish_id = %s, tiktok_status = %s, tiktok_fail_reason = NULL WHERE alert_id = %s;"
-    UPDATE_ALERT_VIDEO_TIKTOK_STATUS: str = "UPDATE alert_videos SET tiktok_status = %s, tiktok_fail_reason = %s WHERE alert_id = %s;"
 
 
 class _Connection:

@@ -42,12 +42,10 @@ TWILIO_WHATSAPP_ENABLED=
 TWILIO_SMS_FROM=
 TWILIO_SMS_ENABLED=
 
-# USER-OWNED SOS VIDEO (HTTPS API_BASE_URL required for OAuth callbacks)
+# AUTOMATIC USER-OWNED GOOGLE DRIVE SOS VIDEO (HTTPS API_BASE_URL required)
 # Phone camera recording duration, from 15 to 300 seconds.
 VIDEO_RECORD_SECONDS=300
-SOCIAL_TOKEN_KEY=
-TIKTOK_CLIENT_KEY=
-TIKTOK_CLIENT_SECRET=
+GOOGLE_TOKEN_KEY=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

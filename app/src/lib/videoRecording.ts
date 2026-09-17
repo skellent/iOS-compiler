@@ -6,6 +6,7 @@ export type RecordingState = {
   status: "idle" | "recording" | "uploading" | "ready" | "failed";
   message: string;
   retryable: boolean;
+  driveUrl?: string | null;
 };
 
 type PendingVideo = { alertId: number; blob: Blob; durationSeconds: number };
@@ -77,6 +78,10 @@ export function observeRecording(listener: (state: RecordingState) => void) {
 }
 
 export async function hasPendingVideo(alertId: number) { return Boolean(await pendingVideo(alertId)); }
+export async function confirmVideoUploaded(alertId: number, driveUrl: string | null) {
+  await clearPending(alertId);
+  update({ alertId, status: "ready", message: t("video.ready"), retryable: false, driveUrl });
+}
 export function stopAlertVideoRecording() {
   stopRequested = true;
   if (activeRecorder?.state === "recording") activeRecorder.stop();
@@ -87,19 +92,23 @@ export async function retryVideoUpload(alertId: number) {
   if (!pending) return;
   update({ alertId, status: "uploading", message: t("video.uploading"), retryable: false });
   try {
-    await Api.uploadVideo(alertId, pending.blob, pending.durationSeconds);
-    await clearPending(alertId);
-    update({ status: "ready", message: t("video.ready"), retryable: false });
+    const result = await Api.uploadVideo(alertId, pending.blob, pending.durationSeconds);
+    await confirmVideoUploaded(alertId, result.url);
   } catch (error) {
     if ((error as { status?: number }).status === 409) {
       const existing = await Api.getVideo(alertId).catch(() => null);
       if (existing?.status === "ready") {
-        await clearPending(alertId);
-        update({ status: "ready", message: t("video.ready"), retryable: false });
+        await confirmVideoUploaded(alertId, existing.url);
         return;
       }
+      if (existing?.status === "uploading") {
+        update({ status: "uploading", message: t("video.uploading"), retryable: false });
+        return;
+      }
+      update({ status: "failed", message: t("video.connectDriveFirst"), retryable: true });
+      return;
     }
-    update({ status: "failed", message: error instanceof Error ? error.message : t("video.uploadFailed"), retryable: true });
+    update({ status: "failed", message: t("video.uploadFailed"), retryable: true });
   }
 }
 
@@ -107,9 +116,7 @@ export async function recordAlertVideo(alertId: number) {
   if (activeRecorder?.state === "recording") return;
   stopRequested = false;
   const configured = await Api.getFeatures().then((features) => features.video_record_seconds).catch(() => 300);
-  const tiktokLimit = await Api.getTikTokRecordingLimit()
-    .then((result) => result.max_duration_seconds).catch(() => configured);
-  const seconds = Math.max(1, Math.min(configured, tiktokLimit || configured));
+  const seconds = Math.max(1, configured);
   update({ alertId, status: "recording", message: t("video.recording", { seconds }), retryable: false });
   let stream: MediaStream | null = null;
   try {

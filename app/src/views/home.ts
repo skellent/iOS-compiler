@@ -5,8 +5,7 @@ import { escapeHtml, shake } from "../lib/dom.js";
 import { Icon } from "../lib/icons.js";
 import { t } from "../lib/i18n.js";
 import { getLiveTrackingState, observeLiveTracking, startLiveTracking, stopLiveTracking } from "../lib/liveTracking.js";
-import { getRecordingState, hasPendingVideo, observeRecording, recordAlertVideo, retryVideoUpload, stopAlertVideoRecording } from "../lib/videoRecording.js";
-import { openTikTokPost } from "../lib/tiktokPost.js";
+import { confirmVideoUploaded, getRecordingState, hasPendingVideo, observeRecording, recordAlertVideo, retryVideoUpload, stopAlertVideoRecording } from "../lib/videoRecording.js";
 import { Browser } from "@capacitor/browser";
 
 const HOLD_DURATION_MS = 1400;
@@ -53,14 +52,11 @@ export async function renderHome(container, { getUser }) {
       <section id="video-panel" class="video-panel" hidden aria-live="polite">
         <strong>${t("video.alertRecording")}</strong>
         <p id="video-detail"></p>
-        <p id="video-post-status"></p>
         <p id="video-drive-status"></p>
         <div class="video-actions">
           <button id="video-drive-link" class="btn btn-outline" type="button" hidden>${t("video.watchDrive")}</button>
-          <button id="video-drive-upload" class="btn btn-outline" type="button" hidden>${t("video.sendDrive")}</button>
           <button id="video-retry" class="btn btn-outline" type="button" hidden>${t("video.retry")}</button>
           <button id="video-stop" class="btn btn-outline" type="button" hidden>${t("video.stopRecording")}</button>
-          <button id="video-tiktok" class="btn btn-primary" type="button" hidden>${t("video.publish")}</button>
         </div>
       </section>
     </div>
@@ -78,18 +74,12 @@ export async function renderHome(container, { getUser }) {
   const stopTrackingBtn = container.querySelector("#stop-tracking-btn");
   const videoPanel = container.querySelector("#video-panel");
   const videoDetail = container.querySelector("#video-detail");
-  const videoPostStatus = container.querySelector("#video-post-status");
   const videoDriveStatus = container.querySelector("#video-drive-status");
   const videoLink = container.querySelector("#video-drive-link");
-  const videoDriveUpload = container.querySelector("#video-drive-upload");
   const videoRetry = container.querySelector("#video-retry");
   const videoStop = container.querySelector("#video-stop");
-  const videoTikTok = container.querySelector("#video-tiktok");
   let lastAlertId = null;
-  let tiktokConnected = false;
   let googleConnected = false;
-  let tiktokStatus = null;
-  let tiktokFailReason = null;
   let driveStatus = "not_uploaded";
   let driveUrl = null;
   let recording = getRecordingState();
@@ -99,68 +89,49 @@ export async function renderHome(container, { getUser }) {
     container.querySelector(".home-screen").classList.toggle("home-has-video", Boolean(lastAlertId));
     if (!lastAlertId) return;
     videoDetail.textContent = recording.alertId === lastAlertId ? recording.message : t("video.waiting");
-    const ready = recording.alertId === lastAlertId && recording.status === "ready";
-    videoPostStatus.textContent = tiktokStatus ? t(
-      tiktokStatus === "PUBLISH_COMPLETE" ? "video.postComplete" :
-      tiktokStatus === "FAILED" ? "video.postFailed" : "video.postProcessing"
-    ) + (tiktokStatus === "FAILED" && tiktokFailReason ?
-      ` ${t("video.postFailReason", { reason: tiktokFailReason.replaceAll("_", " ") })}` : "")
-      : ready && !tiktokConnected ? t("video.connectTikTokFirst") : "";
     videoDriveStatus.textContent = driveStatus === "uploading" ? t("video.driveUploading") :
-      driveStatus === "failed" ? t("video.driveFailed") : "";
+      driveStatus === "failed" ? t("video.driveFailed") :
+      driveStatus !== "ready" && !googleConnected ? t("video.connectDriveFirst") : "";
     videoLink.hidden = !driveUrl;
-    videoDriveUpload.hidden = !ready || !googleConnected || driveStatus === "uploading" || driveStatus === "ready";
     videoRetry.hidden = !(recording.alertId === lastAlertId && recording.retryable);
     videoStop.hidden = !(recording.alertId === lastAlertId && recording.status === "recording");
-    videoTikTok.hidden = !ready || !tiktokConnected || Boolean(tiktokStatus && tiktokStatus !== "FAILED");
   }
-  observeRecording((next) => { recording = next; renderVideo(); });
+  observeRecording((next) => {
+    recording = next;
+    if (next.alertId === lastAlertId && next.status === "uploading") driveStatus = "uploading";
+    if (next.alertId === lastAlertId && next.status === "ready") {
+      driveStatus = "ready";
+      driveUrl = next.driveUrl || null;
+    }
+    if (next.alertId === lastAlertId && next.status === "failed" && next.retryable) driveStatus = "failed";
+    renderVideo();
+  });
   videoRetry.addEventListener("click", () => retryVideoUpload(lastAlertId));
   videoStop.addEventListener("click", stopAlertVideoRecording);
   videoLink.addEventListener("click", () => { if (driveUrl) Browser.open({ url: driveUrl }); });
-  videoDriveUpload.addEventListener("click", async () => {
-    videoDriveUpload.disabled = true;
-    try { await Api.sendVideoToDrive(lastAlertId); driveStatus = "uploading"; renderVideo(); }
-    catch (error) { showToast(error instanceof Error ? error.message : t("errors.generic"), "error"); }
-    finally { videoDriveUpload.disabled = false; }
-  });
-  videoTikTok.addEventListener("click", () => openTikTokPost(lastAlertId, () => {
-    tiktokStatus = "PROCESSING_DOWNLOAD";
-    tiktokFailReason = null;
-    renderVideo();
-  }));
-  Api.getIntegrations().then((accounts) => {
-    tiktokConnected = accounts.tiktok.connected;
+  Promise.all([Api.getIntegrations(), Api.listAlerts()]).then(async ([accounts, alerts]) => {
     googleConnected = accounts.google.connected;
-    renderVideo();
-  }).catch(() => {});
-  Api.listAlerts().then(async (alerts) => {
     if (!alerts.length || lastAlertId) return;
     lastAlertId = alerts[0].id;
     const result = await Api.getVideo(lastAlertId);
-    tiktokStatus = result.tiktok_status;
-    tiktokFailReason = result.tiktok_fail_reason;
     driveStatus = result.drive_status;
     driveUrl = result.url;
-    if (result.status === "ready" && recording.alertId !== lastAlertId) {
-      recording = { alertId: lastAlertId, status: "ready", retryable: false, message: t("video.ready") };
-    } else if (await hasPendingVideo(lastAlertId) && recording.alertId !== lastAlertId) {
+    if (result.status === "ready") {
+      await confirmVideoUploaded(lastAlertId, result.url);
+    } else if (await hasPendingVideo(lastAlertId)) {
       recording = { alertId: lastAlertId, status: "failed", retryable: true, message: t("video.uploadFailed") };
+      if (googleConnected) retryVideoUpload(lastAlertId);
     }
     renderVideo();
   }).catch(() => {});
   const videoClock = setInterval(async () => {
     if (!container.isConnected) { clearInterval(videoClock); return; }
-    if (!lastAlertId || (driveStatus !== "uploading" && !tiktokStatus?.startsWith("PROCESSING"))) return;
+    if (!lastAlertId || driveStatus !== "uploading") return;
     try {
       const result = await Api.getVideo(lastAlertId);
       driveStatus = result.drive_status;
       driveUrl = result.url;
-      if (tiktokStatus?.startsWith("PROCESSING")) {
-        const post = await Api.getTikTokStatus(lastAlertId);
-        tiktokStatus = post.status;
-        tiktokFailReason = post.fail_reason;
-      }
+      if (result.status === "ready") await confirmVideoUploaded(lastAlertId, result.url);
       renderVideo();
     } catch { /* Status polling never interrupts an SOS. */ }
   }, 10000);
@@ -260,8 +231,6 @@ export async function renderHome(container, { getUser }) {
       status.textContent = t("home.sending");
       const alert = await Api.createAlert(coordinates);
       lastAlertId = alert.id;
-      tiktokStatus = null;
-      tiktokFailReason = null;
       driveStatus = "not_uploaded";
       driveUrl = null;
       renderVideo();

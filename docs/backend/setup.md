@@ -104,6 +104,8 @@ Terminate TLS at nginx and forward to the backend. `API_BASE_URL` must be the pu
 location ~ /\.(?!well-known) { deny all; return 404; }
 ```
 
+SOS video uploads also require request streaming so Nginx does not write the recording to a temporary file. Add the dedicated `proxy_request_buffering off` location from [the SOS video setup guide](../../backend/docs/sos-video-setup.md) before the general proxy location.
+
 ## 6. Build the mobile app (optional)
 
 The app loads its UI from the backend, but the JS bundle is built with Bun:

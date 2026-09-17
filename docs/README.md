@@ -30,6 +30,8 @@ The project has two deployable parts:
 ### App reference
 - [Architecture](app/architecture.md) — the online-app model and project layout.
 - [Real-time tracking compatibility](app/realtime-tracking.md) — current plugin support, background limitations, and the native implementation path.
+- [SOS video and Google Drive setup](app/sos-video-provider-setup.md) — Google Cloud, Workspace, upload flow, storage, and cost requirements.
+- [Google Drive enterprise OAuth](app/google-drive-enterprise-auth.md) — configure Drive authorization and public alert links under Google Workspace policies.
 - [Screens](app/screens.md) — what each screen does.
 
 ## The five-minute picture

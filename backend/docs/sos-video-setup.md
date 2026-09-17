@@ -1,93 +1,115 @@
-# SOS video setup: TikTok first, Google Drive later
+# Automatic SOS video upload to Google Drive
 
-The SOS alert and live GPS notification are sent before video recording starts. The Android app records a camera clip for up to `VIDEO_RECORD_SECONDS` (300 seconds by default), saves the clip in the backend's `data/videos/` directory, and offers a separate, user-confirmed **Post to TikTok** action. TikTok does not depend on Google Drive. When a connected Google account exists, Drive upload begins only **after** TikTok accepts the post request; users can also choose **Share through Drive** later. The alert view shows a Drive watch link when that optional public upload finishes.
+## Resulting flow
 
-Camera recording runs in the foreground WebView. If the user backgrounds or locks the app, the current clip stops and the captured portion is saved. Live GPS sharing still has its existing 60-minute duration. If the connected TikTok account reports a shorter maximum video duration, the app records for that shorter duration.
+1. The user connects Google Drive once from **Profile**. Panic Button stores the OAuth tokens encrypted in MariaDB.
+2. The user holds the panic button. The alert and live location start first, so a camera or Drive failure never blocks the emergency notification.
+3. The phone records for up to `VIDEO_RECORD_SECONDS` (300 seconds by default) while the app remains in the foreground.
+4. When recording stops, the phone immediately sends the raw WebM or MP4 body to `POST /alerts/{id}/video`.
+5. The backend opens a Google Drive resumable upload and relays the incoming bytes to it. Application code does not create a backend file or buffer the whole recording in memory.
+6. Drive receives the file in the user's own account. The backend grants `anyone/reader`, stores only the Drive file ID, public URL, duration, and upload status in MariaDB, and exposes the link in the alert view.
+7. After success, the phone deletes its pending IndexedDB copy. If upload fails or Drive is not connected, that copy remains on the phone and the app offers or automatically performs a retry.
 
-## 1. Apply the MariaDB migration
+The recording limit is 100 MB. Closing or backgrounding the foreground WebView stops the current capture and uploads the portion already recorded. Clearing the app's local data removes any pending clip that has not reached Drive.
 
-The file [2026-09-alert-videos.sql](../queries/migrations/2026-09-alert-videos.sql) creates `social_connections` for encrypted user OAuth tokens and `alert_videos` for video storage and provider status. Existing tables and rows are unchanged. Apply it once to the database that the backend's `DATABASE` variable names.
+## 1. Apply the database migration
 
-From the repository root, replace the uppercase placeholders:
+For a database that already had the former video schema:
 
-```bash
-sudo docker ps --format '{{.Names}}'
-sudo docker cp backend/queries/migrations/2026-09-alert-videos.sql YOUR_MARIADB_CONTAINER:/tmp/2026-09-alert-videos.sql
-sudo docker exec -it YOUR_MARIADB_CONTAINER mariadb --abort-source-on-error -u root -p YOUR_DATABASE
-```
-
-Enter the database password at the prompt. Then run these lines **inside the MariaDB client**:
-
-```sql
-source /tmp/2026-09-alert-videos.sql
-SHOW TABLES LIKE 'social_connections';
-SHOW TABLES LIKE 'alert_videos';
-DESCRIBE alert_videos;
-```
-
-If the container uses `mysql` rather than `mariadb` as its client name, substitute `mysql` in the third shell command. The migration has not been run by the code changes alone.
-
-If you applied an earlier copy of the migration and `DESCRIBE alert_videos` does not list `drive_started_at`, apply the follow-up migration. It only adds the nullable Drive retry timestamp and is safe to run again:
-
-```bash
-sudo docker cp backend/queries/migrations/2026-09-alert-videos-followup.sql YOUR_MARIADB_CONTAINER:/tmp/2026-09-alert-videos-followup.sql
-sudo docker exec -it YOUR_MARIADB_CONTAINER mariadb --abort-source-on-error -u root -p YOUR_DATABASE
-```
-
-Inside MariaDB:
-
-```sql
-source /tmp/2026-09-alert-videos-followup.sql
-SHOW COLUMNS FROM alert_videos LIKE 'drive_started_at';
-```
-
-## 2. Set backend environment variables
-
-The backend reads `backend/.env`; [`.envexample`](../.envexample) lists every new variable. Keep all client secrets in this server file, not in the phone app or repository. Create a separate `SOCIAL_TOKEN_KEY` for each deployed environment and keep it stable so existing users' encrypted connections remain readable:
+Copy the migration into the container and execute it from an interactive MariaDB session. This lets `-p` request the password from the terminal instead of competing with redirected SQL on standard input:
 
 ```bash
 cd backend
-uv sync
+sudo docker cp queries/migrations/2026-09-drive-only-video.sql mariadb:/tmp/2026-09-drive-only-video.sql
+sudo docker exec -it mariadb mariadb -u root -p panic_button
+```
+
+At the MariaDB prompt:
+
+```sql
+SOURCE /tmp/2026-09-drive-only-video.sql;
+SHOW WARNINGS;
+DESCRIBE social_connections;
+DESCRIBE alert_videos;
+EXIT;
+```
+
+Then remove the copied migration:
+
+```bash
+sudo docker exec mariadb rm /tmp/2026-09-drive-only-video.sql
+```
+
+Replace `mariadb`, the database user, and `panic_button` with your container name, MariaDB user, and database name. The migration deletes incomplete legacy video rows, removes obsolete columns, keeps completed Drive links, and restricts provider connections to Google.
+
+For a fresh database, use `queries/tables.sql`; it already contains the Drive-only schema.
+
+## 2. Configure the backend
+
+Generate the encryption key once:
+
+```bash
+cd backend
 uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Copy that output into `SOCIAL_TOKEN_KEY`. Set `VIDEO_RECORD_SECONDS=300` for the five-minute default; the supported range is 15–300 seconds. `API_BASE_URL` must be the public HTTPS origin of the backend for the OAuth callbacks and TikTok video pull URL.
+Set these values in `backend/.env`:
 
-For TikTok first, set `TIKTOK_CLIENT_KEY` and `TIKTOK_CLIENT_SECRET`. Leave `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` blank until you are ready to enable Drive. The app's `/integrations` endpoint marks each provider unavailable until its required values are set.
-
-The upload cap is 100 MB per SOS clip. The server keeps the clip for TikTok retries and a later Drive upload until the Panic Button account is deleted. Ensure the backend's `data/videos/` directory has enough persistent disk space and is writable by the API process. The directory is gitignored. Installing `ffprobe` on the backend host enables independent duration checks; without it, the backend uses the duration measured by the phone.
-
-## 3. Configure the TikTok developer app
-
-1. Register Panic Button in [TikTok for Developers](https://developers.tiktok.com/docs/en/login-kit-web) and obtain its client key and secret.
-2. Add **Login Kit** and register exactly `https://YOUR_API_DOMAIN/integrations/tiktok/callback` as an HTTPS web redirect URI.
-3. Add **Content Posting API**, enable **Direct Post**, and request approval for `video.publish`. The user then grants `user.info.basic,video.publish` when connecting TikTok in their profile.
-4. Verify ownership of the URL prefix `https://YOUR_API_DOMAIN/videos/tiktok/` in the TikTok developer portal. TikTok's [content sharing guidelines](https://developers.tiktok.com/docs/en/content-sharing-guidelines) say server-hosted videos should use `PULL_FROM_URL`; this backend supplies a signed, 24-hour video URL under that prefix. The URL has no Panic Button session cookie requirement so TikTok can fetch it.
-5. Test with an eligible private TikTok account. TikTok says an **unaudited** Direct Post client is limited to private accounts, `SELF_ONLY` visibility, and up to five posting users in 24 hours. Submit the app for audit before expecting ordinary public-account posting. TikTok also enforces creator-specific duration and posting caps. [Direct Post prerequisites](https://developers.tiktok.com/docs/en/content-posting-api-get-started), [sharing guidelines](https://developers.tiktok.com/docs/en/content-sharing-guidelines).
-
-The publish screen queries TikTok for current account and privacy options, previews the recording, lets the user set a caption, interactions and commercial-content disclosures, and requires explicit consent. TikTok processes the post asynchronously; the app polls its status.
-
-## 4. Add Google Drive later
-
-Create a Google Cloud project, enable the Drive API, create an **external** OAuth consent screen, and create a **web application** OAuth client. Register `https://YOUR_API_DOMAIN/integrations/google/callback` as an authorized redirect URI. The app requests the limited `drive.file` scope, uploads files into each consenting user's Drive, and grants `anyone`/`reader` access to the uploaded file so alert viewers can open its link. Some Google accounts or Workspace policies can prohibit public sharing; in that case the Drive upload is shown as failed. [Google OAuth setup](https://developers.google.com/identity/protocols/oauth2/web-server), [Drive scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth), [Drive sharing](https://developers.google.com/workspace/drive/api/guides/manage-sharing).
-
-The Google connection and public sharing need user-facing review before release: anyone who receives or forwards the Drive link can watch the recording. Disconnecting Google in Panic Button removes its stored connection tokens but does not delete already uploaded files from the user's Drive.
-
-## Costs and deployment notes
-
-TikTok's developer documentation describes approval, audit and usage limits but does not publish a per-post API fee. Do not assume a fee or a guarantee of free access until the developer portal confirms your app's terms. Google says **standard Drive API use has no additional API charge**; quota-related billing changes are planned later in 2026, and each user's Drive storage allowance still applies. [Google Drive limits and pricing](https://developers.google.com/workspace/drive/api/guides/limits).
-
-The likely costs in this flow are your own backend disk, bandwidth and hosting. A five-minute clip can approach 100 MB: the phone uploads it to your backend, TikTok pulls it, and an optional Drive upload sends it again. Android users also spend mobile data unless on Wi-Fi.
-
-After setting production `API_BASE_URL`, rebuild and sync the Android app so camera/microphone permissions and the external-browser OAuth plugin are in its APK. The backend must serve the app over HTTPS; Google OAuth cannot run inside an embedded WebView. [Google OAuth browser policy](https://developers.google.com/identity/protocols/oauth2/policies).
-
-## Install the Android debug APK on a phone
-
-Enable Developer options and USB debugging on the Android phone, connect it over USB, and accept the phone's debugging authorization prompt. From the repository root:
-
-```bash
-adb devices
-adb install -r app/android/app/build/outputs/apk/debug/app-debug.apk
+```dotenv
+API_BASE_URL=https://your-public-api-domain.example
+GOOGLE_TOKEN_KEY=the-generated-fernet-key
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+VIDEO_RECORD_SECONDS=300
 ```
 
-`adb devices` must show the phone with status `device`. If it shows `unauthorized`, unlock the phone and accept the prompt. `-r` replaces an installed debug build while keeping its app data. The current app build uses the `API_BASE_URL` from `app/.env`; this URL must reach a backend running the matching SOS-video code and migration. The camera works in the Android app's secure local WebView origin; TikTok account linking and posting additionally need the backend's public HTTPS `API_BASE_URL` and TikTok credentials.
+`API_BASE_URL` must be the public HTTPS backend origin. The authorized Google redirect URI must be exactly:
+
+```text
+https://your-public-api-domain.example/integrations/google/callback
+```
+
+The supported recording interval is 15–300 seconds. Changing it requires restarting the backend. Keep `.env` private; `.envexample` contains names and safe examples only.
+
+## 3. Configure Google Cloud and Workspace
+
+Follow [Google Drive enterprise authentication](../../docs/app/google-drive-enterprise-auth.md). The required API is Google Drive API and the OAuth scope is:
+
+```text
+https://www.googleapis.com/auth/drive.file
+```
+
+This limited scope lets Panic Button create and manage files it created; it does not grant access to unrelated Drive files. A Workspace administrator may need to trust the OAuth client and permit users to share files with `anyone with the link`. Automatic public alert links cannot work when the organization's policy forbids public link sharing.
+
+## 4. Prevent reverse-proxy disk buffering
+
+The FastAPI route streams without local video files, but Nginx normally buffers request bodies and can use temporary disk. Put the upload route before the general proxy location:
+
+```nginx
+location ~ ^/alerts/[0-9]+/video$ {
+    client_max_body_size 100m;
+    proxy_request_buffering off;
+    proxy_buffering off;
+    proxy_read_timeout 420s;
+    proxy_send_timeout 420s;
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Reload Nginx after validating its configuration. If a CDN, ingress, WAF, or another proxy sits in front of Nginx, configure it for streaming request bodies and a 100 MB/420-second limit too. Otherwise that layer may buffer or reject the recording even though this backend does not store it.
+
+## 5. Verification
+
+1. Restart the API and sign in to Panic Button.
+2. Open Profile, connect Google Drive, complete Google consent, return to the app, and refresh connections.
+3. Trigger a test SOS and allow camera and microphone.
+4. Stop the recording early for the first test.
+5. Confirm the app reports the Drive upload as ready, the alert view contains the public link, and the file exists in the user's Drive.
+6. Confirm the backend has no `data/videos` file and MariaDB contains only metadata in `alert_videos`.
+
+## Cost
+
+Google's standard Drive API use has no additional per-upload fee. Google announced that usage beyond its standard daily thresholds can become billable later in 2026 when a project enables billing for increased quota. The file consumes the user's or organization's Drive quota. The operator pays for backend hosting and for bandwidth relayed through the server; a five-minute video can approach 100 MB inbound plus roughly 100 MB outbound. Google Workspace licensing, extra Drive storage, network egress, and proxy/CDN plans can add cost depending on the deployment.

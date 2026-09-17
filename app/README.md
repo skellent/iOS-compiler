@@ -72,6 +72,7 @@ Two features need OS-level permission, requested the first time each is used (no
 
 - **Location** (`@capacitor/geolocation` and `@capacitor-community/background-geolocation`) — to attach the initial position and continue sharing while an alert is active.
 - **Contacts** (`@capacitor-community/contacts`) — to pick someone from the device's address book as an emergency contact, via the native contact-picker UI (the app never gets bulk access to the address book).
+- **Camera and microphone** — to capture the SOS recording that is uploaded to the user's connected Google Drive.
 
 Both are already declared in `android/app/src/main/AndroidManifest.xml` and `ios/App/App/Info.plist` — see [`docs/en/app/architecture.md`](../docs/en/app/architecture.md) for why those had to be added by hand.
 

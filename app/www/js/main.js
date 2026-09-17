@@ -100,8 +100,8 @@ var STRINGS = {
     "home.trackingStopped": "Live location sharing stopped.",
     "home.trackingStopError": "Couldn't stop live location sharing.",
     "home.trackingUnavailable": "Alert sent with the initial location, but live tracking couldn't start.",
-    "video.accounts": "Video accounts",
-    "video.accountsHint": "Connect TikTok to post recordings. Google Drive can be connected later to share a video link with alert viewers.",
+    "video.accounts": "SOS video storage",
+    "video.accountsHint": "Connect Google Drive. New SOS recordings upload automatically and their public link appears in the alert.",
     "video.refreshAccounts": "Refresh connections",
     "video.connected": "Connected",
     "video.disconnected": "Not connected",
@@ -110,55 +110,21 @@ var STRINGS = {
     "video.disconnect": "Disconnect",
     "video.alertRecording": "SOS video",
     "video.sosHint": "An SOS alert also starts camera recording when you allow permission.",
-    "video.waiting": "No recording is available for this alert.",
+    "video.waiting": "The recording will upload automatically when it is complete.",
     "video.recording": "Recording video for up to {seconds} seconds…",
-    "video.uploading": "Saving the recording for TikTok…",
-    "video.ready": "Video ready to post to TikTok.",
-    "video.uploadFailed": "The recording could not be saved. Tap Retry.",
+    "video.uploading": "Uploading the recording to Google Drive…",
+    "video.ready": "Recording available in Google Drive.",
+    "video.uploadFailed": "The recording could not be uploaded to Drive. It remains on this phone for retry.",
     "video.captureFailed": "The camera did not capture a video.",
     "video.unsupported": "This device cannot record WebM or MP4 video.",
     "video.tooLarge": "The recording exceeded the 100 MB limit.",
-    "video.retry": "Retry saving",
+    "video.retry": "Retry upload",
     "video.stopRecording": "Stop recording",
     "video.stoppedBeforeCapture": "Recording stopped before the camera captured video.",
-    "video.connectTikTokFirst": "Connect TikTok in Profile to post this video.",
+    "video.connectDriveFirst": "Connect Google Drive in Profile. Until then, the recording remains on this phone.",
     "video.watchDrive": "Watch on Drive",
-    "video.sendDrive": "Share through Drive",
-    "video.driveUploading": "Uploading a public link to Google Drive…",
+    "video.driveUploading": "Uploading to Google Drive and creating the public link…",
     "video.driveFailed": "Google Drive upload failed. You can retry it.",
-    "video.postProcessing": "TikTok is processing the video. This may take a few minutes.",
-    "video.postComplete": "Published on TikTok.",
-    "video.postFailed": "TikTok could not publish this video.",
-    "video.postFailReason": "Reason: {reason}. You can try posting it again.",
-    "video.tiktokTitle": "Post video to TikTok",
-    "video.tiktokAccount": "Posting to {username}",
-    "video.preview": "Preview recording",
-    "video.caption": "Caption",
-    "video.defaultCaption": "SOS recording",
-    "video.privacy": "Who can watch",
-    "video.choosePrivacy": "Choose a privacy option",
-    "video.privacy.PUBLIC_TO_EVERYONE": "Everyone",
-    "video.privacy.MUTUAL_FOLLOW_FRIENDS": "Friends",
-    "video.privacy.FOLLOWER_OF_CREATOR": "Followers",
-    "video.privacy.SELF_ONLY": "Only me",
-    "video.interactions": "Allow other people to",
-    "video.allowComment": "Comment",
-    "video.allowDuet": "Duet",
-    "video.allowStitch": "Stitch",
-    "video.commercial": "This video promotes a brand, product, or service",
-    "video.ownBrand": "My own brand or business",
-    "video.paidBrand": "Another brand or paid partnership",
-    "video.privateBrand": "Paid partnerships cannot be posted as Only me.",
-    "video.promotionLabel": "TikTok will label this Promotional content.",
-    "video.paidLabel": "TikTok will label this Paid partnership.",
-    "video.publishConsent": "I agree to send this recording to my TikTok account.",
-    "video.musicAgreement": "By posting, you agree to TikTok's",
-    "video.musicTerms": "Music Usage Confirmation",
-    "video.brandedTerms": "Branded Content Policy",
-    "video.and": "and",
-    "video.publish": "Post to TikTok",
-    "video.processingHint": "TikTok may take a few minutes to make the post visible.",
-    "video.sentToTikTok": "Video sent to TikTok for processing.",
     "contacts.empty": "No emergency contacts yet. Tap the + button to add someone who should be notified when you trigger a panic alert.",
     "contacts.loadError": "Couldn't load your contacts. Pull down or reopen this tab to try again.",
     "contacts.loadErrorToast": "Couldn't load contacts.",
@@ -307,8 +273,8 @@ var STRINGS = {
     "home.trackingStopped": "Se dejó de compartir la ubicación en vivo.",
     "home.trackingStopError": "No se pudo detener la ubicación en vivo.",
     "home.trackingUnavailable": "La alerta se envió con la ubicación inicial, pero no se pudo iniciar el seguimiento en vivo.",
-    "video.accounts": "Cuentas de video",
-    "video.accountsHint": "Conecta TikTok para publicar grabaciones. Puedes conectar Google Drive más adelante para compartir el enlace en la alerta.",
+    "video.accounts": "Almacenamiento de videos SOS",
+    "video.accountsHint": "Conecta Google Drive. Las nuevas grabaciones SOS se subirán automáticamente y su enlace público aparecerá en la alerta.",
     "video.refreshAccounts": "Actualizar conexiones",
     "video.connected": "Conectada",
     "video.disconnected": "Sin conectar",
@@ -317,55 +283,21 @@ var STRINGS = {
     "video.disconnect": "Desconectar",
     "video.alertRecording": "Video de SOS",
     "video.sosHint": "Una alerta SOS también inicia la grabación de cámara si das permiso.",
-    "video.waiting": "No hay una grabación disponible para esta alerta.",
+    "video.waiting": "La grabación se subirá automáticamente cuando termine.",
     "video.recording": "Grabando video durante hasta {seconds} segundos…",
-    "video.uploading": "Guardando la grabación para TikTok…",
-    "video.ready": "Video listo para publicar en TikTok.",
-    "video.uploadFailed": "No se pudo guardar la grabación. Toca Reintentar.",
+    "video.uploading": "Subiendo la grabación a Google Drive…",
+    "video.ready": "Grabación disponible en Google Drive.",
+    "video.uploadFailed": "No se pudo subir la grabación a Drive. Permanece en este teléfono para reintentar.",
     "video.captureFailed": "La cámara no capturó ningún video.",
     "video.unsupported": "Este dispositivo no puede grabar video WebM o MP4.",
     "video.tooLarge": "La grabación superó el límite de 100 MB.",
-    "video.retry": "Reintentar guardar",
+    "video.retry": "Reintentar subida",
     "video.stopRecording": "Detener grabación",
     "video.stoppedBeforeCapture": "La grabación se detuvo antes de que la cámara capturara video.",
-    "video.connectTikTokFirst": "Conecta TikTok en Perfil para publicar este video.",
+    "video.connectDriveFirst": "Conecta Google Drive en Perfil. Hasta entonces, la grabación permanece en este teléfono.",
     "video.watchDrive": "Ver en Drive",
-    "video.sendDrive": "Compartir por Drive",
-    "video.driveUploading": "Subiendo un enlace público a Google Drive…",
+    "video.driveUploading": "Subiendo a Google Drive y creando el enlace público…",
     "video.driveFailed": "Falló la subida a Google Drive. Puedes reintentar.",
-    "video.postProcessing": "TikTok está procesando el video. Puede tardar unos minutos.",
-    "video.postComplete": "Publicado en TikTok.",
-    "video.postFailed": "TikTok no pudo publicar este video.",
-    "video.postFailReason": "Motivo: {reason}. Puedes intentar publicarlo de nuevo.",
-    "video.tiktokTitle": "Publicar video en TikTok",
-    "video.tiktokAccount": "Publicando en {username}",
-    "video.preview": "Vista previa de la grabación",
-    "video.caption": "Descripción",
-    "video.defaultCaption": "Grabación SOS",
-    "video.privacy": "Quién puede verlo",
-    "video.choosePrivacy": "Elige una opción de privacidad",
-    "video.privacy.PUBLIC_TO_EVERYONE": "Todos",
-    "video.privacy.MUTUAL_FOLLOW_FRIENDS": "Amigos",
-    "video.privacy.FOLLOWER_OF_CREATOR": "Seguidores",
-    "video.privacy.SELF_ONLY": "Solo yo",
-    "video.interactions": "Permitir que otros",
-    "video.allowComment": "Comenten",
-    "video.allowDuet": "Hagan duetos",
-    "video.allowStitch": "Hagan stitches",
-    "video.commercial": "Este video promociona una marca, producto o servicio",
-    "video.ownBrand": "Mi marca o negocio",
-    "video.paidBrand": "Otra marca o colaboración pagada",
-    "video.privateBrand": "Las colaboraciones pagadas no pueden ser privadas.",
-    "video.promotionLabel": "TikTok lo etiquetará como contenido promocional.",
-    "video.paidLabel": "TikTok lo etiquetará como colaboración pagada.",
-    "video.publishConsent": "Acepto enviar esta grabación a mi cuenta de TikTok.",
-    "video.musicAgreement": "Al publicar, aceptas la",
-    "video.musicTerms": "Confirmación de uso de música",
-    "video.brandedTerms": "Política de contenido de marca",
-    "video.and": "y la",
-    "video.publish": "Publicar en TikTok",
-    "video.processingHint": "TikTok puede tardar unos minutos en mostrar la publicación.",
-    "video.sentToTikTok": "Video enviado a TikTok para procesarlo.",
     "contacts.empty": "Todavía no tienes contactos de emergencia. Toca el botón + para agregar a alguien que deba ser notificado cuando actives una alerta de pánico.",
     "contacts.loadError": "No se pudieron cargar tus contactos. Vuelve a intentarlo reabriendo esta pestaña.",
     "contacts.loadErrorToast": "No se pudieron cargar los contactos.",
@@ -510,8 +442,8 @@ var STRINGS = {
     "home.trackingStopped": "O compartilhamento da localização ao vivo foi encerrado.",
     "home.trackingStopError": "Não foi possível parar a localização ao vivo.",
     "home.trackingUnavailable": "O alerta foi enviado com a localização inicial, mas o rastreamento ao vivo não pôde ser iniciado.",
-    "video.accounts": "Contas de vídeo",
-    "video.accountsHint": "Conecte o TikTok para publicar gravações. Você pode conectar o Google Drive depois para compartilhar o link no alerta.",
+    "video.accounts": "Armazenamento de vídeos SOS",
+    "video.accountsHint": "Conecte o Google Drive. Novas gravações SOS serão enviadas automaticamente e o link público aparecerá no alerta.",
     "video.refreshAccounts": "Atualizar conexões",
     "video.connected": "Conectada",
     "video.disconnected": "Não conectada",
@@ -520,55 +452,21 @@ var STRINGS = {
     "video.disconnect": "Desconectar",
     "video.alertRecording": "Vídeo SOS",
     "video.sosHint": "Um alerta SOS também inicia a gravação da câmera quando você permite.",
-    "video.waiting": "Nenhuma gravação disponível para este alerta.",
+    "video.waiting": "A gravação será enviada automaticamente quando terminar.",
     "video.recording": "Gravando vídeo por até {seconds} segundos…",
-    "video.uploading": "Salvando a gravação para o TikTok…",
-    "video.ready": "Vídeo pronto para publicar no TikTok.",
-    "video.uploadFailed": "Não foi possível salvar a gravação. Toque em Tentar novamente.",
+    "video.uploading": "Enviando a gravação ao Google Drive…",
+    "video.ready": "Gravação disponível no Google Drive.",
+    "video.uploadFailed": "Não foi possível enviar a gravação ao Drive. Ela permanece neste telefone para nova tentativa.",
     "video.captureFailed": "A câmera não gravou nenhum vídeo.",
     "video.unsupported": "Este dispositivo não consegue gravar vídeo WebM ou MP4.",
     "video.tooLarge": "A gravação excedeu o limite de 100 MB.",
-    "video.retry": "Tentar salvar novamente",
+    "video.retry": "Tentar envio novamente",
     "video.stopRecording": "Parar gravação",
     "video.stoppedBeforeCapture": "A gravação foi interrompida antes de a câmera capturar vídeo.",
-    "video.connectTikTokFirst": "Conecte o TikTok no Perfil para publicar este vídeo.",
+    "video.connectDriveFirst": "Conecte o Google Drive no Perfil. Até lá, a gravação permanece neste telefone.",
     "video.watchDrive": "Ver no Drive",
-    "video.sendDrive": "Compartilhar pelo Drive",
-    "video.driveUploading": "Enviando um link público ao Google Drive…",
+    "video.driveUploading": "Enviando ao Google Drive e criando o link público…",
     "video.driveFailed": "Falha no envio ao Google Drive. Você pode tentar novamente.",
-    "video.postProcessing": "O TikTok está processando o vídeo. Isso pode levar alguns minutos.",
-    "video.postComplete": "Publicado no TikTok.",
-    "video.postFailed": "O TikTok não conseguiu publicar este vídeo.",
-    "video.postFailReason": "Motivo: {reason}. Você pode tentar publicar novamente.",
-    "video.tiktokTitle": "Publicar vídeo no TikTok",
-    "video.tiktokAccount": "Publicando em {username}",
-    "video.preview": "Prévia da gravação",
-    "video.caption": "Legenda",
-    "video.defaultCaption": "Gravação SOS",
-    "video.privacy": "Quem pode assistir",
-    "video.choosePrivacy": "Escolha a privacidade",
-    "video.privacy.PUBLIC_TO_EVERYONE": "Todos",
-    "video.privacy.MUTUAL_FOLLOW_FRIENDS": "Amigos",
-    "video.privacy.FOLLOWER_OF_CREATOR": "Seguidores",
-    "video.privacy.SELF_ONLY": "Só eu",
-    "video.interactions": "Permitir que outras pessoas",
-    "video.allowComment": "Comentem",
-    "video.allowDuet": "Façam duetos",
-    "video.allowStitch": "Façam stitches",
-    "video.commercial": "Este vídeo promove uma marca, produto ou serviço",
-    "video.ownBrand": "Minha marca ou empresa",
-    "video.paidBrand": "Outra marca ou parceria paga",
-    "video.privateBrand": "Parcerias pagas não podem ser privadas.",
-    "video.promotionLabel": "O TikTok marcará como conteúdo promocional.",
-    "video.paidLabel": "O TikTok marcará como parceria paga.",
-    "video.publishConsent": "Concordo em enviar esta gravação para minha conta do TikTok.",
-    "video.musicAgreement": "Ao publicar, você concorda com a",
-    "video.musicTerms": "Confirmação de uso de música",
-    "video.brandedTerms": "Política de conteúdo de marca",
-    "video.and": "e a",
-    "video.publish": "Publicar no TikTok",
-    "video.processingHint": "O TikTok pode levar alguns minutos para mostrar a publicação.",
-    "video.sentToTikTok": "Vídeo enviado ao TikTok para processamento.",
     "contacts.empty": "Você ainda não tem contatos de emergência. Toque no botão + para adicionar alguém que deva ser notificado quando você acionar um alerta de pânico.",
     "contacts.loadError": "Não foi possível carregar seus contatos. Reabra esta aba para tentar novamente.",
     "contacts.loadErrorToast": "Não foi possível carregar os contatos.",
@@ -715,15 +613,17 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 }
 async function uploadVideo(alertId, video, durationSeconds) {
   const token = await getToken();
-  const body = new FormData;
-  body.append("video", video, `alert-${alertId}.${video.type === "video/mp4" ? "mp4" : "webm"}`);
-  body.append("duration_seconds", String(durationSeconds));
   let response;
   try {
     response = await fetch(`${BASE_URL}/alerts/${alertId}/video`, {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body
+      headers: {
+        ...token ? { Authorization: `Bearer ${token}` } : {},
+        "Content-Type": video.type || "video/webm",
+        "X-Video-Duration": String(durationSeconds),
+        "X-Video-Size": String(video.size)
+      },
+      body: video
     });
   } catch {
     throw new ApiError(t("errors.network"), 0);
@@ -754,15 +654,10 @@ var Api = {
   stopAlert: (id) => request(`/alerts/${id}/stop`, { method: "POST", auth: true }),
   listAlerts: () => request("/alerts", { auth: true }),
   getIntegrations: () => request("/integrations", { auth: true }),
-  getTikTokRecordingLimit: () => request("/integrations/tiktok/recording-limit", { auth: true }),
-  authorizeIntegration: (provider) => request(`/integrations/${provider}/authorize`, { method: "POST", auth: true }),
-  disconnectIntegration: (provider) => request(`/integrations/${provider}`, { method: "DELETE", auth: true }),
+  authorizeGoogleDrive: () => request("/integrations/google/authorize", { method: "POST", auth: true }),
+  disconnectGoogleDrive: () => request("/integrations/google", { method: "DELETE", auth: true }),
   uploadVideo,
   getVideo: (id) => request(`/alerts/${id}/video`, { auth: true }),
-  sendVideoToDrive: (id) => request(`/alerts/${id}/video/drive`, { method: "POST", auth: true }),
-  getTikTokOptions: (id) => request(`/alerts/${id}/video/tiktok/options`, { auth: true }),
-  publishTikTok: (id, data) => request(`/alerts/${id}/video/tiktok`, { method: "POST", body: data, auth: true }),
-  getTikTokStatus: (id) => request(`/alerts/${id}/video/tiktok`, { auth: true }),
   getFeatures: () => request("/features")
 };
 
@@ -1406,6 +1301,10 @@ function observeRecording(listener2) {
 async function hasPendingVideo(alertId) {
   return Boolean(await pendingVideo(alertId));
 }
+async function confirmVideoUploaded(alertId, driveUrl) {
+  await clearPending(alertId);
+  update({ alertId, status: "ready", message: t("video.ready"), retryable: false, driveUrl });
+}
 function stopAlertVideoRecording() {
   stopRequested = true;
   if (activeRecorder?.state === "recording")
@@ -1417,19 +1316,23 @@ async function retryVideoUpload(alertId) {
     return;
   update({ alertId, status: "uploading", message: t("video.uploading"), retryable: false });
   try {
-    await Api.uploadVideo(alertId, pending.blob, pending.durationSeconds);
-    await clearPending(alertId);
-    update({ status: "ready", message: t("video.ready"), retryable: false });
+    const result = await Api.uploadVideo(alertId, pending.blob, pending.durationSeconds);
+    await confirmVideoUploaded(alertId, result.url);
   } catch (error) {
     if (error.status === 409) {
       const existing = await Api.getVideo(alertId).catch(() => null);
       if (existing?.status === "ready") {
-        await clearPending(alertId);
-        update({ status: "ready", message: t("video.ready"), retryable: false });
+        await confirmVideoUploaded(alertId, existing.url);
         return;
       }
+      if (existing?.status === "uploading") {
+        update({ status: "uploading", message: t("video.uploading"), retryable: false });
+        return;
+      }
+      update({ status: "failed", message: t("video.connectDriveFirst"), retryable: true });
+      return;
     }
-    update({ status: "failed", message: error instanceof Error ? error.message : t("video.uploadFailed"), retryable: true });
+    update({ status: "failed", message: t("video.uploadFailed"), retryable: true });
   }
 }
 async function recordAlertVideo(alertId) {
@@ -1437,8 +1340,7 @@ async function recordAlertVideo(alertId) {
     return;
   stopRequested = false;
   const configured = await Api.getFeatures().then((features) => features.video_record_seconds).catch(() => 300);
-  const tiktokLimit = await Api.getTikTokRecordingLimit().then((result) => result.max_duration_seconds).catch(() => configured);
-  const seconds = Math.max(1, Math.min(configured, tiktokLimit || configured));
+  const seconds = Math.max(1, configured);
   update({ alertId, status: "recording", message: t("video.recording", { seconds }), retryable: false });
   let stream = null;
   try {
@@ -1848,125 +1750,10 @@ async function getCurrentCoordinates() {
   }
 }
 
-// src/lib/sheet.ts
-function openSheet(bodyElement) {
-  const backdrop = document.createElement("div");
-  backdrop.className = "sheet-backdrop";
-  const sheet = document.createElement("div");
-  sheet.className = "sheet";
-  sheet.appendChild(bodyElement);
-  backdrop.appendChild(sheet);
-  document.body.appendChild(backdrop);
-  function close() {
-    backdrop.classList.remove("sheet-open");
-    backdrop.addEventListener("transitionend", () => backdrop.remove(), { once: true });
-  }
-  backdrop.addEventListener("click", (event) => {
-    if (event.target === backdrop)
-      close();
-  });
-  requestAnimationFrame(() => backdrop.classList.add("sheet-open"));
-  return { close, sheet };
-}
-
 // node_modules/@capacitor/browser/dist/esm/index.js
 var Browser = registerPlugin("Browser", {
   web: () => import("./chunk-8fw3sgw7.js").then((m) => new m.BrowserWeb)
 });
-
-// src/lib/tiktokPost.ts
-var MUSIC_URL = "https://www.tiktok.com/legal/page/global/music-usage-confirmation/en";
-var BRANDED_URL = "https://www.tiktok.com/legal/page/global/bc-policy/en";
-async function openTikTokPost(alertId, onPosted) {
-  let options;
-  try {
-    options = await Api.getTikTokOptions(alertId);
-  } catch (error) {
-    showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
-    return;
-  }
-  const body = document.createElement("div");
-  body.innerHTML = `<form class="form tiktok-form" id="tiktok-post-form">
-    <h2>${t("video.tiktokTitle")}</h2>
-    <p>${t("video.tiktokAccount", { username: escapeHtml(options.nickname || options.username || "TikTok") })}</p>
-    <video class="tiktok-preview" src="${escapeHtml(options.preview_url)}" controls playsinline preload="metadata" aria-label="${t("video.preview")}"></video>
-    <label class="field"><span>${t("video.caption")}</span><input name="title" required maxlength="2200" value="${escapeHtml(t("video.defaultCaption"))}" /></label>
-    <label class="field"><span>${t("video.privacy")}</span>
-      <select name="privacy_level" required>
-        <option value="" selected>${t("video.choosePrivacy")}</option>
-        ${options.privacy_options.map((privacy2) => `<option value="${escapeHtml(privacy2)}">${t(`video.privacy.${privacy2}`)}</option>`).join("")}
-      </select>
-    </label>
-    <fieldset class="video-settings">
-      <legend>${t("video.interactions")}</legend>
-      <label><input type="checkbox" name="allow_comment" ${options.comment_disabled ? "disabled" : ""} /> ${t("video.allowComment")}</label>
-      <label><input type="checkbox" name="allow_duet" ${options.duet_disabled ? "disabled" : ""} /> ${t("video.allowDuet")}</label>
-      <label><input type="checkbox" name="allow_stitch" ${options.stitch_disabled ? "disabled" : ""} /> ${t("video.allowStitch")}</label>
-    </fieldset>
-    <label class="video-consent"><input type="checkbox" name="commercial" /> ${t("video.commercial")}</label>
-    <div id="commercial-options" class="video-settings" hidden>
-      <label><input type="checkbox" name="brand_organic" /> ${t("video.ownBrand")}</label>
-      <label><input type="checkbox" name="brand_content" /> ${t("video.paidBrand")}</label>
-      <small id="commercial-hint"></small>
-    </div>
-    <label class="video-consent"><input type="checkbox" name="consent" required /> ${t("video.publishConsent")}</label>
-    <p class="video-terms">${t("video.musicAgreement")} <a href="${MUSIC_URL}" target="_blank" rel="noopener noreferrer">${t("video.musicTerms")}</a><span id="branded-terms" hidden> ${t("video.and")} <a href="${BRANDED_URL}" target="_blank" rel="noopener noreferrer">${t("video.brandedTerms")}</a></span>.</p>
-    <button class="btn btn-primary btn-block" type="submit">${t("video.publish")}</button>
-    <small>${t("video.processingHint")}</small>
-  </form>`;
-  const sheet = openSheet(body);
-  const form = body.querySelector("form");
-  const commercial = form.elements.namedItem("commercial");
-  const organic = form.elements.namedItem("brand_organic");
-  const branded = form.elements.namedItem("brand_content");
-  const privacy = form.elements.namedItem("privacy_level");
-  const group = form.querySelector("#commercial-options");
-  const hint = form.querySelector("#commercial-hint");
-  const terms = form.querySelector("#branded-terms");
-  const button = form.querySelector("button[type=submit]");
-  form.querySelectorAll(".video-terms a").forEach((link) => link.addEventListener("click", (event) => {
-    event.preventDefault();
-    Browser.open({ url: link.href });
-  }));
-  function refresh() {
-    group.hidden = !commercial.checked;
-    if (!commercial.checked) {
-      organic.checked = false;
-      branded.checked = false;
-    }
-    branded.disabled = !["PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS"].includes(privacy.value);
-    if (branded.disabled)
-      branded.checked = false;
-    hint.textContent = branded.disabled ? t("video.privateBrand") : branded.checked ? t("video.paidLabel") : organic.checked ? t("video.promotionLabel") : "";
-    terms.hidden = !branded.checked;
-    button.disabled = commercial.checked && !organic.checked && !branded.checked;
-  }
-  [commercial, organic, branded, privacy].forEach((control) => control.addEventListener("change", refresh));
-  refresh();
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = new FormData(form);
-    button.disabled = true;
-    try {
-      await Api.publishTikTok(alertId, {
-        title: String(data.get("title") || ""),
-        privacy_level: String(data.get("privacy_level") || ""),
-        allow_comment: data.get("allow_comment") === "on",
-        allow_duet: data.get("allow_duet") === "on",
-        allow_stitch: data.get("allow_stitch") === "on",
-        brand_organic: data.get("brand_organic") === "on",
-        brand_content: data.get("brand_content") === "on",
-        consent: data.get("consent") === "on"
-      });
-      showToast(t("video.sentToTikTok"), "success");
-      sheet.close();
-      onPosted?.();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
-      refresh();
-    }
-  });
-}
 
 // src/views/home.ts
 var HOLD_DURATION_MS = 1400;
@@ -2011,14 +1798,11 @@ async function renderHome(container2, { getUser: getUser2 }) {
       <section id="video-panel" class="video-panel" hidden aria-live="polite">
         <strong>${t("video.alertRecording")}</strong>
         <p id="video-detail"></p>
-        <p id="video-post-status"></p>
         <p id="video-drive-status"></p>
         <div class="video-actions">
           <button id="video-drive-link" class="btn btn-outline" type="button" hidden>${t("video.watchDrive")}</button>
-          <button id="video-drive-upload" class="btn btn-outline" type="button" hidden>${t("video.sendDrive")}</button>
           <button id="video-retry" class="btn btn-outline" type="button" hidden>${t("video.retry")}</button>
           <button id="video-stop" class="btn btn-outline" type="button" hidden>${t("video.stopRecording")}</button>
-          <button id="video-tiktok" class="btn btn-primary" type="button" hidden>${t("video.publish")}</button>
         </div>
       </section>
     </div>
@@ -2035,18 +1819,12 @@ async function renderHome(container2, { getUser: getUser2 }) {
   const stopTrackingBtn = container2.querySelector("#stop-tracking-btn");
   const videoPanel = container2.querySelector("#video-panel");
   const videoDetail = container2.querySelector("#video-detail");
-  const videoPostStatus = container2.querySelector("#video-post-status");
   const videoDriveStatus = container2.querySelector("#video-drive-status");
   const videoLink = container2.querySelector("#video-drive-link");
-  const videoDriveUpload = container2.querySelector("#video-drive-upload");
   const videoRetry = container2.querySelector("#video-retry");
   const videoStop = container2.querySelector("#video-stop");
-  const videoTikTok = container2.querySelector("#video-tiktok");
   let lastAlertId = null;
-  let tiktokConnected = false;
   let googleConnected = false;
-  let tiktokStatus = null;
-  let tiktokFailReason = null;
   let driveStatus = "not_uploaded";
   let driveUrl = null;
   let recording = getRecordingState();
@@ -2056,17 +1834,21 @@ async function renderHome(container2, { getUser: getUser2 }) {
     if (!lastAlertId)
       return;
     videoDetail.textContent = recording.alertId === lastAlertId ? recording.message : t("video.waiting");
-    const ready = recording.alertId === lastAlertId && recording.status === "ready";
-    videoPostStatus.textContent = tiktokStatus ? t(tiktokStatus === "PUBLISH_COMPLETE" ? "video.postComplete" : tiktokStatus === "FAILED" ? "video.postFailed" : "video.postProcessing") + (tiktokStatus === "FAILED" && tiktokFailReason ? ` ${t("video.postFailReason", { reason: tiktokFailReason.replaceAll("_", " ") })}` : "") : ready && !tiktokConnected ? t("video.connectTikTokFirst") : "";
-    videoDriveStatus.textContent = driveStatus === "uploading" ? t("video.driveUploading") : driveStatus === "failed" ? t("video.driveFailed") : "";
+    videoDriveStatus.textContent = driveStatus === "uploading" ? t("video.driveUploading") : driveStatus === "failed" ? t("video.driveFailed") : driveStatus !== "ready" && !googleConnected ? t("video.connectDriveFirst") : "";
     videoLink.hidden = !driveUrl;
-    videoDriveUpload.hidden = !ready || !googleConnected || driveStatus === "uploading" || driveStatus === "ready";
     videoRetry.hidden = !(recording.alertId === lastAlertId && recording.retryable);
     videoStop.hidden = !(recording.alertId === lastAlertId && recording.status === "recording");
-    videoTikTok.hidden = !ready || !tiktokConnected || Boolean(tiktokStatus && tiktokStatus !== "FAILED");
   }
   observeRecording((next) => {
     recording = next;
+    if (next.alertId === lastAlertId && next.status === "uploading")
+      driveStatus = "uploading";
+    if (next.alertId === lastAlertId && next.status === "ready") {
+      driveStatus = "ready";
+      driveUrl = next.driveUrl || null;
+    }
+    if (next.alertId === lastAlertId && next.status === "failed" && next.retryable)
+      driveStatus = "failed";
     renderVideo();
   });
   videoRetry.addEventListener("click", () => retryVideoUpload(lastAlertId));
@@ -2075,41 +1857,20 @@ async function renderHome(container2, { getUser: getUser2 }) {
     if (driveUrl)
       Browser.open({ url: driveUrl });
   });
-  videoDriveUpload.addEventListener("click", async () => {
-    videoDriveUpload.disabled = true;
-    try {
-      await Api.sendVideoToDrive(lastAlertId);
-      driveStatus = "uploading";
-      renderVideo();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
-    } finally {
-      videoDriveUpload.disabled = false;
-    }
-  });
-  videoTikTok.addEventListener("click", () => openTikTokPost(lastAlertId, () => {
-    tiktokStatus = "PROCESSING_DOWNLOAD";
-    tiktokFailReason = null;
-    renderVideo();
-  }));
-  Api.getIntegrations().then((accounts) => {
-    tiktokConnected = accounts.tiktok.connected;
+  Promise.all([Api.getIntegrations(), Api.listAlerts()]).then(async ([accounts, alerts]) => {
     googleConnected = accounts.google.connected;
-    renderVideo();
-  }).catch(() => {});
-  Api.listAlerts().then(async (alerts) => {
     if (!alerts.length || lastAlertId)
       return;
     lastAlertId = alerts[0].id;
     const result = await Api.getVideo(lastAlertId);
-    tiktokStatus = result.tiktok_status;
-    tiktokFailReason = result.tiktok_fail_reason;
     driveStatus = result.drive_status;
     driveUrl = result.url;
-    if (result.status === "ready" && recording.alertId !== lastAlertId) {
-      recording = { alertId: lastAlertId, status: "ready", retryable: false, message: t("video.ready") };
-    } else if (await hasPendingVideo(lastAlertId) && recording.alertId !== lastAlertId) {
+    if (result.status === "ready") {
+      await confirmVideoUploaded(lastAlertId, result.url);
+    } else if (await hasPendingVideo(lastAlertId)) {
       recording = { alertId: lastAlertId, status: "failed", retryable: true, message: t("video.uploadFailed") };
+      if (googleConnected)
+        retryVideoUpload(lastAlertId);
     }
     renderVideo();
   }).catch(() => {});
@@ -2118,17 +1879,14 @@ async function renderHome(container2, { getUser: getUser2 }) {
       clearInterval(videoClock);
       return;
     }
-    if (!lastAlertId || driveStatus !== "uploading" && !tiktokStatus?.startsWith("PROCESSING"))
+    if (!lastAlertId || driveStatus !== "uploading")
       return;
     try {
       const result = await Api.getVideo(lastAlertId);
       driveStatus = result.drive_status;
       driveUrl = result.url;
-      if (tiktokStatus?.startsWith("PROCESSING")) {
-        const post = await Api.getTikTokStatus(lastAlertId);
-        tiktokStatus = post.status;
-        tiktokFailReason = post.fail_reason;
-      }
+      if (result.status === "ready")
+        await confirmVideoUploaded(lastAlertId, result.url);
       renderVideo();
     } catch {}
   }, 1e4);
@@ -2216,8 +1974,6 @@ async function renderHome(container2, { getUser: getUser2 }) {
       status.textContent = t("home.sending");
       const alert = await Api.createAlert(coordinates);
       lastAlertId = alert.id;
-      tiktokStatus = null;
-      tiktokFailReason = null;
       driveStatus = "not_uploaded";
       driveUrl = null;
       renderVideo();
@@ -2365,6 +2121,27 @@ async function pickDeviceContact() {
     phone: contact.phones?.[0]?.number ?? "",
     email: contact.emails?.[0]?.address ?? ""
   };
+}
+
+// src/lib/sheet.ts
+function openSheet(bodyElement) {
+  const backdrop = document.createElement("div");
+  backdrop.className = "sheet-backdrop";
+  const sheet = document.createElement("div");
+  sheet.className = "sheet";
+  sheet.appendChild(bodyElement);
+  backdrop.appendChild(sheet);
+  document.body.appendChild(backdrop);
+  function close() {
+    backdrop.classList.remove("sheet-open");
+    backdrop.addEventListener("transitionend", () => backdrop.remove(), { once: true });
+  }
+  backdrop.addEventListener("click", (event) => {
+    if (event.target === backdrop)
+      close();
+  });
+  requestAnimationFrame(() => backdrop.classList.add("sheet-open"));
+  return { close, sheet };
 }
 
 // node_modules/@capacitor/share/dist/esm/index.js
@@ -2728,8 +2505,8 @@ function diffFields(original, updated) {
 }
 
 // src/lib/integrationBrowser.ts
-async function connectIntegration(provider) {
-  const { authorize_url } = await Api.authorizeIntegration(provider);
+async function connectIntegration() {
+  const { authorize_url } = await Api.authorizeGoogleDrive();
   await Browser.open({ url: authorize_url });
 }
 
@@ -2806,7 +2583,6 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
       <section class="form integrations" aria-label="Video accounts">
         <h2>${t("video.accounts")}</h2>
         <p>${t("video.accountsHint")}</p>
-        <div id="integration-tiktok"></div>
         <div id="integration-google"></div>
         <button id="refresh-integrations" class="btn btn-outline btn-block" type="button">${t("video.refreshAccounts")}</button>
       </section>
@@ -2834,26 +2610,23 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
   async function refreshIntegrations() {
     try {
       const statuses = await Api.getIntegrations();
-      for (const provider of ["tiktok", "google"]) {
-        const target = container2.querySelector(`#integration-${provider}`);
-        const name = provider === "google" ? "Google Drive" : "TikTok";
-        const status = statuses[provider];
-        target.innerHTML = `<div class="integration-row"><span>${name}<small>${escapeHtml(status.connected ? t("video.connected") : status.available ? t("video.disconnected") : t("video.unavailable"))}</small></span><button class="btn btn-outline" type="button" ${status.available ? "" : "disabled"}>${t(status.connected ? "video.disconnect" : "video.connect")}</button></div>`;
-        target.querySelector("button").addEventListener("click", async (event) => {
-          event.currentTarget.disabled = true;
-          try {
-            if (status.connected) {
-              await Api.disconnectIntegration(provider);
-              await refreshIntegrations();
-            } else
-              await connectIntegration(provider);
-          } catch (error) {
-            showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
-          } finally {
-            event.currentTarget.disabled = false;
-          }
-        });
-      }
+      const target = container2.querySelector("#integration-google");
+      const status = statuses.google;
+      target.innerHTML = `<div class="integration-row"><span>Google Drive<small>${escapeHtml(status.connected ? t("video.connected") : status.available ? t("video.disconnected") : t("video.unavailable"))}</small></span><button class="btn btn-outline" type="button" ${status.available ? "" : "disabled"}>${t(status.connected ? "video.disconnect" : "video.connect")}</button></div>`;
+      target.querySelector("button").addEventListener("click", async (event) => {
+        event.currentTarget.disabled = true;
+        try {
+          if (status.connected) {
+            await Api.disconnectGoogleDrive();
+            await refreshIntegrations();
+          } else
+            await connectIntegration();
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
+        } finally {
+          event.currentTarget.disabled = false;
+        }
+      });
     } catch (error) {
       showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
     }
