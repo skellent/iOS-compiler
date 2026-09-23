@@ -42,7 +42,10 @@
       <section class="video-summary" aria-label="Alert recording">
         <h2>Alert recording</h2>
         <p id="video-status">Checking for a recording…</p>
-        <a id="video-link" class="call-button" href="#" target="_blank" rel="noopener noreferrer" hidden>Watch video on Google Drive</a>
+        <div id="video-preview" class="video-preview" hidden>
+          <iframe id="video-frame" title="SOS alert video" loading="lazy" referrerpolicy="no-referrer" allow="fullscreen" allowfullscreen></iframe>
+        </div>
+        <a id="video-link" class="call-button" href="#" target="_blank" rel="noopener noreferrer" hidden>Open video in Google Drive</a>
       </section>
 
       <footer>

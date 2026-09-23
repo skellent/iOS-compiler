@@ -70,16 +70,29 @@ class DriveVideoFlowTests(unittest.IsolatedAsyncioTestCase):
 
     def test_alert_view_only_receives_a_ready_drive_link(self):
         with patch.object(videos, "_video", return_value={
-            "drive_status": "uploading", "drive_url": None,
+            "drive_status": "uploading", "drive_url": None, "drive_file_id": None,
         }):
             self.assertEqual(videos.video_public_status(47),
-                             {"status": "uploading", "url": None})
+                             {"status": "uploading", "url": None, "preview_url": None})
         with patch.object(videos, "_video", return_value={
             "drive_status": "ready", "drive_url": "https://drive.google.com/file/d/example/view",
+            "drive_file_id": "example",
         }):
             self.assertEqual(videos.video_public_status(47),
                              {"status": "ready",
-                              "url": "https://drive.google.com/file/d/example/view"})
+                              "url": "https://drive.google.com/file/d/example/view",
+                              "preview_url": "https://drive.google.com/file/d/example/preview"})
+
+    def test_preview_keeps_drive_resource_key(self):
+        with patch.object(videos, "_video", return_value={
+            "drive_status": "ready",
+            "drive_file_id": "example",
+            "drive_url": "https://drive.google.com/file/d/example/view?resourcekey=0-AbCd_123",
+        }):
+            self.assertEqual(
+                videos.video_public_status(47)["preview_url"],
+                "https://drive.google.com/file/d/example/preview?resourcekey=0-AbCd_123",
+            )
 
 
 if __name__ == "__main__":

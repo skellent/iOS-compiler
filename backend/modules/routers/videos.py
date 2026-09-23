@@ -1,6 +1,8 @@
 """Stream SOS recordings directly to the user's Google Drive."""
 
+import re
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlsplit
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
@@ -41,9 +43,18 @@ def _video(alert_id: int) -> dict | None:
 def video_public_status(alert_id: int) -> dict:
     video = _video(alert_id)
     if not video:
-        return {"status": "not_recorded", "url": None}
+        return {"status": "not_recorded", "url": None, "preview_url": None}
+    ready = video["drive_status"] == "ready"
+    file_id = video.get("drive_file_id") if ready else None
+    preview_url = (f"https://drive.google.com/file/d/{file_id}/preview"
+                   if file_id and re.fullmatch(r"[A-Za-z0-9_-]+", file_id) else None)
+    if preview_url and video.get("drive_url"):
+        resource_key = parse_qs(urlsplit(video["drive_url"]).query).get("resourcekey", [None])[0]
+        if resource_key and re.fullmatch(r"[A-Za-z0-9_-]+", resource_key):
+            preview_url += f"?resourcekey={resource_key}"
     return {"status": video["drive_status"],
-            "url": video["drive_url"] if video["drive_status"] == "ready" else None}
+            "url": video["drive_url"] if ready else None,
+            "preview_url": preview_url}
 
 
 @router.post("/{alert_id}/video", status_code=201)

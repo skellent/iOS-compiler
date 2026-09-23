@@ -6,16 +6,23 @@
   const recenterButton = document.getElementById("recenter-button");
   const videoStatus = document.getElementById("video-status");
   const videoLink = document.getElementById("video-link");
+  const videoPreview = document.getElementById("video-preview");
+  const videoFrame = document.getElementById("video-frame");
 
   async function refreshVideo() {
     try {
       const response = await fetch(config.videoPath, { cache: "no-store" });
       if (!response.ok) return;
       const video = await response.json();
+      const previewUrl = video.status === "ready" && typeof video.preview_url === "string" &&
+        /^https:\/\/drive\.google\.com\/file\/d\/[A-Za-z0-9_-]+\/preview(?:\?resourcekey=[A-Za-z0-9_-]+)?$/.test(video.preview_url)
+        ? video.preview_url : null;
+      if (previewUrl && videoFrame.src !== previewUrl) videoFrame.src = previewUrl;
+      videoPreview.hidden = !previewUrl;
       videoLink.hidden = video.status !== "ready" || !video.url;
       if (!videoLink.hidden) videoLink.href = video.url;
       videoStatus.textContent = {
-        ready: "The recording is ready to watch.",
+        ready: "The recording is in Drive. Its preview may take a few minutes to process.",
         uploading: "Recording is uploading to Google Drive…",
         failed: "The recording could not be uploaded.",
         not_uploaded: "A recording is saved. A Google Drive link is not available yet.",
