@@ -18,3 +18,5 @@ backend/data/videos/
 *.keystore
 *.pem
 resources/keys/local.properties
+temp/
+tmp/
