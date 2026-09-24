@@ -215,7 +215,10 @@ var STRINGS = {
     "about.description": "Panic Button is a personal safety app: press and hold one button to share your location and alert your trusted emergency contacts by email and Telegram, the moment you need them most.",
     "about.developedBy": "Developed by Skellent",
     "about.rights": "© Keycodelogics. All rights reserved.",
-    "about.version": "Version BETA"
+    "about.version": "Version BETA",
+    "about.legalTitle": "Legal information",
+    "about.privacy": "Privacy Policy",
+    "about.terms": "Terms of Service"
   },
   es: {
     "nav.home": "Inicio",
@@ -388,7 +391,10 @@ var STRINGS = {
     "about.description": "Panic Button es una app de seguridad personal: mantené presionado un botón para compartir tu ubicación y alertar a tus contactos de confianza por correo y Telegram, en el momento en que más los necesitás.",
     "about.developedBy": "Desarrollado por Skellent",
     "about.rights": "© Keycodelogics. Todos los derechos reservados.",
-    "about.version": "Versión BETA"
+    "about.version": "Versión BETA",
+    "about.legalTitle": "Información legal",
+    "about.privacy": "Política de Privacidad",
+    "about.terms": "Términos de Servicio"
   },
   "pt-BR": {
     "nav.home": "Início",
@@ -534,7 +540,10 @@ var STRINGS = {
     "about.description": "Panic Button é um app de segurança pessoal: mantenha pressionado um botão para compartilhar sua localização e alertar seus contatos de confiança por e-mail e Telegram, no momento em que você mais precisar deles.",
     "about.developedBy": "Desenvolvido por Skellent",
     "about.rights": "© Keycodelogics. Todos os direitos reservados.",
-    "about.version": "Versão BETA"
+    "about.version": "Versão BETA",
+    "about.legalTitle": "Informações legais",
+    "about.privacy": "Política de Privacidade",
+    "about.terms": "Termos de Serviço"
   }
 };
 var currentLang = "en";
@@ -2700,6 +2709,7 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
 }
 
 // src/views/about.ts
+var BASE_URL4 = "https://devs.panicbutton.me".replace(/\/+$/, "");
 async function renderAbout(container2, { navigate }) {
   container2.innerHTML = `
     <div class="info-screen">
@@ -2718,6 +2728,12 @@ async function renderAbout(container2, { navigate }) {
       </section>
 
       <section class="info-section">
+        <h2 class="info-section-title">${t("about.legalTitle")}</h2>
+        <button id="privacy-btn" class="btn btn-outline btn-block" type="button">${t("about.privacy")}</button>
+        <button id="terms-btn" class="btn btn-outline btn-block" type="button">${t("about.terms")}</button>
+      </section>
+
+      <section class="info-section">
         <p class="about-credit">${t("about.developedBy")}</p>
         <p class="about-credit">${t("about.rights")}</p>
         <p class="about-credit about-version">${t("about.version")}</p>
@@ -2725,6 +2741,8 @@ async function renderAbout(container2, { navigate }) {
     </div>
   `;
   container2.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
+  container2.querySelector("#privacy-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/privacy` }));
+  container2.querySelector("#terms-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/terms` }));
 }
 
 // src/views/help.ts

@@ -157,8 +157,20 @@ def privacy():
         "base_url": _credentials['api_base_url'],
         "company_name": "Keycodelogics",
         "website": "https://keycodelogics.com/",
-        "updated_en": "September 15, 2026",
-        "updated_es": "15 de septiembre de 2026",
+        "updated_en": "September 24, 2026",
+        "updated_es": "24 de septiembre de 2026",
+    })
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms():
+    return Pages.Render("terms", {
+        "contact_email": _credentials['email']['from'],
+        "base_url": _credentials['api_base_url'],
+        "company_name": "Keycodelogics",
+        "website": "https://keycodelogics.com/",
+        "updated_en": "September 24, 2026",
+        "updated_es": "24 de septiembre de 2026",
     })
 
 
@@ -193,6 +205,7 @@ def sitemap():
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f'  <url><loc>{base_url}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n'
         f'  <url><loc>{base_url}/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
+        f'  <url><loc>{base_url}/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
         f'  <url><loc>{base_url}/delete-account</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>\n'
         '</urlset>\n'
     )

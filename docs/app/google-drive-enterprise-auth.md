@@ -75,7 +75,7 @@ Nombre de la aplicación: Panic Button
 Correo de asistencia:    una dirección supervisada
 Página principal:        https://devs.panicbutton.me/
 Política de privacidad:  https://devs.panicbutton.me/privacy
-Términos de servicio:    URL pública cuando esté disponible
+Términos de servicio:    https://devs.panicbutton.me/terms
 Dominio autorizado:      panicbutton.me
 Contacto del developer:  una dirección supervisada
 ```

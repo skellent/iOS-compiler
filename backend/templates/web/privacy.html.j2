@@ -100,6 +100,7 @@
 
           <h3>3.4. SOS video and linked accounts</h3>
           <p>After an SOS alert, the App may request camera and microphone access and record up to five minutes of video while the App stays in the foreground. If you connected Google Drive, the App automatically sends the completed recording through our server to a file in your Drive. Our server relays the bytes and does not save a local copy; it stores only upload status, the Drive file identifier and its link. If an upload fails, the App can keep a pending copy on your phone so you can retry it. The Drive file is made viewable by anyone with its link, which can appear in the alert view and can be forwarded by a viewer.</p>
+          <p>Connecting Google Drive is optional and requires your affirmative consent on Google's authorization screen. Panic Button requests the <code>drive.file</code> scope, which allows the App to create and manage only the Drive files it creates. You can revoke access by disconnecting Google Drive in the App or through your Google Account security settings.</p>
           <h3>3.5. Usage and technical data</h3>
           <ul>
             <li><strong>Alert history</strong>, including the date, time, initial location, saved live route, last reported location, and alert status.</li>
@@ -118,6 +119,7 @@
             <li><strong>Operate, maintain and improve</strong> the service and its security.</li>
           </ul>
           <p><strong>We do not use your data for advertising and we do not sell it to third parties.</strong></p>
+          <p>Our use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including its Limited Use requirements. Google user data is used only to provide the user-facing Drive upload feature, is not used for advertising, is not sold, and is not used to train generalized artificial-intelligence or machine-learning models.</p>
 
           <h2>5. Who we share the information with</h2>
 
@@ -256,6 +258,7 @@
 
           <h3>3.4. Video SOS y cuentas vinculadas</h3>
           <p>Después de una alerta SOS, la App puede pedir acceso a la cámara y al micrófono y grabar hasta cinco minutos de video mientras permanece en primer plano. Si conectaste Google Drive, la App envía automáticamente la grabación terminada a un archivo de tu Drive a través de nuestro servidor. Nuestro servidor retransmite los bytes y no guarda una copia local; solo conserva el estado de la subida, el identificador del archivo de Drive y su enlace. Si una subida falla, la App puede conservar una copia pendiente en tu teléfono para reintentarla. Cualquier persona que tenga el enlace del archivo de Drive podrá verlo; el enlace puede aparecer en la vista de la alerta y un visitante puede reenviarlo.</p>
+          <p>Conectar Google Drive es opcional y requiere tu consentimiento afirmativo en la pantalla de autorización de Google. Panic Button solicita el alcance <code>drive.file</code>, que permite a la App crear y administrar únicamente los archivos de Drive que ella misma crea. Puedes revocar el acceso desconectando Google Drive en la App o desde la configuración de seguridad de tu Cuenta de Google.</p>
           <h3>3.5. Datos de uso y técnicos</h3>
           <ul>
             <li><strong>Historial de alertas</strong>, incluida la fecha, hora, ubicación inicial, ruta en vivo guardada, última ubicación informada y estado de la alerta.</li>
@@ -274,6 +277,7 @@
             <li><strong>Operar, mantener y mejorar</strong> el servicio y su seguridad.</li>
           </ul>
           <p><strong>No usamos tus datos para publicidad ni los vendemos a terceros.</strong></p>
+          <p>Nuestro uso y transferencia de información recibida de las APIs de Google cumple la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Datos de Usuario de los Servicios de API de Google</a>, incluidos sus requisitos de Uso Limitado. Los datos de usuario de Google se usan únicamente para ofrecer la función visible de subida a Drive, no se usan para publicidad, no se venden y no se utilizan para entrenar modelos generalizados de inteligencia artificial o aprendizaje automático.</p>
 
           <h2>5. Con quién compartimos la información</h2>
 
@@ -361,6 +365,8 @@
         <span class="footer-contact-title">Contact</span>
         <a class="footer-contact-link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>
         <a class="footer-contact-link" href="{{ website }}" target="_blank" rel="noopener">About us</a>
+        <a class="footer-contact-link" href="/terms">Terms of Service</a>
+        <a class="footer-contact-link" href="/delete-account">Delete account</a>
       </div>
     </footer>
 

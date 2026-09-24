@@ -28,10 +28,9 @@ it. The current text also discloses the 60-minute limit, storage and sharing.
 
 ### Privacy-policy link inside the app
 
-The current Capacitor About and Help screens do not link to `/privacy`. Google requires
-the privacy policy on the store listing **and inside the app**. Add a clearly labelled
-**Privacy Policy / Política de Privacidad** link to the app, opening the production
-`/privacy` URL, and rebuild the bundle before publishing.
+The Capacitor About screen links to both `/privacy` and `/terms`, opening the production
+pages in the system browser. Google requires the privacy policy on the store listing
+**and inside the app**. Keep these links and the public pages available in every release.
 
 ## 1. Deploy the public policy first
 
@@ -40,6 +39,7 @@ URL reflects live tracking:
 
 ```text
 https://YOUR-PRODUCTION-DOMAIN/privacy
+https://YOUR-PRODUCTION-DOMAIN/terms
 ```
 
 Confirm that this URL loads without login and displays **Last updated: September 11,

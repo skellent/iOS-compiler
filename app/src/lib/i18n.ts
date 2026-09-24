@@ -203,6 +203,9 @@ const STRINGS = {
     "about.developedBy": "Developed by Skellent",
     "about.rights": "© Keycodelogics. All rights reserved.",
     "about.version": "Version BETA",
+    "about.legalTitle": "Legal information",
+    "about.privacy": "Privacy Policy",
+    "about.terms": "Terms of Service",
   },
   es: {
     "nav.home": "Inicio",
@@ -397,6 +400,9 @@ const STRINGS = {
     "about.developedBy": "Desarrollado por Skellent",
     "about.rights": "© Keycodelogics. Todos los derechos reservados.",
     "about.version": "Versión BETA",
+    "about.legalTitle": "Información legal",
+    "about.privacy": "Política de Privacidad",
+    "about.terms": "Términos de Servicio",
   },
   "pt-BR": {
     "nav.home": "Início",
@@ -564,6 +570,9 @@ const STRINGS = {
     "about.developedBy": "Desenvolvido por Skellent",
     "about.rights": "© Keycodelogics. Todos os direitos reservados.",
     "about.version": "Versão BETA",
+    "about.legalTitle": "Informações legais",
+    "about.privacy": "Política de Privacidade",
+    "about.terms": "Termos de Serviço",
   },
 };
 
