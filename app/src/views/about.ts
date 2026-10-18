@@ -25,6 +25,7 @@ export async function renderAbout(container, { navigate }) {
         <h2 class="info-section-title">${t("about.legalTitle")}</h2>
         <button id="privacy-btn" class="btn btn-outline btn-block" type="button">${t("about.privacy")}</button>
         <button id="terms-btn" class="btn btn-outline btn-block" type="button">${t("about.terms")}</button>
+        <button id="delete-account-btn" class="btn btn-outline btn-block" type="button">${t("about.deleteAccount")}</button>
       </section>
 
       <section class="info-section">
@@ -38,5 +39,6 @@ export async function renderAbout(container, { navigate }) {
   container.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
   container.querySelector("#privacy-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL}/privacy` }));
   container.querySelector("#terms-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL}/terms` }));
+  container.querySelector("#delete-account-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL}/delete-account` }));
 }
 // TypeScript source.

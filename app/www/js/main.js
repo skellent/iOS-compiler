@@ -1,17 +1,47 @@
 import {
   Capacitor,
-  __require,
   registerPlugin
-} from "./chunk-76h33zks.js";
+} from "./chunk-93p0gcvf.js";
+var __chunkGraphs;
+var __chunkSeen;
+var __chunkNonce;
+var __preload = (id, seenOnly) => {
+  for (var [base, graph, ids] of __chunkGraphs || [])
+    for (var stack = [id], g = globalThis, d = g.document, head, j, node, k, link;j = stack.pop(); )
+      if (!__chunkSeen[j] && (node = graph[j])) {
+        __chunkSeen[j] = 1;
+        for (k = 1;k < node.length; k++)
+          stack.push(ids[node[k]]);
+        if (!seenOnly && j !== id && (head = d && d.head)) {
+          if (__chunkNonce === undefined)
+            __chunkNonce = (k = d.querySelector("meta[property=csp-nonce]")) && (k.nonce || k.getAttribute("nonce")) || "";
+          link = d.createElement("link");
+          link.rel = "modulepreload";
+          link.crossOrigin = "";
+          if (__chunkNonce)
+            link.nonce = __chunkNonce;
+          link.href = new g.URL(node[0], base);
+          head.appendChild(link);
+        }
+      }
+};
+var __chunks = (base, ids, nodes, entry) => {
+  for (var graph = {}, i = 0;i < ids.length; i++)
+    graph[ids[i]] = nodes[i];
+  (__chunkGraphs ||= []).push([base, graph, ids]);
+  __chunkSeen ||= {};
+  __preload(ids[entry], 1);
+};
+__chunks(import.meta.url,["p326v4w1","1jqkyfhm","nxn78hxc","xrtv30f6","331ytgsc","cdawrz4s","kja863ax","2ej5njjq","wa60nctg","93p0gcvf"],[["./main.js",9],["./chunk-1jqkyfhm.js",9],["./chunk-nxn78hxc.js",9],["./chunk-xrtv30f6.js",9],["./chunk-331ytgsc.js",9],["./chunk-cdawrz4s.js",9],["./chunk-kja863ax.js",9],["./chunk-2ej5njjq.js",9],["./chunk-wa60nctg.js",9],["./chunk-93p0gcvf.js"]],0);
 
 // node_modules/@capacitor/splash-screen/dist/esm/index.js
 var SplashScreen = registerPlugin("SplashScreen", {
-  web: () => import("./chunk-qkchk3z5.js").then((m) => new m.SplashScreenWeb)
+  web: () => (__preload("nxn78hxc"), import("./chunk-nxn78hxc.js")).then((m) => new m.SplashScreenWeb)
 });
 
 // node_modules/@capacitor/preferences/dist/esm/index.js
 var Preferences = registerPlugin("Preferences", {
-  web: () => import("./chunk-mh24z979.js").then((m) => new m.PreferencesWeb)
+  web: () => (__preload("xrtv30f6"), import("./chunk-xrtv30f6.js")).then((m) => new m.PreferencesWeb)
 });
 
 // src/lib/session.ts
@@ -116,6 +146,8 @@ var STRINGS = {
     "video.ready": "Recording available in Google Drive.",
     "video.uploadFailed": "The recording could not be uploaded to Drive. It remains on this phone for retry.",
     "video.captureFailed": "The camera did not capture a video.",
+    "video.permissionsRequired": "Allow camera and microphone access to record the SOS video with sound.",
+    "video.audioUnavailable": "The microphone did not provide an audio track. Check microphone access and try again.",
     "video.unsupported": "This device cannot record WebM or MP4 video.",
     "video.tooLarge": "The recording exceeded the 100 MB limit.",
     "video.retry": "Retry upload",
@@ -218,7 +250,8 @@ var STRINGS = {
     "about.version": "Version BETA",
     "about.legalTitle": "Legal information",
     "about.privacy": "Privacy Policy",
-    "about.terms": "Terms of Service"
+    "about.terms": "Terms of Service",
+    "about.deleteAccount": "Delete account"
   },
   es: {
     "nav.home": "Inicio",
@@ -292,6 +325,8 @@ var STRINGS = {
     "video.ready": "Grabación disponible en Google Drive.",
     "video.uploadFailed": "No se pudo subir la grabación a Drive. Permanece en este teléfono para reintentar.",
     "video.captureFailed": "La cámara no capturó ningún video.",
+    "video.permissionsRequired": "Permite el acceso a la cámara y al micrófono para grabar el video de SOS con sonido.",
+    "video.audioUnavailable": "El micrófono no proporcionó una pista de audio. Revisa el permiso del micrófono e inténtalo de nuevo.",
     "video.unsupported": "Este dispositivo no puede grabar video WebM o MP4.",
     "video.tooLarge": "La grabación superó el límite de 100 MB.",
     "video.retry": "Reintentar subida",
@@ -394,7 +429,8 @@ var STRINGS = {
     "about.version": "Versión BETA",
     "about.legalTitle": "Información legal",
     "about.privacy": "Política de Privacidad",
-    "about.terms": "Términos de Servicio"
+    "about.terms": "Términos de Servicio",
+    "about.deleteAccount": "Eliminar cuenta"
   },
   "pt-BR": {
     "nav.home": "Início",
@@ -464,6 +500,8 @@ var STRINGS = {
     "video.ready": "Gravação disponível no Google Drive.",
     "video.uploadFailed": "Não foi possível enviar a gravação ao Drive. Ela permanece neste telefone para nova tentativa.",
     "video.captureFailed": "A câmera não gravou nenhum vídeo.",
+    "video.permissionsRequired": "Permita o acesso à câmera e ao microfone para gravar o vídeo de SOS com som.",
+    "video.audioUnavailable": "O microfone não forneceu uma faixa de áudio. Verifique a permissão do microfone e tente novamente.",
     "video.unsupported": "Este dispositivo não consegue gravar vídeo WebM ou MP4.",
     "video.tooLarge": "A gravação excedeu o limite de 100 MB.",
     "video.retry": "Tentar envio novamente",
@@ -543,7 +581,8 @@ var STRINGS = {
     "about.version": "Versão BETA",
     "about.legalTitle": "Informações legais",
     "about.privacy": "Política de Privacidade",
-    "about.terms": "Termos de Serviço"
+    "about.terms": "Termos de Serviço",
+    "about.deleteAccount": "Excluir conta"
   }
 };
 var currentLang = "en";
@@ -716,17 +755,17 @@ function rgbToHsl(r, g, b) {
   }
   return { h: h / 6, s, l };
 }
-function hue2rgb(p, q, t2) {
-  if (t2 < 0)
-    t2 += 1;
-  if (t2 > 1)
-    t2 -= 1;
-  if (t2 < 1 / 6)
-    return p + (q - p) * 6 * t2;
-  if (t2 < 1 / 2)
+function hue2rgb(p, q, t) {
+  if (t < 0)
+    t += 1;
+  if (t > 1)
+    t -= 1;
+  if (t < 1 / 6)
+    return p + (q - p) * 6 * t;
+  if (t < 1 / 2)
     return q;
-  if (t2 < 2 / 3)
-    return p + (q - p) * (2 / 3 - t2) * 6;
+  if (t < 2 / 3)
+    return p + (q - p) * (2 / 3 - t) * 6;
   return p;
 }
 function hslToHex(h, s, l) {
@@ -794,7 +833,7 @@ if (_media) {
 
 // node_modules/@capacitor/app/dist/esm/index.js
 var App = registerPlugin("App", {
-  web: () => import("./chunk-2fa3w26m.js").then((m) => new m.AppWeb)
+  web: () => (__preload("331ytgsc"), import("./chunk-331ytgsc.js")).then((m) => new m.AppWeb)
 });
 
 // src/lib/appUpdate.ts
@@ -832,13 +871,13 @@ function initAppUpdates() {
 }
 
 // node_modules/@capacitor/synapse/dist/synapse.mjs
-function s(t2) {
-  t2.CapacitorUtils.Synapse = new Proxy({}, {
+function s(t) {
+  t.CapacitorUtils.Synapse = new Proxy({}, {
     get(e, n) {
       return new Proxy({}, {
         get(w, o) {
           return (c, p, r) => {
-            const i = t2.Capacitor.Plugins[n];
+            const i = t.Capacitor.Plugins[n];
             if (i === undefined) {
               r(new Error(`Capacitor plugin ${n} not found`));
               return;
@@ -861,38 +900,38 @@ function s(t2) {
     }
   });
 }
-function u(t2) {
-  t2.CapacitorUtils.Synapse = new Proxy({}, {
+function u(t) {
+  t.CapacitorUtils.Synapse = new Proxy({}, {
     get(e, n) {
-      return t2.cordova.plugins[n];
+      return t.cordova.plugins[n];
     }
   });
 }
-function f(t2 = false) {
-  typeof window > "u" || (window.CapacitorUtils = window.CapacitorUtils || {}, window.Capacitor !== undefined && !t2 ? s(window) : window.cordova !== undefined && u(window));
+function f(t = false) {
+  typeof window > "u" || (window.CapacitorUtils = window.CapacitorUtils || {}, window.Capacitor !== undefined && !t ? s(window) : window.cordova !== undefined && u(window));
 }
 
 // node_modules/@capacitor/geolocation/dist/esm/index.js
 var Geolocation = registerPlugin("Geolocation", {
-  web: () => import("./chunk-ahvz4860.js").then((m) => new m.GeolocationWeb)
+  web: () => (__preload("cdawrz4s"), import("./chunk-cdawrz4s.js")).then((m) => new m.GeolocationWeb)
 });
 f();
 
 // node_modules/@capacitor/local-notifications/dist/esm/definitions.js
 var Weekday;
-(function(Weekday2) {
-  Weekday2[Weekday2["Sunday"] = 1] = "Sunday";
-  Weekday2[Weekday2["Monday"] = 2] = "Monday";
-  Weekday2[Weekday2["Tuesday"] = 3] = "Tuesday";
-  Weekday2[Weekday2["Wednesday"] = 4] = "Wednesday";
-  Weekday2[Weekday2["Thursday"] = 5] = "Thursday";
-  Weekday2[Weekday2["Friday"] = 6] = "Friday";
-  Weekday2[Weekday2["Saturday"] = 7] = "Saturday";
+(function(Weekday) {
+  Weekday[Weekday["Sunday"] = 1] = "Sunday";
+  Weekday[Weekday["Monday"] = 2] = "Monday";
+  Weekday[Weekday["Tuesday"] = 3] = "Tuesday";
+  Weekday[Weekday["Wednesday"] = 4] = "Wednesday";
+  Weekday[Weekday["Thursday"] = 5] = "Thursday";
+  Weekday[Weekday["Friday"] = 6] = "Friday";
+  Weekday[Weekday["Saturday"] = 7] = "Saturday";
 })(Weekday || (Weekday = {}));
 
 // node_modules/@capacitor/local-notifications/dist/esm/index.js
 var LocalNotifications = registerPlugin("LocalNotifications", {
-  web: () => import("./chunk-zanydgh6.js").then((m) => new m.LocalNotificationsWeb)
+  web: () => (__preload("kja863ax"), import("./chunk-kja863ax.js")).then((m) => new m.LocalNotificationsWeb)
 });
 
 // src/lib/liveTracking.ts
@@ -1069,6 +1108,8 @@ function locationErrorMessage(error, fallback) {
   return fallback;
 }
 async function requestTrackingNotificationPermission() {
+  if (Capacitor.getPlatform() !== "android")
+    return;
   try {
     const permission = await LocalNotifications.checkPermissions();
     if (permission.display === "prompt") {
@@ -1232,8 +1273,8 @@ var listeners = new Set;
 var memory = new Map;
 function update(patch) {
   state2 = { ...state2, ...patch };
-  for (const listener2 of listeners)
-    listener2({ ...state2 });
+  for (const listener of listeners)
+    listener({ ...state2 });
 }
 function database() {
   return new Promise((resolve, reject) => {
@@ -1249,12 +1290,12 @@ async function pendingVideo(alertId) {
   try {
     const db = await database();
     return await new Promise((resolve) => {
-      const request2 = db.transaction("pending").objectStore("pending").get(alertId);
-      request2.onsuccess = () => {
+      const request = db.transaction("pending").objectStore("pending").get(alertId);
+      request.onsuccess = () => {
         db.close();
-        resolve(request2.result || null);
+        resolve(request.result || null);
       };
-      request2.onerror = () => {
+      request.onerror = () => {
         db.close();
         resolve(null);
       };
@@ -1302,10 +1343,10 @@ async function clearPending(alertId) {
 function getRecordingState() {
   return { ...state2 };
 }
-function observeRecording(listener2) {
-  listeners.add(listener2);
-  listener2(getRecordingState());
-  return () => listeners.delete(listener2);
+function observeRecording(listener) {
+  listeners.add(listener);
+  listener(getRecordingState());
+  return () => listeners.delete(listener);
 }
 async function hasPendingVideo(alertId) {
   return Boolean(await pendingVideo(alertId));
@@ -1358,8 +1399,15 @@ async function recordAlertVideo(alertId) {
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true });
-    } catch {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    } catch (error) {
+      if (error instanceof DOMException && ["NotAllowedError", "PermissionDeniedError"].includes(error.name)) {
+        throw new Error(t("video.permissionsRequired"));
+      }
+      throw error;
+    }
+    if (stream.getAudioTracks().length === 0) {
+      stream.getTracks().forEach((track) => track.stop());
+      throw new Error(t("video.audioUnavailable"));
     }
     if (stopRequested) {
       stream.getTracks().forEach((track) => track.stop());
@@ -1499,8 +1547,8 @@ var Icon = {
 };
 
 // src/views/login.ts
-async function renderLogin(container2, { navigate, refreshUser }) {
-  container2.innerHTML = `
+async function renderLogin(container, { navigate, refreshUser }) {
+  container.innerHTML = `
     <div class="auth-screen">
       <img class="brand-mark" src="assets/icon.png" alt="" />
       <img class="auth-title" src="assets/title.png" />
@@ -1528,9 +1576,9 @@ async function renderLogin(container2, { navigate, refreshUser }) {
       <p class="auth-switch">${t("login.switch")} <a href="#/register">${t("login.switchLink")}</a></p>
     </div>
   `;
-  const form = container2.querySelector("#login-form");
+  const form = container.querySelector("#login-form");
   const button = form.querySelector('button[type="submit"]');
-  const forgotLink = container2.querySelector("#forgot-link");
+  const forgotLink = container.querySelector("#forgot-link");
   forgotLink.addEventListener("click", async (event) => {
     event.preventDefault();
     const email = form.querySelector('input[name="email"]').value.trim();
@@ -1637,8 +1685,8 @@ function insertEmailDomain(input, domain) {
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 }
-async function renderRegister(container2, { navigate }) {
-  container2.innerHTML = `
+async function renderRegister(container, { navigate }) {
+  container.innerHTML = `
     <div class="auth-screen">
       <img class="auth-title" src="assets/title.png" alt="" />
       <h2 class="auth-title">${t("route.register.title")}</h2>
@@ -1686,7 +1734,7 @@ async function renderRegister(container2, { navigate }) {
       <p class="auth-switch">${t("register.switch")} <a href="#/login">${t("register.switchLink")}</a></p>
     </div>
   `;
-  const form = container2.querySelector("#register-form");
+  const form = container.querySelector("#register-form");
   const button = form.querySelector('button[type="submit"]');
   attachPhoneSanitizer(form.querySelector('input[name="phone_number"]'));
   const emailInput = form.querySelector('input[name="email"]');
@@ -1705,7 +1753,7 @@ async function renderRegister(container2, { navigate }) {
     try {
       setLoading(button, true);
       await Api.register(data);
-      renderConfirmEmail(container2, data.email, navigate);
+      renderConfirmEmail(container, data.email, navigate);
     } catch (error) {
       shake(form);
       showToast(error instanceof ApiError ? error.message : t("errors.generic"), "error");
@@ -1728,8 +1776,8 @@ async function renderRegister(container2, { navigate }) {
     }
   }
 }
-function renderConfirmEmail(container2, email, navigate) {
-  container2.innerHTML = `
+function renderConfirmEmail(container, email, navigate) {
+  container.innerHTML = `
     <div class="confirm-mail-screen">
       <div class="confirm-mail-icon">${Icon.mail()}</div>
       <h1 class="auth-title">${t("confirmMail.title")}</h1>
@@ -1737,7 +1785,7 @@ function renderConfirmEmail(container2, email, navigate) {
       <button id="back-to-login" class="btn btn-outline" type="button">${t("confirmMail.back")}</button>
     </div>
   `;
-  container2.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
+  container.querySelector("#back-to-login").addEventListener("click", () => navigate("login"));
 }
 
 // src/lib/geolocation.ts
@@ -1761,7 +1809,7 @@ async function getCurrentCoordinates() {
 
 // node_modules/@capacitor/browser/dist/esm/index.js
 var Browser = registerPlugin("Browser", {
-  web: () => import("./chunk-8fw3sgw7.js").then((m) => new m.BrowserWeb)
+  web: () => (__preload("2ej5njjq"), import("./chunk-2ej5njjq.js")).then((m) => new m.BrowserWeb)
 });
 
 // src/views/home.ts
@@ -1769,10 +1817,10 @@ var HOLD_DURATION_MS = 1400;
 var RING_RADIUS = 54;
 var RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 var RESET_DELAY_MS = 2600;
-async function renderHome(container2, { getUser: getUser2 }) {
-  const user = getUser2();
+async function renderHome(container, { getUser }) {
+  const user = getUser();
   const firstName = (user?.name ?? "there").split(" ")[0];
-  container2.innerHTML = `
+  container.innerHTML = `
     <div class="home-screen">
       <div class="home-hud">
         <p class="home-greeting">${t("home.greeting", { name: escapeHtml(firstName) })}</p>
@@ -1816,22 +1864,22 @@ async function renderHome(container2, { getUser: getUser2 }) {
       </section>
     </div>
   `;
-  const btn = container2.querySelector("#panic-btn");
-  const ring = container2.querySelector("#panic-ring-progress");
-  const icon2 = container2.querySelector("#panic-icon");
-  const check = container2.querySelector("#panic-check");
-  const status = container2.querySelector("#panic-status");
-  const statusChip = container2.querySelector("#home-status-chip");
-  const trackingPanel = container2.querySelector("#tracking-panel");
-  const trackingDot = container2.querySelector("#tracking-dot");
-  const trackingDetail = container2.querySelector("#tracking-detail");
-  const stopTrackingBtn = container2.querySelector("#stop-tracking-btn");
-  const videoPanel = container2.querySelector("#video-panel");
-  const videoDetail = container2.querySelector("#video-detail");
-  const videoDriveStatus = container2.querySelector("#video-drive-status");
-  const videoLink = container2.querySelector("#video-drive-link");
-  const videoRetry = container2.querySelector("#video-retry");
-  const videoStop = container2.querySelector("#video-stop");
+  const btn = container.querySelector("#panic-btn");
+  const ring = container.querySelector("#panic-ring-progress");
+  const icon = container.querySelector("#panic-icon");
+  const check = container.querySelector("#panic-check");
+  const status = container.querySelector("#panic-status");
+  const statusChip = container.querySelector("#home-status-chip");
+  const trackingPanel = container.querySelector("#tracking-panel");
+  const trackingDot = container.querySelector("#tracking-dot");
+  const trackingDetail = container.querySelector("#tracking-detail");
+  const stopTrackingBtn = container.querySelector("#stop-tracking-btn");
+  const videoPanel = container.querySelector("#video-panel");
+  const videoDetail = container.querySelector("#video-detail");
+  const videoDriveStatus = container.querySelector("#video-drive-status");
+  const videoLink = container.querySelector("#video-drive-link");
+  const videoRetry = container.querySelector("#video-retry");
+  const videoStop = container.querySelector("#video-stop");
   let lastAlertId = null;
   let googleConnected = false;
   let driveStatus = "not_uploaded";
@@ -1839,7 +1887,7 @@ async function renderHome(container2, { getUser: getUser2 }) {
   let recording = getRecordingState();
   function renderVideo() {
     videoPanel.hidden = !lastAlertId;
-    container2.querySelector(".home-screen").classList.toggle("home-has-video", Boolean(lastAlertId));
+    container.querySelector(".home-screen").classList.toggle("home-has-video", Boolean(lastAlertId));
     if (!lastAlertId)
       return;
     videoDetail.textContent = recording.alertId === lastAlertId ? recording.message : t("video.waiting");
@@ -1884,7 +1932,7 @@ async function renderHome(container2, { getUser: getUser2 }) {
     renderVideo();
   }).catch(() => {});
   const videoClock = setInterval(async () => {
-    if (!container2.isConnected) {
+    if (!container.isConnected) {
       clearInterval(videoClock);
       return;
     }
@@ -1926,7 +1974,7 @@ async function renderHome(container2, { getUser: getUser2 }) {
   }
   observeLiveTracking(renderTrackingState);
   const trackingClock = setInterval(() => {
-    if (!container2.isConnected) {
+    if (!container.isConnected) {
       clearInterval(trackingClock);
       return;
     }
@@ -1996,7 +2044,7 @@ async function renderHome(container2, { getUser: getUser2 }) {
       recordAlertVideo(alert.id);
       btn.classList.remove("panic-btn-busy");
       btn.classList.add("panic-btn-success");
-      icon2.hidden = true;
+      icon.hidden = true;
       check.hidden = false;
       status.textContent = t(trackingStarted ? "home.sent" : "home.trackingUnavailable");
       showToast(t(trackingStarted ? "home.sentToast" : "home.trackingUnavailable"), trackingStarted ? "success" : "error");
@@ -2014,7 +2062,7 @@ async function renderHome(container2, { getUser: getUser2 }) {
   function resetButton() {
     if (getLiveTrackingState().active) {
       btn.classList.remove("panic-btn-busy", "panic-btn-success", "panic-btn-error");
-      icon2.hidden = false;
+      icon.hidden = false;
       check.hidden = true;
       renderTrackingState(getLiveTrackingState());
       return;
@@ -2022,7 +2070,7 @@ async function renderHome(container2, { getUser: getUser2 }) {
     busy = false;
     setRingProgress(0);
     btn.classList.remove("panic-btn-busy", "panic-btn-success", "panic-btn-error");
-    icon2.hidden = false;
+    icon.hidden = false;
     check.hidden = true;
     status.textContent = t("home.idle");
   }
@@ -2076,48 +2124,48 @@ function getFeatures() {
 
 // node_modules/@capacitor-community/contacts/dist/esm/definitions.js
 var PhoneType;
-(function(PhoneType2) {
-  PhoneType2["Home"] = "home";
-  PhoneType2["Work"] = "work";
-  PhoneType2["Other"] = "other";
-  PhoneType2["Custom"] = "custom";
-  PhoneType2["Mobile"] = "mobile";
-  PhoneType2["FaxWork"] = "fax_work";
-  PhoneType2["FaxHome"] = "fax_home";
-  PhoneType2["Pager"] = "pager";
-  PhoneType2["Callback"] = "callback";
-  PhoneType2["Car"] = "car";
-  PhoneType2["CompanyMain"] = "company_main";
-  PhoneType2["Isdn"] = "isdn";
-  PhoneType2["Main"] = "main";
-  PhoneType2["OtherFax"] = "other_fax";
-  PhoneType2["Radio"] = "radio";
-  PhoneType2["Telex"] = "telex";
-  PhoneType2["TtyTdd"] = "tty_tdd";
-  PhoneType2["WorkMobile"] = "work_mobile";
-  PhoneType2["WorkPager"] = "work_pager";
-  PhoneType2["Assistant"] = "assistant";
-  PhoneType2["Mms"] = "mms";
+(function(PhoneType) {
+  PhoneType["Home"] = "home";
+  PhoneType["Work"] = "work";
+  PhoneType["Other"] = "other";
+  PhoneType["Custom"] = "custom";
+  PhoneType["Mobile"] = "mobile";
+  PhoneType["FaxWork"] = "fax_work";
+  PhoneType["FaxHome"] = "fax_home";
+  PhoneType["Pager"] = "pager";
+  PhoneType["Callback"] = "callback";
+  PhoneType["Car"] = "car";
+  PhoneType["CompanyMain"] = "company_main";
+  PhoneType["Isdn"] = "isdn";
+  PhoneType["Main"] = "main";
+  PhoneType["OtherFax"] = "other_fax";
+  PhoneType["Radio"] = "radio";
+  PhoneType["Telex"] = "telex";
+  PhoneType["TtyTdd"] = "tty_tdd";
+  PhoneType["WorkMobile"] = "work_mobile";
+  PhoneType["WorkPager"] = "work_pager";
+  PhoneType["Assistant"] = "assistant";
+  PhoneType["Mms"] = "mms";
 })(PhoneType || (PhoneType = {}));
 var EmailType;
-(function(EmailType2) {
-  EmailType2["Home"] = "home";
-  EmailType2["Work"] = "work";
-  EmailType2["Other"] = "other";
-  EmailType2["Custom"] = "custom";
-  EmailType2["Mobile"] = "mobile";
+(function(EmailType) {
+  EmailType["Home"] = "home";
+  EmailType["Work"] = "work";
+  EmailType["Other"] = "other";
+  EmailType["Custom"] = "custom";
+  EmailType["Mobile"] = "mobile";
 })(EmailType || (EmailType = {}));
 var PostalAddressType;
-(function(PostalAddressType2) {
-  PostalAddressType2["Home"] = "home";
-  PostalAddressType2["Work"] = "work";
-  PostalAddressType2["Other"] = "other";
-  PostalAddressType2["Custom"] = "custom";
+(function(PostalAddressType) {
+  PostalAddressType["Home"] = "home";
+  PostalAddressType["Work"] = "work";
+  PostalAddressType["Other"] = "other";
+  PostalAddressType["Custom"] = "custom";
 })(PostalAddressType || (PostalAddressType = {}));
 
 // node_modules/@capacitor-community/contacts/dist/esm/index.js
 var Contacts = registerPlugin("Contacts", {
-  web: () => import("./chunk-50ydnxbr.js").then((m) => new m.ContactsWeb)
+  web: () => (__preload("wa60nctg"), import("./chunk-wa60nctg.js")).then((m) => new m.ContactsWeb)
 });
 
 // src/lib/contactsPicker.ts
@@ -2155,7 +2203,7 @@ function openSheet(bodyElement) {
 
 // node_modules/@capacitor/share/dist/esm/index.js
 var Share = registerPlugin("Share", {
-  web: () => import("./chunk-nnq8xjfq.js").then((m) => new m.ShareWeb)
+  web: () => (__preload("1jqkyfhm"), import("./chunk-1jqkyfhm.js")).then((m) => new m.ShareWeb)
 });
 
 // src/lib/share.ts
@@ -2189,15 +2237,15 @@ function insertEmailDomain2(input, domain) {
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 }
-async function renderContacts(container2) {
-  container2.innerHTML = `
+async function renderContacts(container) {
+  container.innerHTML = `
     <div class="contacts-screen">
       <div id="contacts-list" class="contacts-list"></div>
       <button id="add-contact-fab" class="fab" type="button" aria-label="${t("contacts.addTitle")}">${Icon.add()}</button>
     </div>
   `;
-  const list = container2.querySelector("#contacts-list");
-  const fab = container2.querySelector("#add-contact-fab");
+  const list = container.querySelector("#contacts-list");
+  const fab = container.querySelector("#add-contact-fab");
   renderSkeleton(list);
   const features = await getFeatures();
   await loadContacts(list, fab, features);
@@ -2521,13 +2569,13 @@ async function connectIntegration() {
 
 // src/views/profile.ts
 var COLOR_PRESETS = [DEFAULT_ACCENT, "#2563eb", "#16a34a", "#9333ea", "#f97316", "#0d9488"];
-async function renderProfile(container2, { getUser: getUser2, refreshUser, logout, navigate, getLanguage: getLanguage2, changeLanguage, getAccentColor: getAccentColor2, setAccentColor: setAccentColor2, getTheme: getTheme2, setTheme: setTheme2 }) {
-  const user = getUser2();
-  const lang = getLanguage2();
-  const accentColor = getAccentColor2();
+async function renderProfile(container, { getUser, refreshUser, logout, navigate, getLanguage, changeLanguage, getAccentColor, setAccentColor, getTheme, setTheme }) {
+  const user = getUser();
+  const lang = getLanguage();
+  const accentColor = getAccentColor();
   const isPreset = COLOR_PRESETS.includes(accentColor);
-  const theme = getTheme2();
-  container2.innerHTML = `
+  const theme = getTheme();
+  container.innerHTML = `
     <div class="profile-screen">
 
       <form id="profile-form" class="form" novalidate>
@@ -2613,13 +2661,13 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
       </button>
     </div>
   `;
-  const form = container2.querySelector("#profile-form");
+  const form = container.querySelector("#profile-form");
   const button = form.querySelector("button[type=submit]");
-  const logoutBtn = container2.querySelector("#logout-btn");
+  const logoutBtn = container.querySelector("#logout-btn");
   async function refreshIntegrations() {
     try {
       const statuses = await Api.getIntegrations();
-      const target = container2.querySelector("#integration-google");
+      const target = container.querySelector("#integration-google");
       const status = statuses.google;
       target.innerHTML = `<div class="integration-row"><span>Google Drive<small>${escapeHtml(status.connected ? t("video.connected") : status.available ? t("video.disconnected") : t("video.unavailable"))}</small></span><button class="btn btn-outline" type="button" ${status.available ? "" : "disabled"}>${t(status.connected ? "video.disconnect" : "video.connect")}</button></div>`;
       target.querySelector("button").addEventListener("click", async (event) => {
@@ -2640,14 +2688,14 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
       showToast(error instanceof Error ? error.message : t("errors.generic"), "error");
     }
   }
-  container2.querySelector("#refresh-integrations").addEventListener("click", refreshIntegrations);
+  container.querySelector("#refresh-integrations").addEventListener("click", refreshIntegrations);
   refreshIntegrations();
-  container2.querySelector("#lang-select").addEventListener("change", (event) => changeLanguage(event.target.value));
-  container2.querySelector("#theme-select").addEventListener("change", (event) => setTheme2(event.target.value));
-  const customSwatch = container2.querySelector(".color-swatch-custom");
-  const customInput = container2.querySelector("#color-custom-input");
+  container.querySelector("#lang-select").addEventListener("change", (event) => changeLanguage(event.target.value));
+  container.querySelector("#theme-select").addEventListener("change", (event) => setTheme(event.target.value));
+  const customSwatch = container.querySelector(".color-swatch-custom");
+  const customInput = container.querySelector("#color-custom-input");
   function markActiveSwatch(hex) {
-    container2.querySelectorAll(".color-swatch[data-color]").forEach((swatch) => {
+    container.querySelectorAll(".color-swatch[data-color]").forEach((swatch) => {
       swatch.classList.toggle("color-swatch-active", swatch.dataset.color === hex);
     });
     const isCustom = !COLOR_PRESETS.includes(hex);
@@ -2655,14 +2703,14 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
     if (isCustom)
       customSwatch.style.background = hex;
   }
-  container2.querySelectorAll(".color-swatch[data-color]").forEach((swatch) => {
+  container.querySelectorAll(".color-swatch[data-color]").forEach((swatch) => {
     swatch.addEventListener("click", () => {
-      setAccentColor2(swatch.dataset.color);
+      setAccentColor(swatch.dataset.color);
       markActiveSwatch(swatch.dataset.color);
     });
   });
   customInput.addEventListener("input", () => {
-    setAccentColor2(customInput.value);
+    setAccentColor(customInput.value);
     markActiveSwatch(customInput.value);
   });
   form.addEventListener("submit", async (event) => {
@@ -2704,14 +2752,14 @@ async function renderProfile(container2, { getUser: getUser2, refreshUser, logou
     }
   });
   logoutBtn.addEventListener("click", () => logout());
-  container2.querySelector("#help-btn").addEventListener("click", () => navigate("help"));
-  container2.querySelector("#about-btn").addEventListener("click", () => navigate("about"));
+  container.querySelector("#help-btn").addEventListener("click", () => navigate("help"));
+  container.querySelector("#about-btn").addEventListener("click", () => navigate("about"));
 }
 
 // src/views/about.ts
 var BASE_URL4 = "https://devs.panicbutton.me".replace(/\/+$/, "");
-async function renderAbout(container2, { navigate }) {
-  container2.innerHTML = `
+async function renderAbout(container, { navigate }) {
+  container.innerHTML = `
     <div class="info-screen">
       <div class="info-header">
         <button class="icon-btn" type="button" id="info-back" aria-label="${t("info.back")}">${Icon.arrowBack()}</button>
@@ -2731,6 +2779,7 @@ async function renderAbout(container2, { navigate }) {
         <h2 class="info-section-title">${t("about.legalTitle")}</h2>
         <button id="privacy-btn" class="btn btn-outline btn-block" type="button">${t("about.privacy")}</button>
         <button id="terms-btn" class="btn btn-outline btn-block" type="button">${t("about.terms")}</button>
+        <button id="delete-account-btn" class="btn btn-outline btn-block" type="button">${t("about.deleteAccount")}</button>
       </section>
 
       <section class="info-section">
@@ -2740,15 +2789,16 @@ async function renderAbout(container2, { navigate }) {
       </section>
     </div>
   `;
-  container2.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
-  container2.querySelector("#privacy-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/privacy` }));
-  container2.querySelector("#terms-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/terms` }));
+  container.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
+  container.querySelector("#privacy-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/privacy` }));
+  container.querySelector("#terms-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/terms` }));
+  container.querySelector("#delete-account-btn").addEventListener("click", () => Browser.open({ url: `${BASE_URL4}/delete-account` }));
 }
 
 // src/views/help.ts
 var SECTIONS = ["account", "panic", "contacts", "channels", "profile"];
-async function renderHelp(container2, { navigate }) {
-  container2.innerHTML = `
+async function renderHelp(container, { navigate }) {
+  container.innerHTML = `
     <div class="info-screen">
       <div class="info-header">
         <button class="icon-btn" type="button" id="info-back" aria-label="${t("info.back")}">${Icon.arrowBack()}</button>
@@ -2763,7 +2813,7 @@ async function renderHelp(container2, { navigate }) {
       `).join("")}
     </div>
   `;
-  container2.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
+  container.querySelector("#info-back").addEventListener("click", () => navigate("profile"));
 }
 
 // src/main.ts

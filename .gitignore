@@ -3,6 +3,7 @@ node_modules/
 
 # Bun resources
 bun.lock
+!app/bun.lock
 
 # Enviroment
 *.env
@@ -17,6 +18,11 @@ app/android/.idea/workspace.xml
 backend/data/videos/
 *.keystore
 *.pem
+*.p12
+*.p8
+*.mobileprovision
+*.cer
+*.key
 resources/keys/local.properties
 temp/
 tmp/

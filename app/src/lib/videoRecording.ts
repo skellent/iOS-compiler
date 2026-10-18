@@ -125,8 +125,15 @@ export async function recordAlertVideo(alertId: number) {
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true });
-    } catch {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    } catch (error) {
+      if (error instanceof DOMException && ["NotAllowedError", "PermissionDeniedError"].includes(error.name)) {
+        throw new Error(t("video.permissionsRequired"));
+      }
+      throw error;
+    }
+    if (stream.getAudioTracks().length === 0) {
+      stream.getTracks().forEach((track) => track.stop());
+      throw new Error(t("video.audioUnavailable"));
     }
     if (stopRequested) {
       stream.getTracks().forEach((track) => track.stop());

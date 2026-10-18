@@ -1,4 +1,4 @@
-import { registerPlugin } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
 import { Preferences } from "@capacitor/preferences";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -186,6 +186,11 @@ function locationErrorMessage(error: unknown, fallback: string): string {
 }
 
 async function requestTrackingNotificationPermission() {
+  // Android uses a persistent notification for its foreground location
+  // service. iOS exposes background location with the system indicator and
+  // does not need a local-notification permission prompt for this feature.
+  if (Capacitor.getPlatform() !== "android") return;
+
   try {
     const permission = await LocalNotifications.checkPermissions();
     if (permission.display === "prompt") {

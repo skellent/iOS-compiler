@@ -2,7 +2,12 @@
   "name": "panicbutton-app",
   "private": true,
   "scripts": {
-    "build": "bun build.js"
+    "build": "bun build.js",
+    "patch:ios-plugins": "bun patch-ios-plugins.js",
+    "sync": "bun run build && bunx cap sync",
+    "sync:android": "bun run build && CAPACITOR_TARGET_PLATFORM=android bunx cap sync android",
+    "sync:ios": "bun run build && bun run patch:ios-plugins && CAPACITOR_TARGET_PLATFORM=ios bunx cap sync ios",
+    "add:ios": "bun run patch:ios-plugins && CAPACITOR_TARGET_PLATFORM=ios bunx cap add ios --packagemanager SPM"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

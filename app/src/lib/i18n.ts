@@ -89,6 +89,8 @@ const STRINGS = {
     "video.ready": "Recording available in Google Drive.",
     "video.uploadFailed": "The recording could not be uploaded to Drive. It remains on this phone for retry.",
     "video.captureFailed": "The camera did not capture a video.",
+    "video.permissionsRequired": "Allow camera and microphone access to record the SOS video with sound.",
+    "video.audioUnavailable": "The microphone did not provide an audio track. Check microphone access and try again.",
     "video.unsupported": "This device cannot record WebM or MP4 video.",
     "video.tooLarge": "The recording exceeded the 100 MB limit.",
     "video.retry": "Retry upload",
@@ -206,6 +208,7 @@ const STRINGS = {
     "about.legalTitle": "Legal information",
     "about.privacy": "Privacy Policy",
     "about.terms": "Terms of Service",
+    "about.deleteAccount": "Delete account",
   },
   es: {
     "nav.home": "Inicio",
@@ -286,6 +289,8 @@ const STRINGS = {
     "video.ready": "Grabación disponible en Google Drive.",
     "video.uploadFailed": "No se pudo subir la grabación a Drive. Permanece en este teléfono para reintentar.",
     "video.captureFailed": "La cámara no capturó ningún video.",
+    "video.permissionsRequired": "Permite el acceso a la cámara y al micrófono para grabar el video de SOS con sonido.",
+    "video.audioUnavailable": "El micrófono no proporcionó una pista de audio. Revisa el permiso del micrófono e inténtalo de nuevo.",
     "video.unsupported": "Este dispositivo no puede grabar video WebM o MP4.",
     "video.tooLarge": "La grabación superó el límite de 100 MB.",
     "video.retry": "Reintentar subida",
@@ -403,6 +408,7 @@ const STRINGS = {
     "about.legalTitle": "Información legal",
     "about.privacy": "Política de Privacidad",
     "about.terms": "Términos de Servicio",
+    "about.deleteAccount": "Eliminar cuenta",
   },
   "pt-BR": {
     "nav.home": "Início",
@@ -479,6 +485,8 @@ const STRINGS = {
     "video.ready": "Gravação disponível no Google Drive.",
     "video.uploadFailed": "Não foi possível enviar a gravação ao Drive. Ela permanece neste telefone para nova tentativa.",
     "video.captureFailed": "A câmera não gravou nenhum vídeo.",
+    "video.permissionsRequired": "Permita o acesso à câmera e ao microfone para gravar o vídeo de SOS com som.",
+    "video.audioUnavailable": "O microfone não forneceu uma faixa de áudio. Verifique a permissão do microfone e tente novamente.",
     "video.unsupported": "Este dispositivo não consegue gravar vídeo WebM ou MP4.",
     "video.tooLarge": "A gravação excedeu o limite de 100 MB.",
     "video.retry": "Tentar envio novamente",
@@ -573,6 +581,7 @@ const STRINGS = {
     "about.legalTitle": "Informações legais",
     "about.privacy": "Política de Privacidade",
     "about.terms": "Termos de Serviço",
+    "about.deleteAccount": "Excluir conta",
   },
 };
 
