@@ -1,0 +1,355 @@
+# Disabled while this branch is stored in the private repository.
+# Move this file back to .github/workflows in the public build repository.
+name: iOS TestFlight release
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: Version shown in the App Store, for example 1.0.0
+        required: true
+        default: "1.0.0"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Archive and upload to TestFlight
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: app-store
+    env:
+      API_BASE_URL: ${{ vars.IOS_API_BASE_URL }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      APP_BUNDLE_ID: com.keycodelogics.panicbutton
+      APP_VERSION: ${{ inputs.app_version }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Validate variables and secrets
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+        run: |
+          required_values=(
+            API_BASE_URL
+            APPLE_TEAM_ID
+            BUILD_CERTIFICATE_BASE64
+            P12_PASSWORD
+            BUILD_PROVISION_PROFILE_BASE64
+            KEYCHAIN_PASSWORD
+            ASC_KEY_ID
+            ASC_ISSUER_ID
+            ASC_PRIVATE_KEY_BASE64
+          )
+
+          for value_name in "${required_values[@]}"; do
+            if [[ -z "${!value_name}" ]]; then
+              echo "Required GitHub variable or secret is missing: $value_name"
+              exit 1
+            fi
+          done
+
+          if [[ ! "$APP_VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+            echo "app_version must contain one to three numeric components, for example 3.3.0."
+            exit 1
+          fi
+
+      - name: Install JavaScript dependencies
+        working-directory: app
+        run: bun install --frozen-lockfile
+
+      - name: Generate and synchronize the iOS project
+        working-directory: app
+        run: bun run sync:ios
+
+      - name: Install signing certificate and provisioning profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          certificate_path="$RUNNER_TEMP/build-certificate.p12"
+          profile_path="$RUNNER_TEMP/build.mobileprovision"
+          profile_plist_path="$RUNNER_TEMP/build-profile.plist"
+          keychain_path="$RUNNER_TEMP/app-signing.keychain-db"
+
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 -D > "$certificate_path"
+          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 -D > "$profile_path"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security import "$certificate_path" \
+            -P "$P12_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$keychain_path"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+
+          security cms -D -i "$profile_path" > "$profile_plist_path"
+          profile_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$profile_plist_path")
+          profile_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$profile_plist_path")
+          profile_team_id=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" "$profile_plist_path")
+          profile_app_identifier=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$profile_plist_path")
+          expected_app_identifier="$APPLE_TEAM_ID.$APP_BUNDLE_ID"
+
+          if [[ "$profile_team_id" != "$APPLE_TEAM_ID" ]]; then
+            echo "The provisioning profile belongs to Team ID $profile_team_id, not $APPLE_TEAM_ID."
+            exit 1
+          fi
+
+          if [[ "$profile_app_identifier" != "$expected_app_identifier" ]]; then
+            echo "The provisioning profile is for $profile_app_identifier, not $expected_app_identifier."
+            exit 1
+          fi
+
+          if ! security find-identity -v -p codesigning "$keychain_path" | grep -q 'Apple Distribution'; then
+            echo "No usable Apple Distribution identity was found in the temporary keychain."
+            exit 1
+          fi
+
+          profiles_directory="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$profiles_directory"
+          cp "$profile_path" "$profiles_directory/$profile_uuid.mobileprovision"
+
+          echo "PROFILE_UUID=$profile_uuid" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"
+          echo "SIGNING_KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+
+      - name: Scope Release signing to the application target
+        working-directory: app
+        run: |
+          project_file="ios/App/App.xcodeproj/project.pbxproj"
+          temporary_project=$(mktemp "$RUNNER_TEMP/project.pbxproj.XXXXXX")
+          release_configuration_id=$(awk '
+            /\/\* Build configuration list for PBXNativeTarget "App" \*\/ = \{/ {
+              in_app_configuration_list = 1
+              next
+            }
+            in_app_configuration_list && /\/\* Release \*\// {
+              print $1
+              exit
+            }
+          ' "$project_file")
+
+          if [[ -z "$release_configuration_id" ]]; then
+            echo "Unable to locate the App target Release configuration."
+            exit 1
+          fi
+
+          awk -v release_configuration_id="$release_configuration_id" '
+            index($0, release_configuration_id " /* Release */ = {") {
+              in_release_configuration = 1
+            }
+
+            in_release_configuration && /buildSettings = \{/ {
+              in_build_settings = 1
+              print
+              next
+            }
+
+            in_build_settings && /CODE_SIGN_IDENTITY =/ {
+              print "\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";"
+              found_code_sign_identity = 1
+              next
+            }
+
+            in_build_settings && /CODE_SIGN_STYLE =/ {
+              print "\t\t\t\tCODE_SIGN_STYLE = Manual;"
+              found_code_sign_style = 1
+              next
+            }
+
+            in_build_settings && /CURRENT_PROJECT_VERSION =/ {
+              print "\t\t\t\tCURRENT_PROJECT_VERSION = \"$(PANICBUTTON_CURRENT_PROJECT_VERSION)\";"
+              found_current_project_version = 1
+              next
+            }
+
+            in_build_settings && /DEVELOPMENT_TEAM =/ {
+              print "\t\t\t\tDEVELOPMENT_TEAM = \"$(PANICBUTTON_DEVELOPMENT_TEAM)\";"
+              found_development_team = 1
+              next
+            }
+
+            in_build_settings && /MARKETING_VERSION =/ {
+              print "\t\t\t\tMARKETING_VERSION = \"$(PANICBUTTON_MARKETING_VERSION)\";"
+              found_marketing_version = 1
+              next
+            }
+
+            in_build_settings && /PRODUCT_BUNDLE_IDENTIFIER =/ {
+              print "\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = \"$(PANICBUTTON_BUNDLE_ID)\";"
+              found_bundle_id = 1
+              next
+            }
+
+            in_build_settings && /PROVISIONING_PROFILE_SPECIFIER =/ {
+              print "\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"$(PANICBUTTON_PROFILE_SPECIFIER)\";"
+              found_profile_specifier = 1
+              next
+            }
+
+            in_build_settings && /^\t\t\t};$/ {
+              if (!found_code_sign_identity) {
+                print "\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";"
+              }
+              if (!found_code_sign_style) {
+                print "\t\t\t\tCODE_SIGN_STYLE = Manual;"
+              }
+              if (!found_current_project_version) {
+                print "\t\t\t\tCURRENT_PROJECT_VERSION = \"$(PANICBUTTON_CURRENT_PROJECT_VERSION)\";"
+              }
+              if (!found_development_team) {
+                print "\t\t\t\tDEVELOPMENT_TEAM = \"$(PANICBUTTON_DEVELOPMENT_TEAM)\";"
+              }
+              if (!found_marketing_version) {
+                print "\t\t\t\tMARKETING_VERSION = \"$(PANICBUTTON_MARKETING_VERSION)\";"
+              }
+              if (!found_bundle_id) {
+                print "\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = \"$(PANICBUTTON_BUNDLE_ID)\";"
+              }
+              if (!found_profile_specifier) {
+                print "\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"$(PANICBUTTON_PROFILE_SPECIFIER)\";"
+              }
+
+              print
+              updated_release_configuration = 1
+              in_build_settings = 0
+              in_release_configuration = 0
+              next
+            }
+
+            { print }
+
+            END {
+              if (!updated_release_configuration) {
+                exit 42
+              }
+            }
+          ' "$project_file" > "$temporary_project"
+
+          mv "$temporary_project" "$project_file"
+
+      - name: Archive signed iPhone application
+        working-directory: app
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/PanicButton.xcarchive" \
+            PANICBUTTON_DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PANICBUTTON_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            PANICBUTTON_BUNDLE_ID="$APP_BUNDLE_ID" \
+            PANICBUTTON_MARKETING_VERSION="$APP_VERSION" \
+            PANICBUTTON_CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            archive
+
+      - name: Export signed IPA
+        run: |
+          export_options_path="$RUNNER_TEMP/ExportOptions.plist"
+          export_directory="$RUNNER_TEMP/ios-export"
+
+          cat > "$export_options_path" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>destination</key>
+            <string>export</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_BUNDLE_ID}</key>
+              <string>${PROFILE_NAME}</string>
+            </dict>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/PanicButton.xcarchive" \
+            -exportPath "$export_directory" \
+            -exportOptionsPlist "$export_options_path"
+
+      - name: Upload IPA as workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: panic-button-ios-${{ inputs.app_version }}-${{ github.run_number }}
+          path: ${{ runner.temp }}/ios-export/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload IPA to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+        run: |
+          api_keys_directory="$HOME/.appstoreconnect/private_keys"
+          api_key_path="$api_keys_directory/AuthKey_${ASC_KEY_ID}.p8"
+          mkdir -p "$api_keys_directory"
+          printf '%s' "$ASC_PRIVATE_KEY_BASE64" | base64 -D > "$api_key_path"
+
+          ipa_path=$(find "$RUNNER_TEMP/ios-export" -name '*.ipa' -print -quit)
+          if [[ -z "$ipa_path" ]]; then
+            echo "No exported IPA was found."
+            exit 1
+          fi
+
+          xcrun altool \
+            --upload-app \
+            --type ios \
+            --file "$ipa_path" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          if [[ -n "${SIGNING_KEYCHAIN_PATH:-}" ]]; then
+            security delete-keychain "$SIGNING_KEYCHAIN_PATH" || true
+          fi
+
+          if [[ -n "${PROFILE_UUID:-}" ]]; then
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          fi
+
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
